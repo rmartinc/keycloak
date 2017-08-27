@@ -132,6 +132,9 @@ public class RealmEntity {
 
     @OneToMany(cascade ={CascadeType.REMOVE}, orphanRemoval = true, mappedBy = "realm")
     Collection<RealmAttributeEntity> attributes = new ArrayList<>();
+    
+    @OneToMany(cascade ={CascadeType.REMOVE}, orphanRemoval = true, mappedBy = "realm")
+    Collection<RealmPasswordPolicyGroupEntity> passwordPolicyGroups = new ArrayList<>();
 
     @OneToMany(cascade ={CascadeType.REMOVE}, orphanRemoval = true, mappedBy = "realm")
     Collection<RequiredCredentialEntity> requiredCredentials = new ArrayList<>();
@@ -568,6 +571,14 @@ public class RealmEntity {
 
     public void setAttributes(Collection<RealmAttributeEntity> attributes) {
         this.attributes = attributes;
+    }
+    
+    public Collection<RealmPasswordPolicyGroupEntity> getPasswordPolicyGroups() {
+        return passwordPolicyGroups;
+    }
+    
+    public void setPasswordPolicyGroups(Collection<RealmPasswordPolicyGroupEntity> passwordPolicyGroups) {
+        this.passwordPolicyGroups = passwordPolicyGroups;
     }
 
     public List<IdentityProviderEntity> getIdentityProviders() {

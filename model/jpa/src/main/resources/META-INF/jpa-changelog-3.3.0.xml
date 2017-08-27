@@ -21,6 +21,18 @@
         <addColumn tableName="USER_ENTITY">
             <column name="NOT_BEFORE" type="INT" defaultValueNumeric="0"/>
         </addColumn>
+        <createTable tableName="REALM_PASSWORD_POLICY_GROUP">
+            <column name="NAME" type="NVARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="PASSWORD_POLICY" type="VARCHAR(2550)">
+            </column>
+            <column name="REALM_ID" type="VARCHAR(36)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addPrimaryKey columnNames="NAME, REALM_ID" constraintName="CONSTRAINT_93" tableName="REALM_PASSWORD_POLICY_GROUP"/>
+        <addForeignKeyConstraint baseColumnNames="REALM_ID" baseTableName="REALM_PASSWORD_POLICY_GROUP" constraintName="FK_9SHXD6L3E9ATQUKACXGPFFPTW" referencedColumnNames="ID" referencedTableName="REALM"/>
     </changeSet>
 
 </databaseChangeLog>

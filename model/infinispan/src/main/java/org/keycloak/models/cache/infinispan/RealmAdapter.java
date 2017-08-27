@@ -521,7 +521,37 @@ public class RealmAdapter implements CachedRealmModel {
         getDelegateForUpdate();
         updated.setPasswordPolicy(policy);
     }
+    
+    @Override
+    public PasswordPolicy getPasswordPolicyGroup(String name){
+        if (isUpdated()) {
+            return updated.getPasswordPolicyGroup(name);
+        } else {
+            return cached.getPasswordPolicyGroups().get(name);
+        }
+    }
+    
+    @Override
+    public Map<String, PasswordPolicy> getPasswordPolicyGroups() {
+        if (isUpdated()) {
+            return updated.getPasswordPolicyGroups();
+        } else {
+            return cached.getPasswordPolicyGroups();
+        }
+    }
 
+    @Override
+    public void setPasswordPolicyGroup(String name, PasswordPolicy passwordPolicy) {
+        getDelegateForUpdate();
+        updated.setPasswordPolicyGroup(name, passwordPolicy);
+    }
+    
+    @Override
+    public void removePasswordPolicyGroup(String name) {
+        getDelegateForUpdate();
+        updated.removePasswordPolicyGroup(name);
+    }
+    
     @Override
     public OTPPolicy getOTPPolicy() {
         if (isUpdated()) return updated.getOTPPolicy();

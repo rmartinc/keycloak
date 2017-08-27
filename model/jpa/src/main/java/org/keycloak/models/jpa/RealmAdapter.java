@@ -71,6 +71,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import org.keycloak.models.jpa.entities.RealmPasswordPolicyGroupEntity;
 
 /**
  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
@@ -82,6 +83,7 @@ public class RealmAdapter implements RealmModel, JpaModel<RealmEntity> {
     protected EntityManager em;
     protected KeycloakSession session;
     private PasswordPolicy passwordPolicy;
+    private Map<String, PasswordPolicy> passwordPolicyGroups;
     private OTPPolicy otpPolicy;
 
     public RealmAdapter(KeycloakSession session, EntityManager em, RealmEntity realm) {
@@ -830,6 +832,66 @@ public class RealmAdapter implements RealmModel, JpaModel<RealmEntity> {
         this.passwordPolicy = policy;
         realm.setPasswordPolicy(policy.toString());
         em.flush();
+    }
+    
+    private void constructPasswordPolicyGroups() {
+        if (this.passwordPolicyGroups == null) {
+            passwordPolicyGroups = new HashMap<>();
+            if (realm.getPasswordPolicyGroups() != null) {
+                realm.getPasswordPolicyGroups().forEach(
+                        p -> passwordPolicyGroups.put(p.getName(), PasswordPolicy.parse(session, p.getPasswordPolicy()))
+                );
+            }
+        }
+    }
+    
+    private void setRealmPasswordPolicyGroup(String name, PasswordPolicy passwordPolicy) {
+        for (RealmPasswordPolicyGroupEntity entity : realm.getPasswordPolicyGroups()) {
+            if (entity.getName().equals(name)) {
+                entity.setPasswordPolicy(passwordPolicy.toString());
+                return;
+            }
+        }
+        RealmPasswordPolicyGroupEntity entity = new RealmPasswordPolicyGroupEntity();
+        entity.setName(name);
+        entity.setPasswordPolicy(passwordPolicy.toString());
+        entity.setRealm(realm);
+        em.persist(entity);
+        realm.getPasswordPolicyGroups().add(entity);
+    }
+    
+    @Override
+    public PasswordPolicy getPasswordPolicyGroup(String name){
+        constructPasswordPolicyGroups();
+        return this.passwordPolicyGroups.get(name);
+    }
+    
+    @Override
+    public Map<String, PasswordPolicy> getPasswordPolicyGroups() {
+        constructPasswordPolicyGroups();
+        return passwordPolicyGroups;
+    }
+    
+    @Override
+    public void setPasswordPolicyGroup(String name, PasswordPolicy passwordPolicy) {
+        if (this.passwordPolicyGroups == null) {
+            passwordPolicyGroups = new HashMap<>();
+        }
+        passwordPolicyGroups.put(name, passwordPolicy);
+        setRealmPasswordPolicyGroup(name, passwordPolicy);
+        em.flush();
+    }
+    
+    @Override
+    public void removePasswordPolicyGroup(String name) {
+        Iterator<RealmPasswordPolicyGroupEntity> it = realm.getPasswordPolicyGroups().iterator();
+        while (it.hasNext()) {
+            RealmPasswordPolicyGroupEntity p = it.next();
+            if (p.getName().equals(name)) {
+                it.remove();
+                em.remove(p);
+            }
+        }
     }
 
     @Override

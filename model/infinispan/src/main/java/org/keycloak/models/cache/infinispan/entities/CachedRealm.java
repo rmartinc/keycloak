@@ -87,6 +87,7 @@ public class CachedRealm extends AbstractExtendableRevisioned {
     protected int actionTokenGeneratedByUserLifespan;
     protected int notBefore;
     protected PasswordPolicy passwordPolicy;
+    protected Map<String,PasswordPolicy> passwordPolicyGroups;
     protected OTPPolicy otpPolicy;
 
     protected String loginTheme;
@@ -182,6 +183,7 @@ public class CachedRealm extends AbstractExtendableRevisioned {
         actionTokenGeneratedByUserLifespan = model.getActionTokenGeneratedByUserLifespan();
         notBefore = model.getNotBefore();
         passwordPolicy = model.getPasswordPolicy();
+        passwordPolicyGroups = model.getPasswordPolicyGroups();
         otpPolicy = model.getOTPPolicy();
 
         loginTheme = model.getLoginTheme();
@@ -419,6 +421,10 @@ public class CachedRealm extends AbstractExtendableRevisioned {
 
     public PasswordPolicy getPasswordPolicy() {
         return passwordPolicy;
+    }
+    
+    public Map<String,PasswordPolicy> getPasswordPolicyGroups() {
+        return passwordPolicyGroups;
     }
 
     public boolean isIdentityFederationEnabled() {

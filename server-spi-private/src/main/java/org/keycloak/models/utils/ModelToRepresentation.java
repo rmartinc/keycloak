@@ -316,6 +316,12 @@ public class ModelToRepresentation {
         if (realm.getPasswordPolicy() != null) {
             rep.setPasswordPolicy(realm.getPasswordPolicy().toString());
         }
+        if (realm.getPasswordPolicy() != null && !realm.getPasswordPolicyGroups().isEmpty()) {
+            Map<String,String> policyGroups = new HashMap<>();
+            realm.getPasswordPolicyGroups().entrySet().stream().forEach(
+                    e -> policyGroups.put(e.getKey(), e.getValue().toString()));
+            rep.setPasswordPolicyGroups(policyGroups);
+        }
         OTPPolicy otpPolicy = realm.getOTPPolicy();
         rep.setOtpPolicyAlgorithm(otpPolicy.getAlgorithm());
         rep.setOtpPolicyPeriod(otpPolicy.getPeriod());

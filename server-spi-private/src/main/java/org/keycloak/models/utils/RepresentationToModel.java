@@ -227,6 +227,11 @@ public class RepresentationToModel {
 
         if (rep.getPasswordPolicy() != null)
             newRealm.setPasswordPolicy(PasswordPolicy.parse(session, rep.getPasswordPolicy()));
+        if (rep.getPasswordPolicyGroups() != null && !rep.getPasswordPolicyGroups().isEmpty()) {
+            rep.getPasswordPolicyGroups().entrySet().stream().forEach(
+                    e -> newRealm.setPasswordPolicyGroup(e.getKey(), PasswordPolicy.parse(session, e.getValue()))
+            );
+        }
         if (rep.getOtpPolicyType() != null) newRealm.setOTPPolicy(toPolicy(rep));
         else newRealm.setOTPPolicy(OTPPolicy.DEFAULT_POLICY);
 
@@ -805,6 +810,16 @@ public class RepresentationToModel {
             for (String attr : attrsToRemove) {
                 realm.removeAttribute(attr);
             }
+        }
+        
+        // the same with password policies
+        if (rep.getPasswordPolicyGroups() != null) {
+            Set<String> policiesToRemove = new HashSet<>(realm.getPasswordPolicyGroups().keySet());
+            policiesToRemove.removeAll(rep.getPasswordPolicyGroups().keySet());
+            rep.getPasswordPolicyGroups().entrySet().stream().forEach(
+                    e -> realm.setPasswordPolicyGroup(e.getKey(), PasswordPolicy.parse(session, e.getValue()))
+            );
+            policiesToRemove.stream().forEach(p -> realm.removePasswordPolicyGroup(p));
         }
 
         if (rep.getDisplayName() != null) realm.setDisplayName(rep.getDisplayName());

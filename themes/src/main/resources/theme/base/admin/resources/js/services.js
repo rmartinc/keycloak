@@ -109,6 +109,34 @@ module.service('Dialog', function($modal) {
     return dialog
 });
 
+module.service('NewPasswordPolicyGroupDialog', function($modal) {
+    var dialog = {};
+    dialog.open = function (title, success) {
+        var controller = function($scope, $modalInstance, title) {
+            $scope.title = title;
+            $scope.name = { value: '' };
+            $scope.ok = function () {
+                console.log('ok with name: ' + $scope.name);
+                $modalInstance.close();
+                success($scope.name.value);
+            };
+            $scope.cancel = function () {
+                $modalInstance.dismiss('cancel');
+            };
+        }
+        $modal.open({
+            templateUrl: resourceUrl + '/templates/kc-new-policy-group.html',
+            controller: controller,
+            resolve: {
+                title: function() {
+                    return title;
+                }
+            }
+        });
+    };
+    return dialog;
+});
+
 module.service('CopyDialog', function($modal) {
     var dialog = {};
     dialog.open = function (title, suggested, success) {

@@ -484,7 +484,7 @@ module.controller('RealmCacheCtrl', function($scope, realm, RealmClearUserCache,
 
 });
 
-module.controller('RealmPasswordPolicyCtrl', function($scope, Realm, realm, $http, $location, $route, Dialog, Notifications, serverInfo) {
+module.controller('RealmPasswordPolicyCtrl', function($scope, Realm, realm, $http, $location, $route, Dialog, NewPasswordPolicyGroupDialog, Notifications, serverInfo) {
     var parse = function(policyString) {
         var policies = [];
         if (!policyString || policyString.length == 0){
@@ -538,18 +538,22 @@ module.controller('RealmPasswordPolicyCtrl', function($scope, Realm, realm, $htt
     $scope.changed = false;
     console.log(JSON.stringify(parse(realm.passwordPolicy)));
     $scope.policy = parse(realm.passwordPolicy);
-    var oldCopy = angular.copy($scope.policy);
+    $scope.policyGroups = realm.passwordPolicyGroups? Object.keys(realm.passwordPolicyGroups) : [];
+    $scope.selectedPolicyGroup = '';
+    $scope.oldCopy = angular.copy($scope.policy);
 
     $scope.$watch('policy', function() {
-        $scope.changed = ! angular.equals($scope.policy, oldCopy);
+        $scope.changed = ! angular.equals($scope.policy, $scope.oldCopy);
     }, true);
 
     $scope.addPolicy = function(policy){
-        policy.value = policy.defaultValue;
-        if (!$scope.policy) {
-            $scope.policy = [];
+        if (policy) {
+            policy.value = policy.defaultValue;
+            if (!$scope.policy) {
+                $scope.policy = [];
+            }
+            $scope.policy.push(policy);
         }
-        $scope.policy.push(policy);
     }
 
     $scope.removePolicy = function(index){
@@ -557,7 +561,14 @@ module.controller('RealmPasswordPolicyCtrl', function($scope, Realm, realm, $htt
     }
 
     $scope.save = function() {
-        $scope.realm.passwordPolicy = toString($scope.policy);
+        if ($scope.selectedPolicyGroup === '') {
+            $scope.realm.passwordPolicy = toString($scope.policy);
+        } else {
+            if (!$scope.realm.passwordPolicyGroups) {
+                $scope.realm.passwordPolicyGroups = {}
+            }
+            $scope.realm.passwordPolicyGroups[$scope.selectedPolicyGroup] = toString($scope.policy);
+        }
         console.log($scope.realm.passwordPolicy);
 
         Realm.update($scope.realm, function () {
@@ -568,7 +579,50 @@ module.controller('RealmPasswordPolicyCtrl', function($scope, Realm, realm, $htt
 
     $scope.reset = function() {
         $route.reload();
+    }; 
+
+    $scope.createPasswordGroupPolicy = function() {
+        NewPasswordPolicyGroupDialog.open('New Password Policy', function(name) {
+            if (name) {
+                if ($scope.policyGroups.indexOf(name) === -1) {
+                    $scope.policyGroups.push(name);
+                }
+                $scope.changePasswordPolicyGroup(name);
+            }
+        });
     };
+
+    $scope.deletePasswordGroupPolicy = function(name) {
+        // TODO: do a confirm action
+        var idx = $scope.policyGroups.indexOf(name);
+        if (idx !== -1) {
+            $scope.policyGroups.splice(idx, 1)
+        }
+        if ($scope.realm.passwordPolicyGroups && $scope.realm.passwordPolicyGroups[name]) {
+            delete $scope.realm.passwordPolicyGroups[name];
+            Realm.update($scope.realm, function () {
+                $route.reload();
+                Notifications.success('The password policy has been deleted.');
+            });
+        }
+    }
+
+    $scope.changePasswordPolicyGroup = function(name) {
+        if ($scope.policyGroups.indexOf(name) !== -1) {
+            $scope.selectedPolicyGroup = name;
+            if ($scope.realm.passwordPolicyGroups && $scope.realm.passwordPolicyGroups[name]) {
+                $scope.policy = parse($scope.realm.passwordPolicyGroups[name]);
+            } else {
+                $scope.policy = '';
+            }
+            $scope.oldCopy = angular.copy($scope.policy);
+        } else {
+            $scope.selectedPolicyGroup = '';
+            $scope.policy = parse(realm.passwordPolicy);
+            $scope.oldCopy = angular.copy($scope.policy);
+        }
+    };
+
 });
 
 module.controller('RealmDefaultRolesCtrl', function ($scope, Realm, realm, clients, roles, Notifications, ClientRole, Client) {
