@@ -198,6 +198,10 @@ public class ModelToRepresentation {
         if (user.getAttributes() != null && !user.getAttributes().isEmpty()) {
             Map<String, List<String>> attrs = new HashMap<>();
             attrs.putAll(user.getAttributes());
+            List<String> passwordPolicyGroup = attrs.remove(UserModel.PASSWORD_POLICY_GROUP);
+            if (passwordPolicyGroup != null && !passwordPolicyGroup.isEmpty()) {
+                rep.setPasswordPolicyGroup(passwordPolicyGroup.get(0));
+            }
             rep.setAttributes(attrs);
         }
         return rep;

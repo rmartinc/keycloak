@@ -200,6 +200,12 @@ public class UserResource {
 
         if (rep.isEnabled() != null) user.setEnabled(rep.isEnabled());
         if (rep.isEmailVerified() != null) user.setEmailVerified(rep.isEmailVerified());
+        
+        if (rep.getPasswordPolicyGroup() != null && !rep.getPasswordPolicyGroup().isEmpty()) {
+            user.setAttribute(UserModel.PASSWORD_POLICY_GROUP, Collections.singletonList(rep.getPasswordPolicyGroup()));
+        } else {
+            user.removeAttribute(UserModel.PASSWORD_POLICY_GROUP);
+        }
 
         List<String> reqActions = rep.getRequiredActions();
 

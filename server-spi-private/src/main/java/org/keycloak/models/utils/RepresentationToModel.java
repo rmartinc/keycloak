@@ -19,6 +19,7 @@ package org.keycloak.models.utils;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -1449,6 +1450,9 @@ public class RepresentationToModel {
                     user.setAttribute(entry.getKey(), new ArrayList<>(value));
                 }
             }
+        }
+        if (userRep.getPasswordPolicyGroup() != null && !userRep.getPasswordPolicyGroup().isEmpty()) {
+            user.setAttribute(UserModel.PASSWORD_POLICY_GROUP, Collections.singletonList(userRep.getPasswordPolicyGroup()));
         }
         if (userRep.getRequiredActions() != null) {
             for (String requiredAction : userRep.getRequiredActions()) {

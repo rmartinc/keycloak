@@ -121,6 +121,15 @@
                 </div>
             </div>
 
+             <div class="form-group" data-ng-show="!user.federationLink">
+                <label class="col-md-2 control-label" for="passwordPolicyGroup">{{:: 'password-policy-group' | translate}}</label>
+                <div class="col-md-6">
+                    <select class="form-control" id="passwordPolicyGroup" name="passwordPolicyGroup" data-ng-model="user.passwordPolicyGroup" ng-options="key as key for (key,val) in realm.passwordPolicyGroups" ng-disabled="false">
+                        <option value="" selected>{{:: 'default' | translate}}</option>
+                    </select>
+                </div>
+            </div>
+
             <div class="form-group clearfix" data-ng-hide="create || !access.impersonation">
                 <label class="col-md-2 control-label" for="impersonate">{{:: 'impersonate-user' | translate}}</label>
 

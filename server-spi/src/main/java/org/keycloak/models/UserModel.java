@@ -28,6 +28,9 @@ import java.util.Set;
  * @version $Revision: 1 $
  */
 public interface UserModel extends RoleMapperModel {
+    
+    public static String PASSWORD_POLICY_GROUP = "password-policy-group";
+    
     String USERNAME = "username";
     String LAST_NAME = "lastName";
     String FIRST_NAME = "firstName";
