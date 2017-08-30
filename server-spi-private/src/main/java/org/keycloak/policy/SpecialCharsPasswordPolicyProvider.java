@@ -24,7 +24,7 @@ import org.keycloak.models.UserModel;
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
  */
-public class SpecialCharsPasswordPolicyProvider implements PasswordPolicyProvider {
+public class SpecialCharsPasswordPolicyProvider extends BasePasswordPolicyProvider implements PasswordPolicyProvider {
 
     private static final String ERROR_MESSAGE = "invalidPasswordMinSpecialCharsMessage";
 
@@ -36,7 +36,7 @@ public class SpecialCharsPasswordPolicyProvider implements PasswordPolicyProvide
 
     @Override
     public PolicyError validate(String username, String password) {
-        int min = context.getRealm().getPasswordPolicy().getPolicyConfig(SpecialCharsPasswordPolicyProviderFactory.ID);
+        int min = policy.getPolicyConfig(SpecialCharsPasswordPolicyProviderFactory.ID);
         int count = 0;
         for (char c : password.toCharArray()) {
             if (!Character.isLetterOrDigit(c)) {

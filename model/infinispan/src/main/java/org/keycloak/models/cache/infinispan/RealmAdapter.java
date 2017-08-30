@@ -47,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import org.keycloak.models.UserModel;
 
 /**
  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
@@ -537,6 +538,15 @@ public class RealmAdapter implements CachedRealmModel {
             return updated.getPasswordPolicyGroups();
         } else {
             return cached.getPasswordPolicyGroups();
+        }
+    }
+    
+    @Override
+    public PasswordPolicy getPasswordPolicy(UserModel user) {
+        if (isUpdated()) {
+            return updated.getPasswordPolicy(user);
+        } else {
+            return cached.getPasswordPolicy(user);
         }
     }
 

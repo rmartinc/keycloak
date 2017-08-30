@@ -38,7 +38,7 @@ public class DefaultPasswordPolicyManagerProvider implements PasswordPolicyManag
 
     @Override
     public PolicyError validate(RealmModel realm, UserModel user, String password) {
-        for (PasswordPolicyProvider p : getProviders(realm, session)) {
+        for (PasswordPolicyProvider p : getProviders(realm, user)) {
             PolicyError policyError = p.validate(realm, user, password);
             if (policyError != null) {
                 return policyError;
@@ -62,16 +62,19 @@ public class DefaultPasswordPolicyManagerProvider implements PasswordPolicyManag
     public void close() {
     }
 
-    private List<PasswordPolicyProvider> getProviders(KeycloakSession session) {
-        return getProviders(session.getContext().getRealm(), session);
-
+    private List<PasswordPolicyProvider> getProviders(RealmModel realm, UserModel user) {
+        return getProviders(realm.getPasswordPolicy(user));
     }
-
-    private List<PasswordPolicyProvider> getProviders(RealmModel realm, KeycloakSession session) {
+    
+    private List<PasswordPolicyProvider> getProviders(KeycloakSession session) {
+        return getProviders(session.getContext().getRealm().getPasswordPolicy());
+    }
+    
+    private List<PasswordPolicyProvider> getProviders(PasswordPolicy policy) {
         LinkedList<PasswordPolicyProvider> list = new LinkedList<>();
-        PasswordPolicy policy = realm.getPasswordPolicy();
         for (String id : policy.getPolicies()) {
             PasswordPolicyProvider provider = session.getProvider(PasswordPolicyProvider.class, id);
+            provider.setPolicy(policy);
             list.add(provider);
         }
         return list;

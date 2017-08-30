@@ -24,7 +24,7 @@ import org.keycloak.models.UserModel;
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
  */
-public class UpperCasePasswordPolicyProvider implements PasswordPolicyProvider {
+public class UpperCasePasswordPolicyProvider extends BasePasswordPolicyProvider implements PasswordPolicyProvider {
 
     private static final String ERROR_MESSAGE = "invalidPasswordMinUpperCaseCharsMessage";
 
@@ -36,7 +36,7 @@ public class UpperCasePasswordPolicyProvider implements PasswordPolicyProvider {
 
     @Override
     public PolicyError validate(String username, String password) {
-        int min = context.getRealm().getPasswordPolicy().getPolicyConfig(UpperCasePasswordPolicyProviderFactory.ID);
+        int min = policy.getPolicyConfig(UpperCasePasswordPolicyProviderFactory.ID);
         int count = 0;
         for (char c : password.toCharArray()) {
             if (Character.isUpperCase(c)) {

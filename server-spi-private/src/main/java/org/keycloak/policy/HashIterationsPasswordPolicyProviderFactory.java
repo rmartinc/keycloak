@@ -27,7 +27,7 @@ import org.keycloak.models.UserModel;
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
  */
-public class HashIterationsPasswordPolicyProviderFactory implements PasswordPolicyProvider, PasswordPolicyProviderFactory {
+public class HashIterationsPasswordPolicyProviderFactory extends BasePasswordPolicyProvider implements PasswordPolicyProvider, PasswordPolicyProviderFactory {
 
 
     @Override

@@ -80,7 +80,7 @@ public class PasswordCredentialProvider implements CredentialProvider, Credentia
             return false;
         }
         UserCredentialModel cred = (UserCredentialModel)input;
-        PasswordPolicy policy = realm.getPasswordPolicy();
+        PasswordPolicy policy = realm.getPasswordPolicy(user);
 
         PolicyError error = session.getProvider(PasswordPolicyManagerProvider.class).validate(realm, user, cred.getValue());
         if (error != null) throw new ModelException(error.getMessage(), error.getParameters());
@@ -146,7 +146,7 @@ public class PasswordCredentialProvider implements CredentialProvider, Credentia
     @Override
     public void disableCredentialType(RealmModel realm, UserModel user, String credentialType) {
         if (!supportsCredentialType(credentialType)) return;
-        PasswordPolicy policy = realm.getPasswordPolicy();
+        PasswordPolicy policy = realm.getPasswordPolicy(user);
         expirePassword(realm, user, policy);
     }
 
@@ -197,7 +197,7 @@ public class PasswordCredentialProvider implements CredentialProvider, Credentia
             logger.debugv("Failed password validation for user {0} ", user.getUsername());
             return false;
         }
-        PasswordPolicy policy = realm.getPasswordPolicy();
+        PasswordPolicy policy = realm.getPasswordPolicy(user);
         if (policy == null) {
             return true;
         }

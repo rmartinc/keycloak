@@ -51,7 +51,7 @@ public class UpdatePassword implements RequiredActionProvider, RequiredActionFac
     private static final Logger logger = Logger.getLogger(UpdatePassword.class);
     @Override
     public void evaluateTriggers(RequiredActionContext context) {
-        int daysToExpirePassword = context.getRealm().getPasswordPolicy().getDaysToExpirePassword();
+        int daysToExpirePassword = context.getRealm().getPasswordPolicy(context.getUser()).getDaysToExpirePassword();
         if(daysToExpirePassword != -1) {
             PasswordCredentialProvider passwordProvider = (PasswordCredentialProvider)context.getSession().getProvider(CredentialProvider.class, PasswordCredentialProviderFactory.PROVIDER_ID);
             CredentialModel password = passwordProvider.getPassword(context.getRealm(), context.getUser());

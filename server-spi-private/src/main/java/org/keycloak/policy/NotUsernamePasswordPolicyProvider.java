@@ -24,7 +24,7 @@ import org.keycloak.models.UserModel;
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
  */
-public class NotUsernamePasswordPolicyProvider implements PasswordPolicyProvider {
+public class NotUsernamePasswordPolicyProvider extends BasePasswordPolicyProvider implements PasswordPolicyProvider {
 
     private static final String ERROR_MESSAGE = "invalidPasswordNotUsernameMessage";
 

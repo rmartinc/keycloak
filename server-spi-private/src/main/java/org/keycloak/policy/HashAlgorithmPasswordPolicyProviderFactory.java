@@ -29,7 +29,7 @@ import org.keycloak.models.UserModel;
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
  */
-public class HashAlgorithmPasswordPolicyProviderFactory implements PasswordPolicyProviderFactory, PasswordPolicyProvider {
+public class HashAlgorithmPasswordPolicyProviderFactory extends BasePasswordPolicyProvider  implements PasswordPolicyProviderFactory, PasswordPolicyProvider {
 
     private KeycloakSession session;
 

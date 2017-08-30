@@ -17,6 +17,7 @@
 
 package org.keycloak.policy;
 
+import org.keycloak.models.PasswordPolicy;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.provider.Provider;
@@ -32,7 +33,8 @@ public interface PasswordPolicyProvider extends Provider {
     PolicyError validate(RealmModel realm, UserModel user, String password);
     PolicyError validate(String user, String password);
     Object parseConfig(String value);
-
+    void setPolicy(PasswordPolicy policy);
+    
     default Integer parseInteger(String value, Integer defaultValue) {
         try {
             return value != null ? Integer.parseInt(value) : defaultValue;

@@ -42,6 +42,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.keycloak.models.UserModel;
 
 /**
  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
@@ -425,6 +426,19 @@ public class CachedRealm extends AbstractExtendableRevisioned {
     
     public Map<String,PasswordPolicy> getPasswordPolicyGroups() {
         return passwordPolicyGroups;
+    }
+    
+    public PasswordPolicy getPasswordPolicy(UserModel user) {
+        List<String> passwordPolicyGroupList = user.getAttribute(UserModel.PASSWORD_POLICY_GROUP);
+        String passwordPolicyGroup = (passwordPolicyGroupList == null || passwordPolicyGroupList.isEmpty())? null : passwordPolicyGroupList.get(0);
+        PasswordPolicy policy = null;
+        if (passwordPolicyGroups != null) {
+            policy = passwordPolicyGroups.get(passwordPolicyGroup);
+        }
+        if (policy == null) {
+            policy = this.getPasswordPolicy();
+        }
+        return policy;
     }
 
     public boolean isIdentityFederationEnabled() {

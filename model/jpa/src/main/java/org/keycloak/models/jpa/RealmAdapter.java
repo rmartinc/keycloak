@@ -71,6 +71,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import org.keycloak.models.UserModel;
 import org.keycloak.models.jpa.entities.RealmPasswordPolicyGroupEntity;
 
 /**
@@ -892,6 +893,17 @@ public class RealmAdapter implements RealmModel, JpaModel<RealmEntity> {
                 em.remove(p);
             }
         }
+    }
+    
+    @Override
+    public PasswordPolicy getPasswordPolicy(UserModel user) {
+        List<String> passwordPolicyGroupList = user.getAttribute(UserModel.PASSWORD_POLICY_GROUP);
+        String passwordPolicyGroup = (passwordPolicyGroupList == null || passwordPolicyGroupList.isEmpty())? null : passwordPolicyGroupList.get(0);
+        PasswordPolicy policy = this.getPasswordPolicyGroup(passwordPolicyGroup);
+        if (policy == null) {
+            policy = this.getPasswordPolicy();
+        }
+        return policy;
     }
 
     @Override

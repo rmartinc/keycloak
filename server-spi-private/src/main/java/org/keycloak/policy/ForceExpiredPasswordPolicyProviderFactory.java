@@ -27,7 +27,7 @@ import org.keycloak.models.UserModel;
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
  */
-public class ForceExpiredPasswordPolicyProviderFactory implements PasswordPolicyProviderFactory, PasswordPolicyProvider {
+public class ForceExpiredPasswordPolicyProviderFactory extends BasePasswordPolicyProvider implements PasswordPolicyProviderFactory, PasswordPolicyProvider {
 
     public static final int DEFAULT_VALUE = 365;
 
