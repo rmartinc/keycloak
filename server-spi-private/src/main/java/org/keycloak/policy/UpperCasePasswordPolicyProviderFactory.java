@@ -30,7 +30,7 @@ public class UpperCasePasswordPolicyProviderFactory implements PasswordPolicyPro
 
     @Override
     public PasswordPolicyProvider create(KeycloakSession session) {
-        return new UpperCasePasswordPolicyProvider(session.getContext());
+        return new UpperCasePasswordPolicyProvider(session.getContext(), this);
     }
 
     @Override

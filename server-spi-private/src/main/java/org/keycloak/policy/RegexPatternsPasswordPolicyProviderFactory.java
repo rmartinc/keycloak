@@ -35,7 +35,7 @@ public class RegexPatternsPasswordPolicyProviderFactory implements PasswordPolic
 
     @Override
     public PasswordPolicyProvider create(KeycloakSession session) {
-        return new RegexPatternsPasswordPolicyProvider(session.getContext());
+        return new RegexPatternsPasswordPolicyProvider(session.getContext(), this);
     }
 
     @Override

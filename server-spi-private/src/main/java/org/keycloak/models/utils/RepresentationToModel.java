@@ -1452,7 +1452,7 @@ public class RepresentationToModel {
             }
         }
         if (userRep.getPasswordPolicyGroup() != null && !userRep.getPasswordPolicyGroup().isEmpty()) {
-            user.setAttribute(UserModel.PASSWORD_POLICY_GROUP, Collections.singletonList(userRep.getPasswordPolicyGroup()));
+            user.setAttribute(UserModel.PASSWORD_POLICY_GROUP, userRep.getPasswordPolicyGroup());
         }
         if (userRep.getRequiredActions() != null) {
             for (String requiredAction : userRep.getRequiredActions()) {

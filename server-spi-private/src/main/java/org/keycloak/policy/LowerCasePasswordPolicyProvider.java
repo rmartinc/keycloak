@@ -24,19 +24,21 @@ import org.keycloak.models.UserModel;
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
  */
-public class LowerCasePasswordPolicyProvider extends BasePasswordPolicyProvider  implements PasswordPolicyProvider {
+public class LowerCasePasswordPolicyProvider  implements PasswordPolicyProvider {
 
     private static final String ERROR_MESSAGE = "invalidPasswordMinLowerCaseCharsMessage";
 
     private KeycloakContext context;
+    private PasswordPolicyProviderFactory factory;
 
-    public LowerCasePasswordPolicyProvider(KeycloakContext context) {
+    public LowerCasePasswordPolicyProvider(KeycloakContext context, PasswordPolicyProviderFactory factory) {
         this.context = context;
+        this.factory = factory;
     }
 
     @Override
-    public PolicyError validate(String username, String password) {
-        int min = policy.getPolicyConfig(LowerCasePasswordPolicyProviderFactory.ID);
+    public PolicyError validate(String username, String password, Object config) {
+        int min = (Integer) config;
         int count = 0;
         for (char c : password.toCharArray()) {
             if (Character.isLowerCase(c)) {
@@ -47,8 +49,8 @@ public class LowerCasePasswordPolicyProvider extends BasePasswordPolicyProvider 
     }
 
     @Override
-    public PolicyError validate(RealmModel realm, UserModel user, String password) {
-        return validate(user.getUsername(), password);
+    public PolicyError validate(RealmModel realm, UserModel user, String password, Object config) {
+        return validate(user.getUsername(), password, config);
     }
 
     @Override
@@ -58,6 +60,21 @@ public class LowerCasePasswordPolicyProvider extends BasePasswordPolicyProvider 
 
     @Override
     public void close() {
+    }
+
+    @Override
+    public boolean isMultiplSupported() {
+        return factory.isMultiplSupported();
+    }
+
+    @Override
+    public String getId() {
+        return factory.getId();
+    }
+
+    @Override
+    public int compare(Object o1, Object o2) {
+        return ((Integer)o1).compareTo((Integer)o2);
     }
 
 }

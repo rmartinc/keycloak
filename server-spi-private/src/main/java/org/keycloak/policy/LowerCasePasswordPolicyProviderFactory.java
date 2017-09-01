@@ -30,7 +30,7 @@ public class LowerCasePasswordPolicyProviderFactory implements PasswordPolicyPro
 
     @Override
     public PasswordPolicyProvider create(KeycloakSession session) {
-        return new LowerCasePasswordPolicyProvider(session.getContext());
+        return new LowerCasePasswordPolicyProvider(session.getContext(), this);
     }
 
     @Override

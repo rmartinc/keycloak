@@ -30,7 +30,7 @@ public class SpecialCharsPasswordPolicyProviderFactory implements PasswordPolicy
 
     @Override
     public PasswordPolicyProvider create(KeycloakSession session) {
-        return new SpecialCharsPasswordPolicyProvider(session.getContext());
+        return new SpecialCharsPasswordPolicyProvider(session.getContext(), this);
     }
 
     @Override

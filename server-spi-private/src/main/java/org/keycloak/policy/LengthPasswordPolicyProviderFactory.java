@@ -35,7 +35,7 @@ public class LengthPasswordPolicyProviderFactory implements PasswordPolicyProvid
 
     @Override
     public PasswordPolicyProvider create(KeycloakSession session) {
-        return new LengthPasswordPolicyProvider(session.getContext());
+        return new LengthPasswordPolicyProvider(session.getContext(), this);
     }
 
     @Override

@@ -402,6 +402,7 @@ module.controller('UserDetailCtrl', function($scope, realm, user, BruteForceUser
                 $scope.userReqActionList.push(item);
             }
         }
+        $scope.realmPasswordPolicyGroups = Object.keys(realm.passwordPolicyGroups);
     console.log("---------------------");
     console.log("ng-model: user.requiredActions=" + JSON.stringify($scope.user.requiredActions));
     console.log("---------------------");

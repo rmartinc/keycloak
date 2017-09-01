@@ -35,7 +35,7 @@ public class NotUsernamePasswordPolicyProviderFactory implements PasswordPolicyP
 
     @Override
     public PasswordPolicyProvider create(KeycloakSession session) {
-        return new NotUsernamePasswordPolicyProvider(session.getContext());
+        return new NotUsernamePasswordPolicyProvider(session.getContext(), this);
     }
 
     @Override

@@ -21,10 +21,12 @@ import org.keycloak.policy.PasswordPolicyConfigException;
 import org.keycloak.policy.PasswordPolicyProvider;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import org.keycloak.policy.PolicyError;
 
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
@@ -43,7 +45,7 @@ public class PasswordPolicy implements Serializable {
 
     public static final String FORCE_EXPIRED_ID = "forceExpiredPasswordChange";
 
-    private Map<String, Object> policyConfig;
+    private Map<String, List<Object>> policyConfig;
     private Builder builder;
 
     public static PasswordPolicy empty() {
@@ -53,51 +55,112 @@ public class PasswordPolicy implements Serializable {
     public static Builder build() {
         return new Builder();
     }
+    
+    private static void addProviderIfNecessary(KeycloakSession session, PasswordPolicy result, PasswordPolicy policy) {
+        for (Map.Entry<String, List<Object>> entry : policy.policyConfig.entrySet()) {
+            for (Object config : entry.getValue()) {
+                PasswordPolicyProvider provider = session.getProvider(PasswordPolicyProvider.class, entry.getKey());
+                List<Object> values = result.policyConfig.get(entry.getKey());
+                if (values == null) {
+                    values = new ArrayList<>();
+                    result.policyConfig.put(entry.getKey(), values);
+                }
+                if (provider.isMultiplSupported()) {
+                    // multi provider => just add it
+                    values.add(config);
+                } else if (values.isEmpty()) {
+                    // non-multi but it's the first one => add it
+                    values.add(config);
+                } else if (provider.compare(config, values.get(0)) > 0) {
+                    // non-multi and more restrictive => replace
+                    values.set(0, config);
+                }
+            }
+        }
+    }
+    
+    public static PasswordPolicy construct(KeycloakSession session, PasswordPolicy defaultPolicy, List<PasswordPolicy> otherPolicies) {
+        if (otherPolicies == null || otherPolicies.isEmpty()) {
+            return defaultPolicy;
+        }
+        // first add non-default
+        PasswordPolicy result = new PasswordPolicy(new Builder(), new HashMap<>());
+        for (PasswordPolicy policy: otherPolicies) {
+            addProviderIfNecessary(session, result, policy);
+        }
+        // last the default one
+        addProviderIfNecessary(session, result, defaultPolicy);
+        return result;
+    }
 
     public static PasswordPolicy parse(KeycloakSession session, String policyString) {
         return new Builder(policyString).build(session);
     }
 
-    private PasswordPolicy(Builder builder, Map<String, Object> policyConfig) {
+    private PasswordPolicy(Builder builder, Map<String, List<Object>> policyConfig) {
         this.builder = builder;
         this.policyConfig = policyConfig;
     }
 
-    public Set<String> getPolicies() {
-        return policyConfig.keySet();
+    public PolicyError validate(KeycloakSession session, String user, String password) {
+        PolicyError result = null;
+        for (Map.Entry<String, List<Object>> entry : policyConfig.entrySet()) {
+            for (Object config : entry.getValue()) {
+                PasswordPolicyProvider provider = session.getProvider(PasswordPolicyProvider.class, entry.getKey());
+                result = provider.validate(user, password, config);
+                if (result != null) {
+                    return result;
+                }
+            }
+        }
+        return null;
     }
-
-    public <T> T getPolicyConfig(String key) {
-        return (T) policyConfig.get(key);
+    
+    public PolicyError validate(KeycloakSession session, RealmModel realm, UserModel user, String password) {
+        PolicyError result = null;
+        for (Map.Entry<String, List<Object>> entry : policyConfig.entrySet()) {
+            for (Object config : entry.getValue()) {
+                PasswordPolicyProvider provider = session.getProvider(PasswordPolicyProvider.class, entry.getKey());
+                result = provider.validate(realm, user, password, config);
+                if (result != null) {
+                    return result;
+                }
+            }
+        }
+        return null;
     }
 
     public String getHashAlgorithm() {
-        if (policyConfig.containsKey(HASH_ALGORITHM_ID)) {
-            return getPolicyConfig(HASH_ALGORITHM_ID);
+        List<Object> config = policyConfig.get(HASH_ALGORITHM_ID);
+        if (config != null && !config.isEmpty()) {
+            return (String) config.get(0);
         } else {
             return HASH_ALGORITHM_DEFAULT;
         }
     }
 
     public int getHashIterations() {
-        if (policyConfig.containsKey(HASH_ITERATIONS_ID)) {
-            return getPolicyConfig(HASH_ITERATIONS_ID);
+        List<Object> config = policyConfig.get(HASH_ITERATIONS_ID);
+        if (config != null && !config.isEmpty()) {
+            return (Integer) config.get(0);
         } else {
             return -1;
         }
     }
 
     public int getExpiredPasswords() {
-        if (policyConfig.containsKey(PASSWORD_HISTORY_ID)) {
-            return getPolicyConfig(PASSWORD_HISTORY_ID);
+        List<Object> config = policyConfig.get(PASSWORD_HISTORY_ID);
+        if (config != null && !config.isEmpty()) {
+            return (Integer) config.get(0);
         } else {
             return -1;
         }
     }
 
     public int getDaysToExpirePassword() {
-        if (policyConfig.containsKey(FORCE_EXPIRED_ID)) {
-            return getPolicyConfig(FORCE_EXPIRED_ID);
+        List<Object> config = policyConfig.get(FORCE_EXPIRED_ID);
+        if (config != null && !config.isEmpty()) {
+            return (Integer) config.get(0);
         } else {
             return -1;
         }
@@ -114,13 +177,13 @@ public class PasswordPolicy implements Serializable {
 
     public static class Builder {
 
-        private LinkedHashMap<String, String> map;
+        private LinkedHashMap<String, List<String>> map;
 
         private Builder() {
             this.map = new LinkedHashMap<>();
         }
 
-        private Builder(LinkedHashMap<String, String> map) {
+        private Builder(LinkedHashMap<String, List<String>> map) {
             this.map = map;
         }
 
@@ -142,7 +205,7 @@ public class PasswordPolicy implements Serializable {
                         config = policy.substring(i + 1, policy.length() - 1);
                     }
 
-                    map.put(key, config);
+                    this.put(key, config);
                 }
             }
         }
@@ -151,37 +214,59 @@ public class PasswordPolicy implements Serializable {
             return map.containsKey(key);
         }
 
-        public String get(String key) {
+        public String getFirst(String key) {
+            List<String> values = map.get(key);
+            if (values == null || values.isEmpty()) {
+                return null;
+            } else {
+                return values.get(0);
+            }
+        }
+        
+        public List<String> get(String key) {
             return map.get(key);
         }
 
         public Builder put(String key, String value) {
-            map.put(key, value);
+            List<String> values = map.get(key);
+            if (values == null) {
+                values = new ArrayList<>();
+                map.put(key, values);
+            }
+            values.add(value);
             return this;
         }
 
-        public Builder remove(String key) {
+        public Builder removeAll(String key) {
             map.remove(key);
             return this;
         }
 
         public PasswordPolicy build(KeycloakSession session) {
-            Map<String, Object> config = new HashMap<>();
-            for (Map.Entry<String, String> e : map.entrySet()) {
+            Map<String, List<Object>> config = new HashMap<>();
+            for (Map.Entry<String, List<String>> e : map.entrySet()) {
+                for (String v : e.getValue()) {
 
-                PasswordPolicyProvider provider = session.getProvider(PasswordPolicyProvider.class, e.getKey());
-                if (provider == null) {
-                    throw new PasswordPolicyConfigException("Password policy not found");
+                    PasswordPolicyProvider provider = session.getProvider(PasswordPolicyProvider.class, e.getKey());
+                    if (provider == null) {
+                        throw new PasswordPolicyConfigException("Password policy not found");
+                    }
+
+                    Object o;
+                    try {
+                        o = provider.parseConfig(v);
+                    } catch (PasswordPolicyConfigException ex) {
+                        throw new ModelException("Invalid config for " + e.getKey() + ": " + ex.getMessage());
+                    }
+                    List<Object> list = config.get(e.getKey());
+                    if (list == null) {
+                        list = new ArrayList<>();
+                        config.put(e.getKey(), list);
+                    } else if (!list.isEmpty() && !provider.isMultiplSupported()) {
+                        throw new PasswordPolicyConfigException("Invalid multiple definition for config " + e.getKey());
+                    }
+                    list.add(o);
                 }
-
-                Object o;
-                try {
-                    o = provider.parseConfig(e.getValue());
-                } catch (PasswordPolicyConfigException ex) {
-                    throw new ModelException("Invalid config for " + e.getKey() + ": " + ex.getMessage());
-                }
-
-                config.put(e.getKey(), o);
             }
             return new PasswordPolicy(this, config);
         }
@@ -193,27 +278,28 @@ public class PasswordPolicy implements Serializable {
 
             StringBuilder sb = new StringBuilder();
             boolean first = true;
-            for (Map.Entry<String, String> e : map.entrySet()) {
-                if (first) {
-                    first = false;
-                } else {
-                    sb.append(" and ");
-                }
+            for (Map.Entry<String, List<String>> e : map.entrySet()) {
+                for (String v : e.getValue()) {
+                    if (first) {
+                        first = false;
+                    } else {
+                        sb.append(" and ");
+                    }
 
-                sb.append(e.getKey());
+                    sb.append(e.getKey());
 
-                String c = e.getValue();
-                if (c != null && !c.trim().isEmpty()) {
-                    sb.append("(");
-                    sb.append(c);
-                    sb.append(")");
+                    if (v != null && !v.trim().isEmpty()) {
+                        sb.append("(");
+                        sb.append(v);
+                        sb.append(")");
+                    }
                 }
             }
             return sb.toString();
         }
 
         public Builder clone() {
-            return new Builder((LinkedHashMap<String, String>) map.clone());
+            return new Builder((LinkedHashMap<String, List<String>>) map.clone());
         }
 
     }

@@ -202,7 +202,8 @@ public class UserResource {
         if (rep.isEmailVerified() != null) user.setEmailVerified(rep.isEmailVerified());
         
         if (rep.getPasswordPolicyGroup() != null && !rep.getPasswordPolicyGroup().isEmpty()) {
-            user.setAttribute(UserModel.PASSWORD_POLICY_GROUP, Collections.singletonList(rep.getPasswordPolicyGroup()));
+            user.setAttribute(UserModel.PASSWORD_POLICY_GROUP, rep.getPasswordPolicyGroup());
+            attrsToRemove.remove(UserModel.PASSWORD_POLICY_GROUP);
         } else {
             user.removeAttribute(UserModel.PASSWORD_POLICY_GROUP);
         }

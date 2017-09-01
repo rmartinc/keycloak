@@ -40,7 +40,7 @@ public class UserRepresentation {
     protected Boolean enabled;
     protected Boolean totp;
     protected Boolean emailVerified;
-    protected String passwordPolicyGroup;
+    protected List<String> passwordPolicyGroup;
     protected String firstName;
     protected String lastName;
     protected String email;
@@ -114,11 +114,11 @@ public class UserRepresentation {
         this.email = email;
     }
 
-    public String getPasswordPolicyGroup() {
+    public List<String> getPasswordPolicyGroup() {
         return passwordPolicyGroup;
     }
 
-    public void setPasswordPolicyGroup(String passwordPolicyGroup) {
+    public void setPasswordPolicyGroup(List<String> passwordPolicyGroup) {
         this.passwordPolicyGroup = passwordPolicyGroup;
     }
 

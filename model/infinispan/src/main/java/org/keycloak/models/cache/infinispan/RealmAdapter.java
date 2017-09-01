@@ -546,7 +546,7 @@ public class RealmAdapter implements CachedRealmModel {
         if (isUpdated()) {
             return updated.getPasswordPolicy(user);
         } else {
-            return cached.getPasswordPolicy(user);
+            return cached.getPasswordPolicy(user, session);
         }
     }
 

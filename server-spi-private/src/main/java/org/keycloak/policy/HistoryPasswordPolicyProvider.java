@@ -21,7 +21,6 @@ import org.jboss.logging.Logger;
 import org.keycloak.credential.CredentialModel;
 import org.keycloak.credential.hash.PasswordHashProvider;
 import org.keycloak.models.KeycloakSession;
-import org.keycloak.models.PasswordPolicy;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 
@@ -30,25 +29,27 @@ import java.util.List;
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
  */
-public class HistoryPasswordPolicyProvider extends BasePasswordPolicyProvider implements PasswordPolicyProvider {
+public class HistoryPasswordPolicyProvider implements PasswordPolicyProvider {
 
     private static final Logger logger = Logger.getLogger(HistoryPasswordPolicyProvider.class);
     private static final String ERROR_MESSAGE = "invalidPasswordHistoryMessage";
 
     private KeycloakSession session;
+    private PasswordPolicyProviderFactory factory;
 
-    public HistoryPasswordPolicyProvider(KeycloakSession session) {
+    public HistoryPasswordPolicyProvider(KeycloakSession session, PasswordPolicyProviderFactory factory) {
         this.session = session;
+        this.factory = factory;
     }
 
     @Override
-    public PolicyError validate(String username, String password) {
+    public PolicyError validate(String username, String password, Object config) {
         return null;
     }
 
     @Override
-    public PolicyError validate(RealmModel realm, UserModel user, String password) {
-        int passwordHistoryPolicyValue = policy.getPolicyConfig(PasswordPolicy.PASSWORD_HISTORY_ID);
+    public PolicyError validate(RealmModel realm, UserModel user, String password, Object config) {
+        int passwordHistoryPolicyValue = (Integer) config;
         if (passwordHistoryPolicyValue != -1) {
             List<CredentialModel> storedPasswords = session.userCredentialManager().getStoredCredentialsByType(realm, user, CredentialModel.PASSWORD);
             for (CredentialModel cred : storedPasswords) {
@@ -77,6 +78,21 @@ public class HistoryPasswordPolicyProvider extends BasePasswordPolicyProvider im
 
     @Override
     public void close() {
+    }
+
+    @Override
+    public boolean isMultiplSupported() {
+        return factory.isMultiplSupported();
+    }
+
+    @Override
+    public String getId() {
+        return factory.getId();
+    }
+
+    @Override
+    public int compare(Object o1, Object o2) {
+        return ((Integer)o1).compareTo((Integer)o2);
     }
 
 }

@@ -29,7 +29,7 @@ import org.keycloak.models.UserModel;
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
  */
-public class HashAlgorithmPasswordPolicyProviderFactory extends BasePasswordPolicyProvider  implements PasswordPolicyProviderFactory, PasswordPolicyProvider {
+public class HashAlgorithmPasswordPolicyProviderFactory  implements PasswordPolicyProviderFactory, PasswordPolicyProvider {
 
     private KeycloakSession session;
 
@@ -57,12 +57,12 @@ public class HashAlgorithmPasswordPolicyProviderFactory extends BasePasswordPoli
     }
 
     @Override
-    public PolicyError validate(RealmModel realm, UserModel user, String password) {
+    public PolicyError validate(RealmModel realm, UserModel user, String password, Object config) {
         return null;
     }
 
     @Override
-    public PolicyError validate(String user, String password) {
+    public PolicyError validate(String user, String password, Object config) {
         return null;
     }
 
@@ -94,6 +94,11 @@ public class HashAlgorithmPasswordPolicyProviderFactory extends BasePasswordPoli
             throw new PasswordPolicyConfigException("Password hashing provider not found");
         }
         return providerId;
+    }
+    
+    @Override
+    public int compare(Object o1, Object o2) {
+        return 0;
     }
 
 }

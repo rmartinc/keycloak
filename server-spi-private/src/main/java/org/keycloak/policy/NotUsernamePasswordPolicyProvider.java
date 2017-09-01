@@ -24,18 +24,20 @@ import org.keycloak.models.UserModel;
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
  */
-public class NotUsernamePasswordPolicyProvider extends BasePasswordPolicyProvider implements PasswordPolicyProvider {
+public class NotUsernamePasswordPolicyProvider implements PasswordPolicyProvider {
 
     private static final String ERROR_MESSAGE = "invalidPasswordNotUsernameMessage";
 
     private KeycloakContext context;
+    private PasswordPolicyProviderFactory factory;
 
-    public NotUsernamePasswordPolicyProvider(KeycloakContext context) {
+    public NotUsernamePasswordPolicyProvider(KeycloakContext context, PasswordPolicyProviderFactory factory) {
         this.context = context;
+        this.factory = factory;
     }
 
     @Override
-    public PolicyError validate(String username, String password) {
+    public PolicyError validate(String username, String password, Object config) {
         if (username == null) {
             return null;
         }
@@ -43,8 +45,8 @@ public class NotUsernamePasswordPolicyProvider extends BasePasswordPolicyProvide
     }
 
     @Override
-    public PolicyError validate(RealmModel realm, UserModel user, String password) {
-        return validate(user.getUsername(), password);
+    public PolicyError validate(RealmModel realm, UserModel user, String password, Object config) {
+        return validate(user.getUsername(), password, config);
     }
 
     @Override
@@ -54,6 +56,21 @@ public class NotUsernamePasswordPolicyProvider extends BasePasswordPolicyProvide
 
     @Override
     public void close() {
+    }
+
+    @Override
+    public boolean isMultiplSupported() {
+        return factory.isMultiplSupported();
+    }
+
+    @Override
+    public String getId() {
+        return factory.getId();
+    }
+
+    @Override
+    public int compare(Object o1, Object o2) {
+        return 0;
     }
 
 }

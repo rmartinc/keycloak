@@ -37,8 +37,8 @@ public class MigrateTo3_2_0 implements Migration {
     public void migrate(KeycloakSession session) {
         for (RealmModel realm : session.realms().getRealms()) {
             PasswordPolicy.Builder builder = realm.getPasswordPolicy().toBuilder();
-            if (!builder.contains(PasswordPolicy.HASH_ALGORITHM_ID) && "20000".equals(builder.get(PasswordPolicy.HASH_ITERATIONS_ID))) {
-                realm.setPasswordPolicy(builder.remove(PasswordPolicy.HASH_ITERATIONS_ID).build(session));
+            if (!builder.contains(PasswordPolicy.HASH_ALGORITHM_ID) && "20000".equals(builder.getFirst(PasswordPolicy.HASH_ITERATIONS_ID))) {
+                realm.setPasswordPolicy(builder.removeAll(PasswordPolicy.HASH_ITERATIONS_ID).build(session));
             }
 
             if (realm.getDockerAuthenticationFlow() == null) {

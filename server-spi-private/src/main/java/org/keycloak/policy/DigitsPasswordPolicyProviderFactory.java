@@ -35,7 +35,7 @@ public class DigitsPasswordPolicyProviderFactory implements PasswordPolicyProvid
 
     @Override
     public PasswordPolicyProvider create(KeycloakSession session) {
-        return new DigitsPasswordPolicyProvider(session.getContext());
+        return new DigitsPasswordPolicyProvider(session.getContext(), this);
     }
 
     @Override

@@ -37,6 +37,7 @@ import java.util.regex.PatternSyntaxException;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -239,9 +240,9 @@ public class PasswordPolicyTest extends AbstractKeycloakTest {
         testingClient.server("passwordPolicy").run(session -> {
             PasswordPolicy.Builder builder = PasswordPolicy.parse(session, "hashIterations(20000)").toBuilder();
             assertFalse(builder.contains(PasswordPolicy.HASH_ALGORITHM_ID));
-            assertTrue("20000".equals(builder.get(PasswordPolicy.HASH_ITERATIONS_ID)));
+            assertTrue("20000".equals(builder.getFirst(PasswordPolicy.HASH_ITERATIONS_ID)));
 
-            builder.remove(PasswordPolicy.HASH_ITERATIONS_ID);
+            builder.removeAll(PasswordPolicy.HASH_ITERATIONS_ID);
 
             assertNull(builder.asString());
 
@@ -249,12 +250,17 @@ public class PasswordPolicyTest extends AbstractKeycloakTest {
             assertTrue(builder.contains(PasswordPolicy.HASH_ALGORITHM_ID));
 
             builder = PasswordPolicy.parse(session, "hashIterations(20000) and length(100)").toBuilder();
-            builder.remove(PasswordPolicy.HASH_ITERATIONS_ID);
+            builder.removeAll(PasswordPolicy.HASH_ITERATIONS_ID);
             assertEquals("length(100)", builder.asString());
 
             builder = PasswordPolicy.parse(session, "digits(10) and hashIterations(20000) and length(100)").toBuilder();
-            builder.remove(PasswordPolicy.HASH_ITERATIONS_ID);
+            builder.removeAll(PasswordPolicy.HASH_ITERATIONS_ID);
             assertEquals("digits(10) and length(100)", builder.asString());
+
+            builder = PasswordPolicy.parse(session, "digits(10) and regexPattern(start[.]*) and regexPattern([.]*end)").toBuilder();
+            assertNotNull(builder.get("regexPattern"));
+            assertEquals(2, builder.get("regexPattern").size());
+            assertEquals("digits(10) and regexPattern(start[.]*) and regexPattern([.]*end)", builder.asString());
         });
     }
 

@@ -28,19 +28,21 @@ import java.util.regex.PatternSyntaxException;
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
  */
-public class RegexPatternsPasswordPolicyProvider extends BasePasswordPolicyProvider implements PasswordPolicyProvider {
+public class RegexPatternsPasswordPolicyProvider implements PasswordPolicyProvider {
 
     private static final String ERROR_MESSAGE = "invalidPasswordRegexPatternMessage";
 
     private KeycloakContext context;
+    private PasswordPolicyProviderFactory factory;
 
-    public RegexPatternsPasswordPolicyProvider(KeycloakContext context) {
+    public RegexPatternsPasswordPolicyProvider(KeycloakContext context, PasswordPolicyProviderFactory factory) {
         this.context = context;
+        this.factory = factory;
     }
 
     @Override
-    public PolicyError validate(String username, String password) {
-        Pattern pattern = policy.getPolicyConfig(RegexPatternsPasswordPolicyProviderFactory.ID);
+    public PolicyError validate(String username, String password, Object config) {
+        Pattern pattern = (Pattern) config;
         Matcher matcher = pattern.matcher(password);
         if (!matcher.matches()) {
             return new PolicyError(ERROR_MESSAGE, pattern.pattern());
@@ -49,8 +51,8 @@ public class RegexPatternsPasswordPolicyProvider extends BasePasswordPolicyProvi
     }
 
     @Override
-    public PolicyError validate(RealmModel realm, UserModel user, String password) {
-        return validate(user.getUsername(), password);
+    public PolicyError validate(RealmModel realm, UserModel user, String password, Object config) {
+        return validate(user.getUsername(), password, config);
     }
 
     @Override
@@ -67,6 +69,21 @@ public class RegexPatternsPasswordPolicyProvider extends BasePasswordPolicyProvi
 
     @Override
     public void close() {
+    }
+
+    @Override
+    public boolean isMultiplSupported() {
+        return factory.isMultiplSupported();
+    }
+
+    @Override
+    public String getId() {
+        return factory.getId();
+    }
+
+    @Override
+    public int compare(Object o1, Object o2) {
+        throw new IllegalStateException("Regex provider is multiple, do not compare");
     }
 
 }

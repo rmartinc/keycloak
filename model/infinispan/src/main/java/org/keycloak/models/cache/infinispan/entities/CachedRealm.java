@@ -42,6 +42,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.UserModel;
 
 /**
@@ -428,17 +429,20 @@ public class CachedRealm extends AbstractExtendableRevisioned {
         return passwordPolicyGroups;
     }
     
-    public PasswordPolicy getPasswordPolicy(UserModel user) {
+    public PasswordPolicy getPasswordPolicy(UserModel user, KeycloakSession session) {
         List<String> passwordPolicyGroupList = user.getAttribute(UserModel.PASSWORD_POLICY_GROUP);
-        String passwordPolicyGroup = (passwordPolicyGroupList == null || passwordPolicyGroupList.isEmpty())? null : passwordPolicyGroupList.get(0);
-        PasswordPolicy policy = null;
-        if (passwordPolicyGroups != null) {
-            policy = passwordPolicyGroups.get(passwordPolicyGroup);
+        List<PasswordPolicy> otherPolicies = new ArrayList<>();
+        if (passwordPolicyGroupList != null) {
+            passwordPolicyGroupList.stream().forEach(
+                    policyName -> {
+                        PasswordPolicy other = this.getPasswordPolicyGroups().get(policyName);
+                        if (other != null) {
+                            otherPolicies.add(other);
+                        }
+                    }
+            );
         }
-        if (policy == null) {
-            policy = this.getPasswordPolicy();
-        }
-        return policy;
+        return PasswordPolicy.construct(session, this.getPasswordPolicy(), otherPolicies);
     }
 
     public boolean isIdentityFederationEnabled() {
