@@ -21,7 +21,6 @@ import org.keycloak.Config;
 import org.keycloak.credential.hash.PasswordHashProvider;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
-import org.keycloak.models.ModelException;
 import org.keycloak.models.PasswordPolicy;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
@@ -29,7 +28,7 @@ import org.keycloak.models.UserModel;
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
  */
-public class HashAlgorithmPasswordPolicyProviderFactory extends BasePasswordPolicyProvider  implements PasswordPolicyProviderFactory, PasswordPolicyProvider {
+public class HashAlgorithmPasswordPolicyProviderFactory  implements PasswordPolicyProviderFactory, PasswordPolicyProvider {
 
     private KeycloakSession session;
 
@@ -57,12 +56,12 @@ public class HashAlgorithmPasswordPolicyProviderFactory extends BasePasswordPoli
     }
 
     @Override
-    public PolicyError validate(RealmModel realm, UserModel user, String password) {
+    public PolicyError validate(RealmModel realm, UserModel user, String password, Object config) {
         return null;
     }
 
     @Override
-    public PolicyError validate(String user, String password) {
+    public PolicyError validate(String user, String password, Object config) {
         return null;
     }
 

@@ -30,7 +30,7 @@ import java.util.List;
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
  */
-public class HistoryPasswordPolicyProvider extends BasePasswordPolicyProvider implements PasswordPolicyProvider {
+public class HistoryPasswordPolicyProvider implements PasswordPolicyProvider {
 
     private static final Logger logger = Logger.getLogger(HistoryPasswordPolicyProvider.class);
     private static final String ERROR_MESSAGE = "invalidPasswordHistoryMessage";
@@ -42,13 +42,13 @@ public class HistoryPasswordPolicyProvider extends BasePasswordPolicyProvider im
     }
 
     @Override
-    public PolicyError validate(String username, String password) {
+    public PolicyError validate(String username, String password, Object config) {
         return null;
     }
 
     @Override
-    public PolicyError validate(RealmModel realm, UserModel user, String password) {
-        int passwordHistoryPolicyValue = policy.getPolicyConfig(PasswordPolicy.PASSWORD_HISTORY_ID);
+    public PolicyError validate(RealmModel realm, UserModel user, String password, Object config) {
+        int passwordHistoryPolicyValue = (Integer) config;
         if (passwordHistoryPolicyValue != -1) {
             List<CredentialModel> storedPasswords = session.userCredentialManager().getStoredCredentialsByType(realm, user, CredentialModel.PASSWORD);
             for (CredentialModel cred : storedPasswords) {

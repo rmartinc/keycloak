@@ -27,7 +27,7 @@ import org.keycloak.models.UserModel;
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
  */
-public class HashIterationsPasswordPolicyProviderFactory extends BasePasswordPolicyProvider implements PasswordPolicyProvider, PasswordPolicyProviderFactory {
+public class HashIterationsPasswordPolicyProviderFactory implements PasswordPolicyProvider, PasswordPolicyProviderFactory {
 
 
     @Override
@@ -49,12 +49,12 @@ public class HashIterationsPasswordPolicyProviderFactory extends BasePasswordPol
     }
 
     @Override
-    public PolicyError validate(RealmModel realm, UserModel user, String password) {
+    public PolicyError validate(RealmModel realm, UserModel user, String password, Object config) {
         return null;
     }
 
     @Override
-    public PolicyError validate(String user, String password) {
+    public PolicyError validate(String user, String password, Object config) {
         return null;
     }
 

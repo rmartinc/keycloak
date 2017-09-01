@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import org.keycloak.policy.PolicyError;
 
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
@@ -63,8 +64,28 @@ public class PasswordPolicy implements Serializable {
         this.policyConfig = policyConfig;
     }
 
-    public Set<String> getPolicies() {
-        return policyConfig.keySet();
+    public PolicyError validate(KeycloakSession session, String user, String password) {
+        PolicyError result = null;
+        for (Map.Entry<String, Object> entry : policyConfig.entrySet()) {
+            PasswordPolicyProvider provider = session.getProvider(PasswordPolicyProvider.class, entry.getKey());
+            result = provider.validate(user, password, entry.getValue());
+            if (result != null) {
+                return result;
+            }
+        }
+        return null;
+    }
+    
+    public PolicyError validate(KeycloakSession session, RealmModel realm, UserModel user, String password) {
+        PolicyError result = null;
+        for (Map.Entry<String, Object> entry : policyConfig.entrySet()) {
+            PasswordPolicyProvider provider = session.getProvider(PasswordPolicyProvider.class, entry.getKey());
+            result = provider.validate(realm, user, password, entry.getValue());
+            if (result != null) {
+                return result;
+            }
+        }
+        return null;
     }
 
     public <T> T getPolicyConfig(String key) {

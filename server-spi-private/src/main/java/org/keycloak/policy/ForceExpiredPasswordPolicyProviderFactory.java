@@ -27,7 +27,7 @@ import org.keycloak.models.UserModel;
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
  */
-public class ForceExpiredPasswordPolicyProviderFactory extends BasePasswordPolicyProvider implements PasswordPolicyProviderFactory, PasswordPolicyProvider {
+public class ForceExpiredPasswordPolicyProviderFactory implements PasswordPolicyProviderFactory, PasswordPolicyProvider {
 
     public static final int DEFAULT_VALUE = 365;
 
@@ -54,12 +54,12 @@ public class ForceExpiredPasswordPolicyProviderFactory extends BasePasswordPolic
     }
 
     @Override
-    public PolicyError validate(RealmModel realm, UserModel user, String password) {
+    public PolicyError validate(RealmModel realm, UserModel user, String password, Object config) {
         return null;
     }
 
     @Override
-    public PolicyError validate(String user, String password) {
+    public PolicyError validate(String user, String password, Object config) {
         return null;
     }
 

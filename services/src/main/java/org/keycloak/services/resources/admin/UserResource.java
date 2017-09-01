@@ -203,6 +203,7 @@ public class UserResource {
         
         if (rep.getPasswordPolicyGroup() != null && !rep.getPasswordPolicyGroup().isEmpty()) {
             user.setAttribute(UserModel.PASSWORD_POLICY_GROUP, Collections.singletonList(rep.getPasswordPolicyGroup()));
+            attrsToRemove.remove(UserModel.PASSWORD_POLICY_GROUP);
         } else {
             user.removeAttribute(UserModel.PASSWORD_POLICY_GROUP);
         }

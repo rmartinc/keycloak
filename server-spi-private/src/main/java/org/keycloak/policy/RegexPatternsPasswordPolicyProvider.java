@@ -28,7 +28,7 @@ import java.util.regex.PatternSyntaxException;
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
  */
-public class RegexPatternsPasswordPolicyProvider extends BasePasswordPolicyProvider implements PasswordPolicyProvider {
+public class RegexPatternsPasswordPolicyProvider implements PasswordPolicyProvider {
 
     private static final String ERROR_MESSAGE = "invalidPasswordRegexPatternMessage";
 
@@ -39,8 +39,8 @@ public class RegexPatternsPasswordPolicyProvider extends BasePasswordPolicyProvi
     }
 
     @Override
-    public PolicyError validate(String username, String password) {
-        Pattern pattern = policy.getPolicyConfig(RegexPatternsPasswordPolicyProviderFactory.ID);
+    public PolicyError validate(String username, String password, Object config) {
+        Pattern pattern = (Pattern) config;
         Matcher matcher = pattern.matcher(password);
         if (!matcher.matches()) {
             return new PolicyError(ERROR_MESSAGE, pattern.pattern());
@@ -49,8 +49,8 @@ public class RegexPatternsPasswordPolicyProvider extends BasePasswordPolicyProvi
     }
 
     @Override
-    public PolicyError validate(RealmModel realm, UserModel user, String password) {
-        return validate(user.getUsername(), password);
+    public PolicyError validate(RealmModel realm, UserModel user, String password, Object config) {
+        return validate(user.getUsername(), password, config);
     }
 
     @Override

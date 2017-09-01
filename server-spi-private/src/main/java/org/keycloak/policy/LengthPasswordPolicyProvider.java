@@ -24,7 +24,7 @@ import org.keycloak.models.UserModel;
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
  */
-public class LengthPasswordPolicyProvider extends BasePasswordPolicyProvider implements PasswordPolicyProvider {
+public class LengthPasswordPolicyProvider implements PasswordPolicyProvider {
 
     private static final String ERROR_MESSAGE = "invalidPasswordMinLengthMessage";
 
@@ -35,14 +35,14 @@ public class LengthPasswordPolicyProvider extends BasePasswordPolicyProvider imp
     }
 
     @Override
-    public PolicyError validate(String username, String password) {
-        int min = policy.getPolicyConfig(LengthPasswordPolicyProviderFactory.ID);
+    public PolicyError validate(String username, String password, Object config) {
+        int min = (Integer) config;
         return password.length() < min ? new PolicyError(ERROR_MESSAGE, min) : null;
     }
 
     @Override
-    public PolicyError validate(RealmModel realm, UserModel user, String password) {
-        return validate(user.getUsername(), password);
+    public PolicyError validate(RealmModel realm, UserModel user, String password, Object config) {
+        return validate(user.getUsername(), password, config);
     }
 
     @Override

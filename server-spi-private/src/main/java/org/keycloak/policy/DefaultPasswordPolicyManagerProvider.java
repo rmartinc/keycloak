@@ -18,12 +18,8 @@
 package org.keycloak.policy;
 
 import org.keycloak.models.KeycloakSession;
-import org.keycloak.models.PasswordPolicy;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
-
-import java.util.LinkedList;
-import java.util.List;
 
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
@@ -38,46 +34,16 @@ public class DefaultPasswordPolicyManagerProvider implements PasswordPolicyManag
 
     @Override
     public PolicyError validate(RealmModel realm, UserModel user, String password) {
-        for (PasswordPolicyProvider p : getProviders(realm, user)) {
-            PolicyError policyError = p.validate(realm, user, password);
-            if (policyError != null) {
-                return policyError;
-            }
-        }
-        return null;
+        return realm.getPasswordPolicy(user).validate(session, realm, user, password);
     }
 
     @Override
     public PolicyError validate(String user, String password) {
-        for (PasswordPolicyProvider p : getProviders(session)) {
-            PolicyError policyError = p.validate(user, password);
-            if (policyError != null) {
-                return policyError;
-            }
-        }
-        return null;
+        return session.getContext().getRealm().getPasswordPolicy().validate(session, user, password);
     }
 
     @Override
     public void close() {
-    }
-
-    private List<PasswordPolicyProvider> getProviders(RealmModel realm, UserModel user) {
-        return getProviders(realm.getPasswordPolicy(user));
-    }
-    
-    private List<PasswordPolicyProvider> getProviders(KeycloakSession session) {
-        return getProviders(session.getContext().getRealm().getPasswordPolicy());
-    }
-    
-    private List<PasswordPolicyProvider> getProviders(PasswordPolicy policy) {
-        LinkedList<PasswordPolicyProvider> list = new LinkedList<>();
-        for (String id : policy.getPolicies()) {
-            PasswordPolicyProvider provider = session.getProvider(PasswordPolicyProvider.class, id);
-            provider.setPolicy(policy);
-            list.add(provider);
-        }
-        return list;
     }
 
 }

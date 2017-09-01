@@ -24,7 +24,7 @@ import org.keycloak.models.UserModel;
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
  */
-public class NotUsernamePasswordPolicyProvider extends BasePasswordPolicyProvider implements PasswordPolicyProvider {
+public class NotUsernamePasswordPolicyProvider implements PasswordPolicyProvider {
 
     private static final String ERROR_MESSAGE = "invalidPasswordNotUsernameMessage";
 
@@ -35,7 +35,7 @@ public class NotUsernamePasswordPolicyProvider extends BasePasswordPolicyProvide
     }
 
     @Override
-    public PolicyError validate(String username, String password) {
+    public PolicyError validate(String username, String password, Object config) {
         if (username == null) {
             return null;
         }
@@ -43,8 +43,8 @@ public class NotUsernamePasswordPolicyProvider extends BasePasswordPolicyProvide
     }
 
     @Override
-    public PolicyError validate(RealmModel realm, UserModel user, String password) {
-        return validate(user.getUsername(), password);
+    public PolicyError validate(RealmModel realm, UserModel user, String password, Object config) {
+        return validate(user.getUsername(), password, config);
     }
 
     @Override

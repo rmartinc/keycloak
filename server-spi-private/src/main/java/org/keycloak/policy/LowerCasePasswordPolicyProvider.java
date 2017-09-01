@@ -24,7 +24,7 @@ import org.keycloak.models.UserModel;
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
  */
-public class LowerCasePasswordPolicyProvider extends BasePasswordPolicyProvider  implements PasswordPolicyProvider {
+public class LowerCasePasswordPolicyProvider  implements PasswordPolicyProvider {
 
     private static final String ERROR_MESSAGE = "invalidPasswordMinLowerCaseCharsMessage";
 
@@ -35,8 +35,8 @@ public class LowerCasePasswordPolicyProvider extends BasePasswordPolicyProvider 
     }
 
     @Override
-    public PolicyError validate(String username, String password) {
-        int min = policy.getPolicyConfig(LowerCasePasswordPolicyProviderFactory.ID);
+    public PolicyError validate(String username, String password, Object config) {
+        int min = (Integer) config;
         int count = 0;
         for (char c : password.toCharArray()) {
             if (Character.isLowerCase(c)) {
@@ -47,8 +47,8 @@ public class LowerCasePasswordPolicyProvider extends BasePasswordPolicyProvider 
     }
 
     @Override
-    public PolicyError validate(RealmModel realm, UserModel user, String password) {
-        return validate(user.getUsername(), password);
+    public PolicyError validate(RealmModel realm, UserModel user, String password, Object config) {
+        return validate(user.getUsername(), password, config);
     }
 
     @Override
