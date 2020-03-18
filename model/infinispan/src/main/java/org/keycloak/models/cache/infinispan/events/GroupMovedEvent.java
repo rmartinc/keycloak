@@ -27,6 +27,7 @@ import java.io.ObjectOutput;
 import org.infinispan.commons.marshall.Externalizer;
 import org.infinispan.commons.marshall.MarshallUtil;
 import org.infinispan.commons.marshall.SerializeWith;
+import org.keycloak.models.cache.infinispan.RealmCacheSession;
 
 /**
  * @author <a href="mailto:mposolda@redhat.com">Marek Posolda</a>
@@ -35,6 +36,7 @@ import org.infinispan.commons.marshall.SerializeWith;
 public class GroupMovedEvent extends InvalidationEvent implements RealmCacheInvalidationEvent {
 
     private String groupId;
+    private String groupName;
     private String newParentId; // null if moving to top-level
     private String oldParentId; // null if moving from top-level
     private String realmId;
@@ -43,6 +45,7 @@ public class GroupMovedEvent extends InvalidationEvent implements RealmCacheInva
         GroupMovedEvent event = new GroupMovedEvent();
         event.realmId = realmId;
         event.groupId = group.getId();
+        event.groupName = group.getName();
         event.oldParentId = group.getParentId();
         event.newParentId = toParent==null ? null : toParent.getId();
         return event;
@@ -61,6 +64,7 @@ public class GroupMovedEvent extends InvalidationEvent implements RealmCacheInva
     @Override
     public void addInvalidations(RealmCacheManager realmCache, Set<String> invalidations) {
         realmCache.groupQueriesInvalidations(realmId, invalidations);
+        invalidations.add(RealmCacheSession.getGroupByNameAndParentCacheKey(groupName, oldParentId, realmId));
         if (newParentId != null) {
             invalidations.add(newParentId);
         }
@@ -72,15 +76,17 @@ public class GroupMovedEvent extends InvalidationEvent implements RealmCacheInva
     public static class ExternalizerImpl implements Externalizer<GroupMovedEvent> {
 
         private static final int VERSION_1 = 1;
+        private static final int VERSION_2 = 2;
 
         @Override
         public void writeObject(ObjectOutput output, GroupMovedEvent obj) throws IOException {
-            output.writeByte(VERSION_1);
+            output.writeByte(VERSION_2);
 
             MarshallUtil.marshallString(obj.groupId, output);
             MarshallUtil.marshallString(obj.newParentId, output);
             MarshallUtil.marshallString(obj.oldParentId, output);
             MarshallUtil.marshallString(obj.realmId, output);
+            MarshallUtil.marshallString(obj.groupName, output);
         }
 
         @Override
@@ -88,6 +94,8 @@ public class GroupMovedEvent extends InvalidationEvent implements RealmCacheInva
             switch (input.readByte()) {
                 case VERSION_1:
                     return readObjectVersion1(input);
+                case VERSION_2:
+                    return readObjectVersion2(input);
                 default:
                     throw new IOException("Unknown version");
             }
@@ -99,6 +107,17 @@ public class GroupMovedEvent extends InvalidationEvent implements RealmCacheInva
             res.newParentId = MarshallUtil.unmarshallString(input);
             res.oldParentId = MarshallUtil.unmarshallString(input);
             res.realmId = MarshallUtil.unmarshallString(input);
+
+            return res;
+        }
+
+        public GroupMovedEvent readObjectVersion2(ObjectInput input) throws IOException, ClassNotFoundException {
+            GroupMovedEvent res = new GroupMovedEvent();
+            res.groupId = MarshallUtil.unmarshallString(input);
+            res.newParentId = MarshallUtil.unmarshallString(input);
+            res.oldParentId = MarshallUtil.unmarshallString(input);
+            res.realmId = MarshallUtil.unmarshallString(input);
+            res.groupName = MarshallUtil.unmarshallString(input);
 
             return res;
         }

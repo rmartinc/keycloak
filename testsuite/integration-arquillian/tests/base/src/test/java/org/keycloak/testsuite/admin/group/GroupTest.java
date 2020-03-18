@@ -62,12 +62,14 @@ import java.util.UUID;
 import javax.ws.rs.ClientErrorException;
 import javax.ws.rs.core.Response.Status;
 import static org.hamcrest.Matchers.*;
+import org.hamcrest.core.IsInstanceOf;
 
 import static org.junit.Assert.*;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.models.AdminRoles;
+import org.keycloak.models.GroupModel;
 import org.keycloak.models.ModelDuplicateException;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.utils.KeycloakModelUtils;
@@ -1003,5 +1005,83 @@ public class GroupTest extends AbstractGroupTest {
             group.remove();
             user.remove();
         }
+    }
+
+    @Test
+    public void testFindGroupByPath() {
+        // create
+        testingClient.server().run(session -> {
+            RealmModel realm = session.realms().getRealm("test");
+            Assert.assertNull(KeycloakModelUtils.findGroupByPath(realm, "/test-parent"));
+            realm.createGroup("test-parent");
+            GroupModel groupParent = KeycloakModelUtils.findGroupByPath(realm, "/test-parent");
+            Assert.assertNotNull(groupParent);
+            Assert.assertThat(groupParent, IsInstanceOf.instanceOf(org.keycloak.models.jpa.GroupAdapter.class));
+            Assert.assertNull(KeycloakModelUtils.findGroupByPath(realm, "/test-parent/test-child"));
+            realm.createGroup("test-child", groupParent);
+            GroupModel groupChild = KeycloakModelUtils.findGroupByPath(realm, "/test-parent/test-child");
+            Assert.assertNotNull(groupChild);
+            Assert.assertThat(groupChild, IsInstanceOf.instanceOf(org.keycloak.models.jpa.GroupAdapter.class));
+        });
+
+        // rename
+        testingClient.server().run(session -> {
+            RealmModel realm = session.realms().getRealm("test");
+            GroupModel groupParent = KeycloakModelUtils.findGroupByPath(realm, "/test-parent");
+            Assert.assertNotNull(groupParent);
+            Assert.assertThat(groupParent, IsInstanceOf.instanceOf(org.keycloak.models.cache.infinispan.GroupAdapter.class));
+            GroupModel groupChild = KeycloakModelUtils.findGroupByPath(realm, "/test-parent/test-child");
+            Assert.assertNotNull(groupChild);
+            Assert.assertThat(groupParent, IsInstanceOf.instanceOf(org.keycloak.models.cache.infinispan.GroupAdapter.class));
+            groupChild.setName("test-child-new");
+            Assert.assertNull(KeycloakModelUtils.findGroupByPath(realm, "/test-parent/test-child"));
+            Assert.assertNotNull(KeycloakModelUtils.findGroupByPath(realm, "/test-parent/test-child-new"));
+            groupParent.setName("test-parent-new");
+            Assert.assertNull(KeycloakModelUtils.findGroupByPath(realm, "/test-parent"));
+            Assert.assertNotNull(KeycloakModelUtils.findGroupByPath(realm, "/test-parent-new/test-child-new"));
+        });
+
+        // move
+        testingClient.server().run(session -> {
+            RealmModel realm = session.realms().getRealm("test");
+            Assert.assertNull(KeycloakModelUtils.findGroupByPath(realm, "/test-parent"));
+            GroupModel fromParent = KeycloakModelUtils.findGroupByPath(realm, "/test-parent-new");
+            Assert.assertNotNull(fromParent);
+            GroupModel groupChild = KeycloakModelUtils.findGroupByPath(realm, "/test-parent-new/test-child-new");
+            Assert.assertNotNull(groupChild);
+            realm.createGroup("test-parent");
+            GroupModel toParent = KeycloakModelUtils.findGroupByPath(realm, "/test-parent");
+            Assert.assertNotNull(toParent);
+            realm.moveGroup(groupChild, toParent);
+            Assert.assertNotNull(KeycloakModelUtils.findGroupByPath(realm, "/test-parent-new"));
+            Assert.assertNull(KeycloakModelUtils.findGroupByPath(realm, "/test-parent-new/test-child-new"));
+            Assert.assertNotNull(KeycloakModelUtils.findGroupByPath(realm, "/test-parent/test-child-new"));
+        });
+
+        // delete
+        testingClient.server().run(session -> {
+            RealmModel realm = session.realms().getRealm("test");
+            GroupModel groupParent = KeycloakModelUtils.findGroupByPath(realm, "/test-parent");
+            Assert.assertNotNull(groupParent);
+            GroupModel newGroupParent = KeycloakModelUtils.findGroupByPath(realm, "/test-parent-new");
+            Assert.assertNotNull(newGroupParent);
+            GroupModel groupChild = KeycloakModelUtils.findGroupByPath(realm, "/test-parent/test-child-new");
+            Assert.assertNotNull(groupChild);
+            Assert.assertTrue(realm.removeGroup(groupChild));
+            Assert.assertNull(KeycloakModelUtils.findGroupByPath(realm, "/test-parent/test-child-new"));
+            Assert.assertNotNull(KeycloakModelUtils.findGroupByPath(realm, "/test-parent"));
+            Assert.assertTrue(realm.removeGroup(newGroupParent));
+            Assert.assertNull(KeycloakModelUtils.findGroupByPath(realm, "/test-parent-new"));
+            Assert.assertTrue(realm.removeGroup(groupParent));
+            Assert.assertNull(KeycloakModelUtils.findGroupByPath(realm, "/test-parent"));
+        });
+
+        // check groups don't exist at the end
+        testingClient.server().run(session -> {
+            RealmModel realm = session.realms().getRealm("test");
+            Assert.assertNull(KeycloakModelUtils.findGroupByPath(realm, "/test-parent/test-child-new"));
+            Assert.assertNull(KeycloakModelUtils.findGroupByPath(realm, "/test-parent"));
+            Assert.assertNull(KeycloakModelUtils.findGroupByPath(realm, "/test-parent-new"));
+        });
     }
 }

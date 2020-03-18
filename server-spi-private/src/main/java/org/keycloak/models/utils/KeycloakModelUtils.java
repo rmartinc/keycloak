@@ -504,26 +504,22 @@ public final class KeycloakModelUtils {
         }
         String[] split = path.split("/");
         if (split.length == 0) return null;
-        GroupModel found = null;
-        for (GroupModel group : realm.getTopLevelGroups()) {
-            String groupName = group.getName();
-            String[] pathSegments = formatPathSegments(split, 0, groupName);
-
-            if (groupName.equals(pathSegments[0])) {
-                if (pathSegments.length == 1) {
-                    found = group;
-                    break;
-                }
-                else {
-                    if (pathSegments.length > 1) {
-                        found = findSubGroup(pathSegments, 1, group);
-                        if (found != null) break;
-                    }
-                }
-
+        GroupModel parent = null;
+        GroupModel child = null;
+        String name = null;
+        for (int i = 0; i < split.length; i++) {
+            if (name == null) {
+                name = split[i];
+            } else {
+                name = name + "/" + split[i];
+            }
+            child = realm.getGroupByNameAndParent(name, parent);
+            if (child != null) {
+                parent = child;
+                name = null;
             }
         }
-        return found;
+        return child;
     }
 
     public static Set<RoleModel> getClientScopeMappings(ClientModel client, ScopeContainerModel container) {

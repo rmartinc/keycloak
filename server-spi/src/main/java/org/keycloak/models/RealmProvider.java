@@ -95,7 +95,7 @@ public interface RealmProvider extends Provider, ClientProvider {
 
     ClientScopeModel getClientScopeById(String id, RealmModel realm);
     GroupModel getGroupById(String id, RealmModel realm);
-
+    GroupModel getGroupByNameAndParent(String name, GroupModel parent, RealmModel realm);
 
 
     List<RealmModel> getRealms();

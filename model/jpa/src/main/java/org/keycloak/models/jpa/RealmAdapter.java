@@ -1962,6 +1962,11 @@ public class RealmAdapter implements RealmModel, JpaModel<RealmEntity> {
     }
 
     @Override
+    public GroupModel getGroupByNameAndParent(String name, GroupModel parent) {
+        return session.realms().getGroupByNameAndParent(name, parent, this);
+    }
+
+    @Override
     public List<GroupModel> getGroups() {
         return session.realms().getGroups(this);
     }

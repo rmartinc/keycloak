@@ -26,6 +26,7 @@ import java.io.ObjectOutput;
 import org.infinispan.commons.marshall.Externalizer;
 import org.infinispan.commons.marshall.MarshallUtil;
 import org.infinispan.commons.marshall.SerializeWith;
+import org.keycloak.models.cache.infinispan.RealmCacheSession;
 
 /**
  * @author <a href="mailto:mposolda@redhat.com">Marek Posolda</a>
@@ -34,10 +35,16 @@ import org.infinispan.commons.marshall.SerializeWith;
 public class GroupUpdatedEvent extends InvalidationEvent implements RealmCacheInvalidationEvent {
 
     private String groupId;
+    private String groupName;
+    private String parentId;
+    private String realmId;
 
-    public static GroupUpdatedEvent create(String groupId) {
+    public static GroupUpdatedEvent create(String groupId, String groupName, String parentId, String realmId) {
         GroupUpdatedEvent event = new GroupUpdatedEvent();
         event.groupId = groupId;
+        event.groupName = groupName;
+        event.parentId = parentId;
+        event.realmId = realmId;
         return event;
     }
 
@@ -54,18 +61,22 @@ public class GroupUpdatedEvent extends InvalidationEvent implements RealmCacheIn
 
     @Override
     public void addInvalidations(RealmCacheManager realmCache, Set<String> invalidations) {
-        // Nothing. ID already invalidated
+        invalidations.add(RealmCacheSession.getGroupByNameAndParentCacheKey(groupName, parentId, realmId));
     }
 
     public static class ExternalizerImpl implements Externalizer<GroupUpdatedEvent> {
 
         private static final int VERSION_1 = 1;
+        private static final int VERSION_2 = 2;
 
         @Override
         public void writeObject(ObjectOutput output, GroupUpdatedEvent obj) throws IOException {
-            output.writeByte(VERSION_1);
+            output.writeByte(VERSION_2);
 
             MarshallUtil.marshallString(obj.groupId, output);
+            MarshallUtil.marshallString(obj.groupName, output);
+            MarshallUtil.marshallString(obj.parentId, output);
+            MarshallUtil.marshallString(obj.realmId, output);
         }
 
         @Override
@@ -73,6 +84,8 @@ public class GroupUpdatedEvent extends InvalidationEvent implements RealmCacheIn
             switch (input.readByte()) {
                 case VERSION_1:
                     return readObjectVersion1(input);
+                case VERSION_2:
+                    return readObjectVersion2(input);
                 default:
                     throw new IOException("Unknown version");
             }
@@ -81,6 +94,16 @@ public class GroupUpdatedEvent extends InvalidationEvent implements RealmCacheIn
         public GroupUpdatedEvent readObjectVersion1(ObjectInput input) throws IOException, ClassNotFoundException {
             GroupUpdatedEvent res = new GroupUpdatedEvent();
             res.groupId = MarshallUtil.unmarshallString(input);
+
+            return res;
+        }
+
+        public GroupUpdatedEvent readObjectVersion2(ObjectInput input) throws IOException, ClassNotFoundException {
+            GroupUpdatedEvent res = new GroupUpdatedEvent();
+            res.groupId = MarshallUtil.unmarshallString(input);
+            res.groupName = MarshallUtil.unmarshallString(input);
+            res.parentId = MarshallUtil.unmarshallString(input);
+            res.realmId = MarshallUtil.unmarshallString(input);
 
             return res;
         }

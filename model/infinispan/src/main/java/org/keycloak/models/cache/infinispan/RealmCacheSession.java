@@ -251,9 +251,10 @@ public class RealmCacheSession implements CacheRealmProvider {
     }
 
     @Override
-    public void registerGroupInvalidation(String id) {
-        invalidateGroup(id, null, false);
-        addGroupEventIfAbsent(GroupUpdatedEvent.create(id));
+    public void registerGroupInvalidation(String id, String name, String parentId, String realmId) {
+        invalidateGroup(id, realmId, false);
+        invalidations.add(getGroupByNameAndParentCacheKey(name, parentId, realmId));
+        addGroupEventIfAbsent(GroupUpdatedEvent.create(id, name, parentId, realmId));
     }
 
     private void invalidateGroup(String id, String realmId, boolean invalidateQueries) {
@@ -835,6 +836,42 @@ public class RealmCacheSession implements CacheRealmProvider {
 
         invalidationEvents.add(GroupMovedEvent.create(group, toParent, realm.getId()));
         getRealmDelegate().moveGroup(realm, group, toParent);
+    }
+
+    @Override
+    public GroupModel getGroupByNameAndParent(String name, GroupModel parent, RealmModel realm) {
+        String cacheKey = getGroupByNameAndParentCacheKey(name, parent != null? parent.getId() : null, realm.getId());
+        if (invalidations.contains(cacheKey)) {
+            return getRealmDelegate().getGroupByNameAndParent(name, parent, realm);
+        }
+        GroupListQuery query = cache.get(cacheKey, GroupListQuery.class);
+        if (query != null) {
+            logger.tracev("getGroupByNameAndParent cache hit: {0} {1} {2}", realm.getName(), name, parent != null? parent.getName() : null);
+        }
+
+        if (query == null) {
+            // translation from parentId/name to id is not in the cache => look for it in delegate and cache
+            Long loaded = cache.getCurrentRevision(cacheKey);
+            GroupModel model = getRealmDelegate().getGroupByNameAndParent(name, parent, realm);
+            if (model == null) {
+                return null;
+            }
+            query = new GroupListQuery(loaded, cacheKey, realm, Collections.singleton(model.getId()));
+            cache.addRevisioned(query, startupRevision);
+            logger.tracev("adding getGroupByNameAndParent cache miss: realm {0} key {1}", realm.getName(), cacheKey);
+            return model;
+        } else {
+            // read it from the id in the cache
+            GroupModel group = session.realms().getGroupById(query.getGroups().iterator().next(), realm);
+            if (group == null) {
+                invalidations.add(cacheKey);
+            }
+            return group;
+        }
+    }
+
+    public static String getGroupByNameAndParentCacheKey(String name, String parentId, String realmId) {
+        return realmId + "." + (parentId == null? " " : parentId) + "." +  name;
     }
 
     @Override

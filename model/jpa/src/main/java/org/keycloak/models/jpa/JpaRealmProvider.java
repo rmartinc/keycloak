@@ -409,6 +409,21 @@ public class JpaRealmProvider implements RealmProvider {
     }
 
     @Override
+    public GroupModel getGroupByNameAndParent(String name, GroupModel parent, RealmModel realm) {
+        List<String> groupIds =  em.createNamedQuery("getGroupByNameAndParent", String.class)
+                .setParameter("realm", realm.getId())
+                .setParameter("name", name)
+                .setParameter("parent", parent == null? GroupEntity.TOP_PARENT_ID : parent.getId())
+                .setMaxResults(1)
+                .getResultList();
+        if (!groupIds.isEmpty()) {
+            return session.realms().getGroupById(groupIds.iterator().next(), realm);
+        } else {
+            return null;
+        }
+    }
+
+    @Override
     public void moveGroup(RealmModel realm, GroupModel group, GroupModel toParent) {
         if (toParent != null && group.getId().equals(toParent.getId())) {
             return;
@@ -545,7 +560,10 @@ public class JpaRealmProvider implements RealmProvider {
         em.createNamedQuery("deleteGroupRoleMappingsByGroup").setParameter("group", groupEntity).executeUpdate();
 
         RealmEntity realmEntity = em.getReference(RealmEntity.class, realm.getId());
-        realmEntity.getGroups().remove(groupEntity);
+        if (em.getEntityManagerFactory().getPersistenceUnitUtil().isLoaded(realmEntity, "groups")) {
+            // avoid loading all the groups if not needed
+            realmEntity.getGroups().remove(groupEntity);
+        }
 
         em.remove(groupEntity);
         return true;
@@ -569,7 +587,10 @@ public class JpaRealmProvider implements RealmProvider {
         groupEntity.setParentId(toParent == null? GroupEntity.TOP_PARENT_ID : toParent.getId());
         em.persist(groupEntity);
         em.flush();
-        realmEntity.getGroups().add(groupEntity);
+        if (em.getEntityManagerFactory().getPersistenceUnitUtil().isLoaded(realmEntity, "groups")) {
+            // avoid loading all the groups if not needed
+            realmEntity.getGroups().add(groupEntity);
+        }
 
         GroupAdapter adapter = new GroupAdapter(realm, em, groupEntity);
         return adapter;
