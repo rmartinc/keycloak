@@ -23,6 +23,15 @@
         </createIndex>
     </changeSet>
 
+    <changeSet author="keycloak" id="9.0.1-KEYCLOAK-12579-rename-duplicated-top-level-groups">
+        <preConditions onFail="MARK_RAN" onSqlOutput="TEST">
+            <not>
+                <changeSetExecuted id="9.0.1-KEYCLOAK-12579-add-not-null-constraint" author="keycloak" changeLogFile="META-INF/jpa-changelog-9.0.1.xml"/>
+            </not>
+        </preConditions>
+        <customChange class="org.keycloak.connections.jpa.updater.liquibase.custom.RenameDuplicatedTopLevelGroups" />
+    </changeSet>
+
     <changeSet author="keycloak" id="9.0.1-KEYCLOAK-12579-drop-constraints">
         <preConditions onFail="MARK_RAN" onSqlOutput="TEST">
             <!-- sql server needs drop and re-create the constraint SIBLING_NAMES -->
