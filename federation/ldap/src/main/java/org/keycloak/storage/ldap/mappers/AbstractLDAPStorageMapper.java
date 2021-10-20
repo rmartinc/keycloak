@@ -21,15 +21,15 @@ import org.keycloak.component.ComponentModel;
 import org.keycloak.models.GroupModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
+import org.keycloak.models.RoleModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.storage.ldap.LDAPStorageProvider;
 import org.keycloak.storage.ldap.idm.model.LDAPObject;
+import org.keycloak.storage.ldap.idm.store.LdapValidationPasswordResult;
 import org.keycloak.storage.user.SynchronizationResult;
 
-import javax.naming.AuthenticationException;
 import java.util.Collections;
 import java.util.List;
-import org.keycloak.models.RoleModel;
 
 /**
  * Stateful per-request object
@@ -69,10 +69,9 @@ public abstract class AbstractLDAPStorageMapper implements LDAPStorageMapper {
     }
 
     @Override
-    public boolean onAuthenticationFailure(LDAPObject ldapUser, UserModel user, AuthenticationException ldapException, RealmModel realm) {
+    public boolean onAuthenticationResult(LDAPObject ldapUser, UserModel user, LdapValidationPasswordResult result, RealmModel realm) {
         return false;
     }
-
 
     public static boolean parseBooleanParameter(ComponentModel mapperModel, String paramName) {
         String paramm = mapperModel.getConfig().getFirst(paramName);

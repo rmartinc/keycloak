@@ -121,13 +121,13 @@ public final class LDAPContextManager implements AutoCloseable {
                 ldapContext.addToEnvironment(Context.SECURITY_PRINCIPAL, bindDN);
                 ldapContext.addToEnvironment(Context.SECURITY_CREDENTIALS, bindCredential);
             }
-        } catch (Exception e) {
+        } catch (IOException e) {
             logger.error("Could not negotiate TLS", e);
             throw new AuthenticationException("Could not negotiate TLS");
         }
 
         // throws AuthenticationException when authentication fails
-        ldapContext.lookup("");
+        ldapContext.reconnect(null);
 
         return tls;
     }

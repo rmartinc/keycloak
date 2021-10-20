@@ -17,6 +17,7 @@
 
 package org.keycloak.storage.ldap.idm.store.ldap;
 
+import org.keycloak.storage.ldap.idm.store.LdapValidationPasswordResult;
 import org.jboss.logging.Logger;
 import org.keycloak.common.util.Base64;
 import org.keycloak.models.KeycloakSession;
@@ -345,14 +346,14 @@ public class LDAPIdentityStore implements IdentityStore {
     // *************** CREDENTIALS AND USER SPECIFIC STUFF
 
     @Override
-    public void validatePassword(LDAPObject user, String password) throws AuthenticationException {
+    public LdapValidationPasswordResult validatePassword(LDAPObject user, String password) {
         String userDN = user.getDn().toString();
 
         if (logger.isTraceEnabled()) {
             logger.tracef("Using DN [%s] for authentication of user", userDN);
         }
 
-        operationManager.authenticate(userDN, password);
+        return operationManager.authenticate(userDN, password);
     }
 
     @Override

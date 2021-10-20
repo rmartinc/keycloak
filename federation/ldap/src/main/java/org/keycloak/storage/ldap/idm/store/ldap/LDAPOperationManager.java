@@ -25,6 +25,7 @@ import org.keycloak.models.ModelException;
 import org.keycloak.storage.ldap.LDAPConfig;
 import org.keycloak.storage.ldap.idm.model.LDAPDn;
 import org.keycloak.storage.ldap.idm.query.internal.LDAPQuery;
+import org.keycloak.storage.ldap.idm.store.LdapValidationPasswordResult;
 import org.keycloak.storage.ldap.idm.store.ldap.extended.PasswordModifyRequest;
 import org.keycloak.storage.ldap.mappers.LDAPOperationDecorator;
 import org.keycloak.truststore.TruststoreProvider;
@@ -474,13 +475,13 @@ public class LDAPOperationManager {
      *
      * @param dn
      * @param password
-     * @throws AuthenticationException if authentication is not successful
+     * @return the authentication result
      *
      */
-    public void authenticate(String dn, String password) throws AuthenticationException {
+    public LdapValidationPasswordResult authenticate(String dn, String password) {
 
         if (password == null || password.isEmpty()) {
-            throw new AuthenticationException("Empty password used");
+            return new LdapValidationPasswordResult(new AuthenticationException("Empty password used"));
         }
 
         LdapContext authCtx = null;
@@ -492,12 +493,6 @@ public class LDAPOperationManager {
 
             // Never use connection pool to prevent password caching
             env.put("com.sun.jndi.ldap.connect.pool", "false");
-
-            if(!this.config.isStartTls()) {
-                env.put(Context.SECURITY_AUTHENTICATION, "simple");
-                env.put(Context.SECURITY_PRINCIPAL, dn);
-                env.put(Context.SECURITY_CREDENTIALS, password);
-            }
 
             authCtx = new InitialLdapContext(env, null);
             if (config.isStartTls()) {
@@ -514,16 +509,16 @@ public class LDAPOperationManager {
                 if (tlsResponse == null) {
                     throw new AuthenticationException("Null TLS Response returned from the authentication");
                 }
+            } else {
+                authCtx.addToEnvironment(Context.SECURITY_AUTHENTICATION, "simple");
+                authCtx.addToEnvironment(Context.SECURITY_PRINCIPAL, dn);
+                authCtx.addToEnvironment(Context.SECURITY_CREDENTIALS, password);
+                authCtx.reconnect(null);
             }
-        } catch (AuthenticationException ae) {
-            if (logger.isDebugEnabled()) {
-                logger.debugf(ae, "Authentication failed for DN [%s]", dn);
-            }
-
-            throw ae;
+            return new LdapValidationPasswordResult(authCtx.getResponseControls());
         } catch (Exception e) {
-            logger.errorf(e, "Unexpected exception when validating password of DN [%s]", dn);
-            throw new AuthenticationException("Unexpected exception when validating password of user");
+            logger.debugf(e, "Authentication failed for DN [%s]", dn);
+            return new LdapValidationPasswordResult(e, getResponseControlsFromContext(authCtx));
         } finally {
             if (tlsResponse != null) {
                 try {
@@ -541,6 +536,17 @@ public class LDAPOperationManager {
                 }
             }
         }
+    }
+
+    private Control[] getResponseControlsFromContext(LdapContext authCtx) {
+        if (authCtx != null) {
+            try {
+                return authCtx.getResponseControls();
+            } catch (NamingException e) {
+                logger.error("Error obtaining the response controls from the ldap context", e);
+            }
+        }
+        return null;
     }
 
     public void modifyAttributesNaming(final String dn, final ModificationItem[] mods, LDAPOperationDecorator decorator) throws NamingException {

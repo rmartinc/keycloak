@@ -34,7 +34,6 @@ import org.keycloak.models.RealmModel;
 import org.keycloak.models.RoleModel;
 import org.keycloak.models.UserCredentialModel;
 import org.keycloak.models.UserModel;
-import org.keycloak.models.KeycloakSessionFactory;
 import org.keycloak.models.cache.CachedUserModel;
 import org.keycloak.models.credential.PasswordCredentialModel;
 import org.keycloak.models.utils.KeycloakModelUtils;
@@ -44,7 +43,6 @@ import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.keycloak.services.managers.RealmManager;
-import org.keycloak.services.managers.UserStorageSyncManager;
 import org.keycloak.storage.ReadOnlyException;
 import org.keycloak.storage.StorageId;
 import org.keycloak.storage.UserStorageProvider;
@@ -52,6 +50,7 @@ import org.keycloak.storage.UserStorageProviderModel;
 import org.keycloak.storage.ldap.LDAPConfig;
 import org.keycloak.storage.ldap.LDAPStorageProvider;
 import org.keycloak.storage.ldap.idm.model.LDAPObject;
+import org.keycloak.storage.ldap.idm.store.LdapValidationPasswordResult;
 import org.keycloak.storage.ldap.mappers.HardcodedLDAPAttributeMapper;
 import org.keycloak.storage.ldap.mappers.HardcodedLDAPAttributeMapperFactory;
 import org.keycloak.storage.ldap.mappers.HardcodedLDAPGroupStorageMapper;
@@ -60,7 +59,6 @@ import org.keycloak.storage.ldap.mappers.HardcodedLDAPRoleStorageMapper;
 import org.keycloak.storage.ldap.mappers.HardcodedLDAPRoleStorageMapperFactory;
 import org.keycloak.storage.ldap.mappers.LDAPStorageMapper;
 import org.keycloak.storage.ldap.mappers.UserAttributeLDAPStorageMapper;
-import org.keycloak.storage.user.SynchronizationResult;
 import org.keycloak.testsuite.AbstractAuthTest;
 import org.keycloak.testsuite.admin.ApiUtil;
 import org.keycloak.testsuite.arquillian.annotation.DisableFeature;
@@ -69,7 +67,6 @@ import org.keycloak.testsuite.util.LDAPRule;
 import org.keycloak.testsuite.util.LDAPTestUtils;
 import org.keycloak.testsuite.util.OAuthClient;
 
-import javax.naming.AuthenticationException;
 import javax.ws.rs.core.Response;
 import java.util.Arrays;
 import java.util.List;
@@ -903,12 +900,9 @@ public class LDAPProvidersIntegrationTest extends AbstractLDAPTest {
             Assert.assertTrue(session.userCredentialManager().isValid(appRealm, user, cred));
 
             // LDAP password is still unchanged
-            try {
-                LDAPObject ldapUser = ctx.getLdapProvider().loadLDAPUserByUsername(appRealm, "johnkeycloak");
-                ctx.getLdapProvider().getLdapIdentityStore().validatePassword(ldapUser, "Password1");
-            } catch (AuthenticationException ex) {
-                throw new RuntimeException(ex);
-            }
+            LDAPObject ldapUser = ctx.getLdapProvider().loadLDAPUserByUsername(appRealm, "johnkeycloak");
+            LdapValidationPasswordResult result = ctx.getLdapProvider().getLdapIdentityStore().validatePassword(ldapUser, "Password1");
+            Assert.assertTrue(result.isSuccess());
         });
 
         // Test admin REST endpoints

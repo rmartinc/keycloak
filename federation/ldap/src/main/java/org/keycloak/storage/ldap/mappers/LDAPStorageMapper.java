@@ -29,6 +29,7 @@ import javax.naming.AuthenticationException;
 import java.util.List;
 import org.keycloak.models.RoleModel;
 import org.keycloak.storage.ldap.LDAPStorageProvider;
+import org.keycloak.storage.ldap.idm.store.LdapValidationPasswordResult;
 
 /**
  * @author <a href="mailto:mposolda@redhat.com">Marek Posolda</a>
@@ -105,15 +106,15 @@ public interface LDAPStorageMapper extends Provider {
     void beforeLDAPQuery(LDAPQuery query);
 
     /**
-     * Called when LDAP authentication of specified user fails. If any mapper returns true from this method, AuthenticationException won't be rethrown!
+     * Called when LDAP authentication of specified user is executed. If any mapper returns true from this method, AuthenticationException won't be rethrown!
      *
      * @param user
      * @param ldapUser
-     * @param ldapException
+     * @param result
+     * @param realm
      * @return true if mapper processed the AuthenticationException and did some actions based on that. In that case, AuthenticationException won't be rethrown!
      */
-    boolean onAuthenticationFailure(LDAPObject ldapUser, UserModel user, AuthenticationException ldapException, RealmModel realm);
-
+    boolean onAuthenticationResult(LDAPObject ldapUser, UserModel user, LdapValidationPasswordResult result, RealmModel realm);
     /**
      * Gets the ldap provider associated to the mapper.
      *

@@ -34,11 +34,11 @@ import org.keycloak.storage.ldap.mappers.LDAPOperationDecorator;
 import org.keycloak.storage.ldap.mappers.PasswordUpdateCallback;
 import org.keycloak.storage.ldap.mappers.TxAwareLDAPUserModelDelegate;
 
-import javax.naming.AuthenticationException;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import org.keycloak.storage.ldap.idm.store.LdapValidationPasswordResult;
 
 /**
  * Mapper specific to MSAD. It's able to read the userAccountControl and pwdLastSet attributes and set actions in Keycloak based on that.
@@ -126,15 +126,18 @@ public class MSADUserAccountControlStorageMapper extends AbstractLDAPStorageMapp
     }
 
     @Override
-    public boolean onAuthenticationFailure(LDAPObject ldapUser, UserModel user, AuthenticationException ldapException, RealmModel realm) {
-        String exceptionMessage = ldapException.getMessage();
-        Matcher m = AUTH_EXCEPTION_REGEX.matcher(exceptionMessage);
-        if (m.matches()) {
-            String errorCode = m.group(1);
-            return processAuthErrorCode(errorCode, user);
-        } else {
-            return false;
+    public boolean onAuthenticationResult(LDAPObject ldapUser, UserModel user, LdapValidationPasswordResult result, RealmModel realm) {
+        if (!result.isSuccess()) {
+            String exceptionMessage = result.getException().getMessage();
+            Matcher m = AUTH_EXCEPTION_REGEX.matcher(exceptionMessage);
+            if (m.matches()) {
+                String errorCode = m.group(1);
+                return processAuthErrorCode(errorCode, user);
+            } else {
+                return false;
+            }
         }
+        return false;
     }
 
     protected boolean processAuthErrorCode(String errorCode, UserModel user) {

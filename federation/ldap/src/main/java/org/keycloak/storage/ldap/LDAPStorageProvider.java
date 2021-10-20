@@ -27,8 +27,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import javax.naming.AuthenticationException;
-
 import org.jboss.logging.Logger;
 import org.keycloak.common.constants.KerberosConstants;
 import org.keycloak.component.ComponentModel;
@@ -68,6 +66,7 @@ import org.keycloak.storage.ldap.idm.query.EscapeStrategy;
 import org.keycloak.storage.ldap.idm.query.internal.LDAPQuery;
 import org.keycloak.storage.ldap.idm.query.internal.LDAPQueryConditionsBuilder;
 import org.keycloak.storage.ldap.idm.store.ldap.LDAPIdentityStore;
+import org.keycloak.storage.ldap.idm.store.LdapValidationPasswordResult;
 import org.keycloak.storage.ldap.kerberos.LDAPProviderKerberosConfig;
 import org.keycloak.storage.ldap.mappers.LDAPMappersComparator;
 import org.keycloak.storage.ldap.mappers.LDAPOperationDecorator;
@@ -623,22 +622,20 @@ public class LDAPStorageProvider implements UserStorageProvider,
             // Use Naming LDAP API
             LDAPObject ldapUser = loadAndValidateUser(realm, user);
 
-            try {
-                ldapIdentityStore.validatePassword(ldapUser, password);
-                return true;
-            } catch (AuthenticationException ae) {
-                AtomicReference<Boolean> processed = new AtomicReference<>(false);
-                realm.getComponentsStream(model.getId(), LDAPStorageMapper.class.getName())
-                        .sorted(ldapMappersComparator.sortDesc())
-                        .forEachOrdered(mapperModel -> {
-                            if (logger.isTraceEnabled()) {
-                                logger.tracef("Using mapper %s during import user from LDAP", mapperModel);
-                            }
-                            LDAPStorageMapper ldapMapper = mapperManager.getMapper(mapperModel);
-                            processed.set(processed.get() || ldapMapper.onAuthenticationFailure(ldapUser, user, ae, realm));
-                        });
-                return processed.get();
-            }
+            LdapValidationPasswordResult result = ldapIdentityStore.validatePassword(ldapUser, password);
+
+            AtomicReference<Boolean> processed = new AtomicReference<>(result.isSuccess());
+            realm.getComponentsStream(model.getId(), LDAPStorageMapper.class.getName())
+                    .sorted(ldapMappersComparator.sortDesc())
+                    .forEachOrdered(mapperModel -> {
+                        if (logger.isTraceEnabled()) {
+                            logger.tracef("Using mapper %s during import user from LDAP", mapperModel);
+                        }
+                        LDAPStorageMapper ldapMapper = mapperManager.getMapper(mapperModel);
+                        boolean partial = ldapMapper.onAuthenticationResult(ldapUser, user, result, realm);
+                        processed.set(processed.get() || partial);
+                    });
+            return processed.get();
         }
     }
 
