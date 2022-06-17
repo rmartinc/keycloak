@@ -1084,8 +1084,9 @@ public class TokenManager {
                 clientSessionMaxLifespan = realm.getClientSessionMaxLifespan();
             }
 
+            AuthenticatedClientSessionModel clientSession = clientSessionCtx.getClientSession();
             if (clientSessionMaxLifespan > 0) {
-                int clientSessionMaxExpiration = userSession.getStarted() + clientSessionMaxLifespan;
+                int clientSessionMaxExpiration = clientSession.getTimestamp() + clientSessionMaxLifespan;
                 sessionExpires = sessionExpires < clientSessionMaxExpiration ? sessionExpires : clientSessionMaxExpiration;
             }
 
