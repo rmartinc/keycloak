@@ -14,37 +14,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.keycloak.testsuite.pages.social;
 
-import org.openqa.selenium.NoSuchElementException;
+import org.keycloak.testsuite.util.WaitUtils;
+import org.openqa.selenium.By;
+import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.support.FindBy;
 
 /**
  * @author Vaclav Muzikar <vmuzikar@redhat.com>
  */
 public class TwitterLoginPage extends AbstractSocialLoginPage {
-    @FindBy(id = "username_or_email")
-    private WebElement usernameInput;
-
-    @FindBy(id = "password")
-    private WebElement passwordInput;
-
-    @FindBy(id = "allow")
-    private WebElement loginButton;
 
     @Override
     public void login(String user, String password) {
-        try {
-            usernameInput.clear();
-            usernameInput.sendKeys(user);
-            passwordInput.sendKeys(password);
-        }
-        catch (NoSuchElementException e) { // at some conditions we are already logged in and just need to confirm it
-        }
-        finally {
-            loginButton.click();
-        }
+        // twitter presents a consent page for the application
+        // the SignIn button should be clicked first to go to the real login
+        By by = By.xpath("//input[@type='submit' and @value='Sign In']");
+        WaitUtils.waitUntilElement(by).is().present();
+        WebElement element = driver.findElement(by);
+        element.click();
+
+        // new login page is two phase login (username and then password) and it
+        // needs lots of JS, twitter does not work with default HtmlUnit driver
+        by = By.xpath("//input[@type='text' and @name='text']");
+        WaitUtils.waitUntilElement(by).is().present();
+        element = driver.findElement(by);
+        element.clear();
+        element.sendKeys(user);
+        element.sendKeys(Keys.RETURN);
+
+        // wait for the password input to appear
+        by = By.xpath("//input[@type='password']");
+        WaitUtils.waitUntilElement(by).is().present();
+        element = driver.findElement(by);
+        element.clear();
+        element.sendKeys(password);
+        element.sendKeys(Keys.RETURN);
     }
 }
