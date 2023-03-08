@@ -99,6 +99,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import org.keycloak.events.EventType;
 import static org.keycloak.protocol.oidc.OIDCConfigAttributes.CLIENT_SESSION_IDLE_TIMEOUT;
 import static org.keycloak.protocol.oidc.OIDCConfigAttributes.CLIENT_SESSION_MAX_LIFESPAN;
 import static org.keycloak.testsuite.Assert.assertExpiration;
@@ -1075,7 +1076,7 @@ public class RefreshTokenTest extends AbstractKeycloakTest {
 
             String code = oauth.getCurrentQuery().get(OAuth2Constants.CODE);
             OAuthClient.AccessTokenResponse tokenResponse = oauth.doAccessTokenRequest(code, "password");
-
+            assertTrue("Invalid ExpiresIn", 0 < tokenResponse.getRefreshExpiresIn() && tokenResponse.getRefreshExpiresIn() <= 3600);
             final String clientSessionId = getClientSessionUuid(sessionId, loginEvent.getClientId());
             assertTrue("User session expired", testingClient.testing().cache(InfinispanConnectionProvider.USER_SESSION_CACHE_NAME).contains(sessionId));
             assertTrue("Client session expired", testingClient.testing().cache(InfinispanConnectionProvider.CLIENT_SESSION_CACHE_NAME).containsUuid(clientSessionId));
@@ -1086,6 +1087,7 @@ public class RefreshTokenTest extends AbstractKeycloakTest {
 
             String refreshId = oauth.parseRefreshToken(tokenResponse.getRefreshToken()).getId();
             tokenResponse = oauth.doRefreshTokenRequest(tokenResponse.getRefreshToken(), "password");
+            assertTrue("Invalid ExpiresIn", 0 < tokenResponse.getRefreshExpiresIn() && tokenResponse.getRefreshExpiresIn() <= 1800);
             assertTrue("User session expired", testingClient.testing().cache(InfinispanConnectionProvider.USER_SESSION_CACHE_NAME).contains(sessionId));
             assertTrue("Client session expired", testingClient.testing().cache(InfinispanConnectionProvider.CLIENT_SESSION_CACHE_NAME).containsUuid(clientSessionId));
             events.expectRefresh(refreshId, sessionId).assertEvent();
@@ -1097,13 +1099,145 @@ public class RefreshTokenTest extends AbstractKeycloakTest {
             assertEquals(400, tokenResponse.getStatusCode());
             assertNull(tokenResponse.getAccessToken());
             assertNull(tokenResponse.getRefreshToken());
-            events.expectRefresh(refreshId, sessionId).error(Errors.INVALID_TOKEN);
+            events.expect(EventType.REFRESH_TOKEN).error(Errors.INVALID_TOKEN).user((String) null).assertEvent();
             assertFalse("User session not expired", testingClient.testing().cache(InfinispanConnectionProvider.USER_SESSION_CACHE_NAME).contains(sessionId));
             assertFalse("Client session not expired", testingClient.testing().cache(InfinispanConnectionProvider.CLIENT_SESSION_CACHE_NAME).containsUuid(clientSessionId));
         } finally {
             getTestingClient().testing().revertTestingInfinispanTimeService();
             RealmManager.realm(realmResource).ssoSessionMaxLifespan(maxLifespan);
             RealmManager.realm(realmResource).ssoSessionIdleTimeout(idleTimeout);
+            events.clear();
+            resetTimeOffset();
+        }
+    }
+
+    @Test
+    public void refreshTokenUserClientMaxLifespanSmallerThanSession() throws Exception {
+        RealmResource realmResource = adminClient.realm("test");
+        Integer maxLifespan = realmResource.toRepresentation().getSsoSessionMaxLifespan();
+        Integer idleTimeout = realmResource.toRepresentation().getSsoSessionIdleTimeout();
+        Integer clientMaxLifespan = realmResource.toRepresentation().getClientSessionMaxLifespan();
+        Integer clientIdleTimeout = realmResource.toRepresentation().getClientSessionIdleTimeout();
+        getTestingClient().testing().setTestingInfinispanTimeService();
+        try {
+            RealmManager.realm(realmResource).ssoSessionMaxLifespan(3600);
+            RealmManager.realm(realmResource).ssoSessionIdleTimeout(7200);
+            RealmManager.realm(realmResource).clientSessionMaxLifespan(1000);
+            RealmManager.realm(realmResource).clientSessionIdleTimeout(7200);
+
+            oauth.doLogin("test-user@localhost", "password");
+            EventRepresentation loginEvent = events.expectLogin().assertEvent();
+
+            String sessionId = loginEvent.getSessionId();
+
+            String code = oauth.getCurrentQuery().get(OAuth2Constants.CODE);
+            OAuthClient.AccessTokenResponse tokenResponse = oauth.doAccessTokenRequest(code, "password");
+            assertTrue("Invalid ExpiresIn", 0 < tokenResponse.getRefreshExpiresIn() && tokenResponse.getRefreshExpiresIn() <= 1000);
+            String clientSessionId = getClientSessionUuid(sessionId, loginEvent.getClientId());
+            assertTrue("User session expired", testingClient.testing().cache(InfinispanConnectionProvider.USER_SESSION_CACHE_NAME).contains(sessionId));
+            assertTrue("Client session expired", testingClient.testing().cache(InfinispanConnectionProvider.CLIENT_SESSION_CACHE_NAME).containsUuid(clientSessionId));
+
+            events.poll();
+
+            setTimeOffset(600);
+            String refreshId = oauth.parseRefreshToken(tokenResponse.getRefreshToken()).getId();
+            tokenResponse = oauth.doRefreshTokenRequest(tokenResponse.getRefreshToken(), "password");
+            assertTrue("Invalid ExpiresIn", 0 < tokenResponse.getRefreshExpiresIn() && tokenResponse.getRefreshExpiresIn() <= 400);
+            assertTrue("User session expired", testingClient.testing().cache(InfinispanConnectionProvider.USER_SESSION_CACHE_NAME).contains(sessionId));
+            assertTrue("Client session expired", testingClient.testing().cache(InfinispanConnectionProvider.CLIENT_SESSION_CACHE_NAME).containsUuid(clientSessionId));
+            events.expectRefresh(refreshId, sessionId).assertEvent();
+
+            setTimeOffset(1100);
+            tokenResponse = oauth.doRefreshTokenRequest(tokenResponse.getRefreshToken(), "password");
+            assertEquals(400, tokenResponse.getStatusCode());
+            assertNull(tokenResponse.getAccessToken());
+            assertNull(tokenResponse.getRefreshToken());
+            events.expect(EventType.REFRESH_TOKEN).error(Errors.INVALID_TOKEN).user((String) null).assertEvent();
+            assertTrue("User session expired", testingClient.testing().cache(InfinispanConnectionProvider.USER_SESSION_CACHE_NAME).contains(sessionId));
+            assertFalse("Client session not expired", testingClient.testing().cache(InfinispanConnectionProvider.CLIENT_SESSION_CACHE_NAME).containsUuid(clientSessionId));
+
+            setTimeOffset(1600);
+            oauth.doSilentLogin();
+            loginEvent = events.expectLogin().assertEvent();
+            sessionId = loginEvent.getSessionId();
+            code = oauth.getCurrentQuery().get(OAuth2Constants.CODE);
+            tokenResponse = oauth.doAccessTokenRequest(code, "password");
+            assertTrue("Invalid ExpiresIn", 0 < tokenResponse.getRefreshExpiresIn() && tokenResponse.getRefreshExpiresIn() <= 1000);
+            events.expectCodeToToken(loginEvent.getDetails().get(Details.CODE_ID), sessionId).assertEvent();
+
+            clientSessionId = getClientSessionUuid(sessionId, loginEvent.getClientId());
+            assertTrue("User session expired", testingClient.testing().cache(InfinispanConnectionProvider.USER_SESSION_CACHE_NAME).contains(sessionId));
+            assertTrue("Client session expired", testingClient.testing().cache(InfinispanConnectionProvider.CLIENT_SESSION_CACHE_NAME).containsUuid(clientSessionId));
+
+            setTimeOffset(3700);
+            tokenResponse = oauth.doRefreshTokenRequest(tokenResponse.getRefreshToken(), "password");
+            assertEquals(400, tokenResponse.getStatusCode());
+            assertNull(tokenResponse.getAccessToken());
+            assertNull(tokenResponse.getRefreshToken());
+            events.expect(EventType.REFRESH_TOKEN).error(Errors.INVALID_TOKEN).user((String) null).assertEvent();
+            assertFalse("User session not expired", testingClient.testing().cache(InfinispanConnectionProvider.USER_SESSION_CACHE_NAME).contains(sessionId));
+            assertFalse("Client session not expired", testingClient.testing().cache(InfinispanConnectionProvider.CLIENT_SESSION_CACHE_NAME).containsUuid(clientSessionId));
+        } finally {
+            getTestingClient().testing().revertTestingInfinispanTimeService();
+            RealmManager.realm(realmResource).ssoSessionMaxLifespan(maxLifespan);
+            RealmManager.realm(realmResource).ssoSessionIdleTimeout(idleTimeout);
+            RealmManager.realm(realmResource).clientSessionMaxLifespan(clientMaxLifespan);
+            RealmManager.realm(realmResource).clientSessionIdleTimeout(clientIdleTimeout);
+            events.clear();
+            resetTimeOffset();
+        }
+    }
+
+    @Test
+    public void refreshTokenUserClientMaxLifespanGreaterThanSession() throws Exception {
+        RealmResource realmResource = adminClient.realm("test");
+        Integer maxLifespan = realmResource.toRepresentation().getSsoSessionMaxLifespan();
+        Integer idleTimeout = realmResource.toRepresentation().getSsoSessionIdleTimeout();
+        Integer clientMaxLifespan = realmResource.toRepresentation().getClientSessionMaxLifespan();
+        Integer clientIdleTimeout = realmResource.toRepresentation().getClientSessionIdleTimeout();
+        getTestingClient().testing().setTestingInfinispanTimeService();
+        try {
+            RealmManager.realm(realmResource).ssoSessionMaxLifespan(3600);
+            RealmManager.realm(realmResource).ssoSessionIdleTimeout(7200);
+            RealmManager.realm(realmResource).clientSessionMaxLifespan(5000);
+            RealmManager.realm(realmResource).clientSessionIdleTimeout(7200);
+
+            oauth.doLogin("test-user@localhost", "password");
+            EventRepresentation loginEvent = events.expectLogin().assertEvent();
+
+            String sessionId = loginEvent.getSessionId();
+
+            String code = oauth.getCurrentQuery().get(OAuth2Constants.CODE);
+            OAuthClient.AccessTokenResponse tokenResponse = oauth.doAccessTokenRequest(code, "password");
+            assertTrue("Invalid ExpiresIn", 0 < tokenResponse.getRefreshExpiresIn() && tokenResponse.getRefreshExpiresIn() <= 3600);
+            String clientSessionId = getClientSessionUuid(sessionId, loginEvent.getClientId());
+            assertTrue("User session expired", testingClient.testing().cache(InfinispanConnectionProvider.USER_SESSION_CACHE_NAME).contains(sessionId));
+            assertTrue("Client session expired", testingClient.testing().cache(InfinispanConnectionProvider.CLIENT_SESSION_CACHE_NAME).containsUuid(clientSessionId));
+
+            events.poll();
+
+            setTimeOffset(1800);
+            String refreshId = oauth.parseRefreshToken(tokenResponse.getRefreshToken()).getId();
+            tokenResponse = oauth.doRefreshTokenRequest(tokenResponse.getRefreshToken(), "password");
+            assertTrue("Invalid ExpiresIn", 0 < tokenResponse.getRefreshExpiresIn() && tokenResponse.getRefreshExpiresIn() <= 1800);
+            assertTrue("User session expired", testingClient.testing().cache(InfinispanConnectionProvider.USER_SESSION_CACHE_NAME).contains(sessionId));
+            assertTrue("Client session expired", testingClient.testing().cache(InfinispanConnectionProvider.CLIENT_SESSION_CACHE_NAME).containsUuid(clientSessionId));
+            events.expectRefresh(refreshId, sessionId).assertEvent();
+
+            setTimeOffset(3700);
+            tokenResponse = oauth.doRefreshTokenRequest(tokenResponse.getRefreshToken(), "password");
+            assertEquals(400, tokenResponse.getStatusCode());
+            assertNull(tokenResponse.getAccessToken());
+            assertNull(tokenResponse.getRefreshToken());
+            events.expect(EventType.REFRESH_TOKEN).error(Errors.INVALID_TOKEN).user((String) null).assertEvent();
+            assertFalse("User session not expired", testingClient.testing().cache(InfinispanConnectionProvider.USER_SESSION_CACHE_NAME).contains(sessionId));
+            assertFalse("Client session not expired", testingClient.testing().cache(InfinispanConnectionProvider.CLIENT_SESSION_CACHE_NAME).containsUuid(clientSessionId));
+        } finally {
+            getTestingClient().testing().revertTestingInfinispanTimeService();
+            RealmManager.realm(realmResource).ssoSessionMaxLifespan(maxLifespan);
+            RealmManager.realm(realmResource).ssoSessionIdleTimeout(idleTimeout);
+            RealmManager.realm(realmResource).clientSessionMaxLifespan(clientMaxLifespan);
+            RealmManager.realm(realmResource).clientSessionIdleTimeout(clientIdleTimeout);
             events.clear();
             resetTimeOffset();
         }
@@ -1191,27 +1325,27 @@ public class RefreshTokenTest extends AbstractKeycloakTest {
             client.update(clientRepresentation);
 
             tokenResponse = oauth.doRefreshTokenRequest(tokenResponse.getRefreshToken(), "password");
-            assert(tokenResponse.getRefreshExpiresIn() >= 0);
+            assertTrue("Invalid RefreshExpiresIn", 0 <= tokenResponse.getRefreshExpiresIn() && tokenResponse.getRefreshExpiresIn() <= 5);
 
             setTimeOffset(1);
 
             tokenResponse = oauth.doRefreshTokenRequest(tokenResponse.getRefreshToken(), "password");
-            assert(tokenResponse.getRefreshExpiresIn() >= 0);
+            assertTrue("Invalid RefreshExpiresIn", 0 <= tokenResponse.getRefreshExpiresIn() && tokenResponse.getRefreshExpiresIn() <= 4);
 
-            setTimeOffset(7);
+            setTimeOffset(6);
 
             oauth.doSilentLogin();
             code = oauth.getCurrentQuery().get(OAuth2Constants.CODE);
 
             tokenResponse = oauth.doAccessTokenRequest(code, "password");
             assertEquals(200, tokenResponse.getStatusCode());
-            assert(tokenResponse.getRefreshExpiresIn() >= 0);
+            assertTrue("Invalid RefreshExpiresIn", 0 <= tokenResponse.getRefreshExpiresIn() && tokenResponse.getRefreshExpiresIn() <= 4);
 
-            setTimeOffset(9);
+            setTimeOffset(7);
 
             tokenResponse = oauth.doRefreshTokenRequest(tokenResponse.getRefreshToken(), "password");
             assertEquals(200, tokenResponse.getStatusCode());
-            assert(tokenResponse.getRefreshExpiresIn() >= 0);
+            assertTrue("Invalid RefreshExpiresIn", 0 <= tokenResponse.getRefreshExpiresIn() && tokenResponse.getRefreshExpiresIn() <= 3);
 
             setTimeOffset(11);
 

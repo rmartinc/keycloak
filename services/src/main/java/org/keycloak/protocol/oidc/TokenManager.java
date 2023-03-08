@@ -544,6 +544,9 @@ public class TokenManager {
         AuthenticatedClientSessionModel clientSession = userSession.getAuthenticatedClientSessionByClient(client.getId());
         if (clientSession == null) {
             clientSession = session.sessions().createClientSession(userSession.getRealm(), client, userSession);
+        } else {
+            // session restarted
+            clientSession.setNote(AuthenticatedClientSessionModel.STARTED_AT_NOTE, String.valueOf(userSession.getLastSessionRefresh()));
         }
 
         clientSession.setRedirectUri(authSession.getRedirectUri());
@@ -569,7 +572,7 @@ public class TokenManager {
         }
 
         clientSession.setNote(Constants.LEVEL_OF_AUTHENTICATION, String.valueOf(new AcrStore(authSession).getLevelOfAuthenticationFromCurrentAuthentication()));
-        clientSession.setTimestamp(Time.currentTime());
+        clientSession.setTimestamp(userSession.getLastSessionRefresh());
 
         // Remove authentication session now
         new AuthenticationSessionManager(session).removeAuthenticationSession(userSession.getRealm(), authSession, true);
@@ -1084,9 +1087,10 @@ public class TokenManager {
                 clientSessionMaxLifespan = realm.getClientSessionMaxLifespan();
             }
 
-            AuthenticatedClientSessionModel clientSession = clientSessionCtx.getClientSession();
             if (clientSessionMaxLifespan > 0) {
-                int clientSessionMaxExpiration = clientSession.getTimestamp() + clientSessionMaxLifespan;
+                AuthenticatedClientSessionModel clientSession = clientSessionCtx.getClientSession();
+                int started = clientSession.getStarted();
+                int clientSessionMaxExpiration = (started == 0? clientSession.getTimestamp() : started) + clientSessionMaxLifespan;
                 sessionExpires = sessionExpires < clientSessionMaxExpiration ? sessionExpires : clientSessionMaxExpiration;
             }
 
@@ -1124,7 +1128,9 @@ public class TokenManager {
             }
 
             if (clientOfflineSessionMaxLifespan > 0) {
-                int clientOfflineSessionMaxExpiration = userSession.getStarted() + clientOfflineSessionMaxLifespan;
+                AuthenticatedClientSessionModel clientSession = clientSessionCtx.getClientSession();
+                int started = clientSession.getStarted();
+                int clientOfflineSessionMaxExpiration = (started == 0? clientSession.getTimestamp() : started) + clientOfflineSessionMaxLifespan;
                 sessionExpires = sessionExpires < clientOfflineSessionMaxExpiration ? sessionExpires
                     : clientOfflineSessionMaxExpiration;
             }

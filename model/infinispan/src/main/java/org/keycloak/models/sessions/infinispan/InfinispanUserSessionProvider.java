@@ -790,6 +790,7 @@ public class InfinispanUserSessionProvider implements UserSessionProvider {
         // update timestamp to current time
         offlineClientSession.setTimestamp(Time.currentTime());
         offlineClientSession.getNotes().put(AuthenticatedClientSessionModel.STARTED_AT_NOTE, String.valueOf(offlineClientSession.getTimestamp()));
+        offlineClientSession.getNotes().put(AuthenticatedClientSessionEntity.USER_SESSION_STARTED_AT_NOTE, String.valueOf(offlineUserSession.getStarted()));
 
         session.getProvider(UserSessionPersisterProvider.class).createClientSession(clientSession, true);
 

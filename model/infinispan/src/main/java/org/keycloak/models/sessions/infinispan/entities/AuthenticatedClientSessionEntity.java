@@ -28,6 +28,7 @@ import org.infinispan.commons.marshall.MarshallUtil;
 import org.infinispan.commons.marshall.SerializeWith;
 import org.jboss.logging.Logger;
 import org.keycloak.common.util.Time;
+import org.keycloak.models.AuthenticatedClientSessionModel;
 import org.keycloak.models.sessions.infinispan.changes.SessionEntityWrapper;
 import org.keycloak.models.sessions.infinispan.util.KeycloakMarshallUtil;
 import java.util.UUID;
@@ -88,6 +89,11 @@ public class AuthenticatedClientSessionEntity extends SessionEntity {
     public int getUserSessionStarted() {
         String started = getNotes().get(USER_SESSION_STARTED_AT_NOTE);
         // Fallback to current time if "started" note is not available.
+        return started == null ? Time.currentTime() : Integer.parseInt(started);
+    }
+
+    public int getStarted() {
+        String started = getNotes().get(AuthenticatedClientSessionModel.STARTED_AT_NOTE);
         return started == null ? Time.currentTime() : Integer.parseInt(started);
     }
 

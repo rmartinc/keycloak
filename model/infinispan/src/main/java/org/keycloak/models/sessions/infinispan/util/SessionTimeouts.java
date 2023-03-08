@@ -103,25 +103,25 @@ public class SessionTimeouts {
      * @return
      */
     public static long getClientSessionLifespanMs(RealmModel realm, AuthenticatedClientSessionEntity clientSessionEntity) {
+        // calculate expiration of user session
         int timeSinceUserSessionStart = Time.currentTime() - clientSessionEntity.getUserSessionStarted();
+        int userSessionMaxLifespan = Math.max(Math.max(realm.getSsoSessionMaxLifespan(), realm.getSsoSessionMaxLifespanRememberMe()), MINIMAL_EXPIRATION_SEC);
+        int userTimeToExpire = userSessionMaxLifespan - timeSinceUserSessionStart;
 
-        int sessionMaxLifespan = Math.max(realm.getSsoSessionMaxLifespan(), realm.getSsoSessionMaxLifespanRememberMe());
-
-        // clientSession max lifespan has preference if set
+        // clientSession max lifespan has preference but cannot be longer than the user session
+        int clientTimeToExpire = userTimeToExpire;
         if (realm.getClientSessionMaxLifespan() > 0) {
-            sessionMaxLifespan = realm.getClientSessionMaxLifespan();
+            int timeSinceClientSessionStart = Time.currentTime() - clientSessionEntity.getStarted();
+            clientTimeToExpire = realm.getClientSessionMaxLifespan() - timeSinceClientSessionStart;
+            clientTimeToExpire = Math.min(clientTimeToExpire, userTimeToExpire);
         }
 
-        sessionMaxLifespan = Math.max(sessionMaxLifespan, MINIMAL_EXPIRATION_SEC);
-
-        long timeToExpire = sessionMaxLifespan - timeSinceUserSessionStart;
-
         // Indication that entry should be expired
-        if (timeToExpire <=0) {
+        if (clientTimeToExpire <= 0) {
             return ENTRY_EXPIRED_FLAG;
         }
 
-        return Time.toMillis(timeToExpire);
+        return Time.toMillis(clientTimeToExpire);
     }
 
 
@@ -219,22 +219,23 @@ public class SessionTimeouts {
         if (!realm.isOfflineSessionMaxLifespanEnabled() && realm.getClientOfflineSessionMaxLifespan() <= 0) return -1l;
 
         int timeSinceUserSessionStart = Time.currentTime() - authenticatedClientSessionEntity.getUserSessionStarted();
-
-        int sessionMaxLifespan = Math.max(realm.getOfflineSessionMaxLifespan(), MINIMAL_EXPIRATION_SEC);
+        int userSessionMaxLifespan = Math.max(realm.getOfflineSessionMaxLifespan(), MINIMAL_EXPIRATION_SEC);
+        int userTimeToExpire = userSessionMaxLifespan - timeSinceUserSessionStart;
 
         // clientSession max lifespan has preference if set
+        int clientTimeToExpire = userTimeToExpire;
         if (realm.getClientOfflineSessionMaxLifespan() > 0) {
-            sessionMaxLifespan = realm.getClientOfflineSessionMaxLifespan();
+            int timeSinceClientSessionStart = Time.currentTime() - authenticatedClientSessionEntity.getStarted();
+            clientTimeToExpire = realm.getClientOfflineSessionMaxLifespan() - timeSinceClientSessionStart;
+            clientTimeToExpire = Math.min(clientTimeToExpire, userTimeToExpire);
         }
 
-        long timeToExpire = sessionMaxLifespan - timeSinceUserSessionStart;
-
         // Indication that entry should be expired
-        if (timeToExpire <=0) {
+        if (clientTimeToExpire <= 0) {
             return ENTRY_EXPIRED_FLAG;
         }
 
-        return Time.toMillis(timeToExpire);
+        return Time.toMillis(clientTimeToExpire);
     }
 
     /**
