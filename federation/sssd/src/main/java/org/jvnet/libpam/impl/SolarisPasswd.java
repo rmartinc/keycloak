@@ -25,25 +25,26 @@
 
 package org.jvnet.libpam.impl;
 
-import org.jvnet.libpam.impl.CLibrary.passwd;
-
+import com.sun.jna.Pointer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.jvnet.libpam.impl.CLibrary.passwd;
+
 /**
  * Solaris passwd
- * <p>
+ *
  * struct passwd {
- * char    *pw_name;
- * char    *pw_passwd;
- * uid_t   pw_uid;
- * gid_t   pw_gid;
- * char    *pw_age;
- * char    *pw_comment;
- * char    *pw_gecos;
- * char    *pw_dir;
- * char    *pw_shell;
+ *   char    *pw_name;
+ *   char    *pw_passwd;
+ *   uid_t   pw_uid;
+ *   gid_t   pw_gid;
+ *   char    *pw_age;
+ *   char    *pw_comment;
+ *   char    *pw_gecos;
+ *   char    *pw_dir;
+ *   char    *pw_shell;
  * };
  *
  * @author Sebastian Sdorra
@@ -59,6 +60,12 @@ public class SolarisPasswd extends passwd {
 
     public String pw_shell;
 
+    public SolarisPasswd() {
+    }
+
+    public SolarisPasswd(Pointer p) {
+        super(p);
+    }
 
     @Override
     public String getPwGecos() {

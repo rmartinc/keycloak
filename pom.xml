@@ -273,7 +273,7 @@
         <module>core</module>
         <module>crypto</module>
         <module>dependencies</module>
-        <module>docs</module>
+        <!--<module>docs</module>-->
         <module>server-spi</module>
         <module>server-spi-private</module>
         <module>saml-core-api</module>

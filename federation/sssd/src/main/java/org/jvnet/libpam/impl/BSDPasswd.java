@@ -24,31 +24,38 @@
 
 package org.jvnet.libpam.impl;
 
-import org.jvnet.libpam.impl.CLibrary.passwd;
-
+import com.sun.jna.Pointer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import org.jvnet.libpam.impl.CLibrary.passwd;
 
 /**
  * FreeeBSD, OpenBSD and MacOS passwd
- * <p>
+ *
  * struct passwd {
- * char    *pw_name;
- * char    *pw_passwd;
- * uid_t   pw_uid;
- * gid_t   pw_gid;
- * time_t pw_change;
- * char    *pw_class;
- * char    *pw_gecos;
- * char    *pw_dir;
- * char    *pw_shell;
- * time_t pw_expire;
+ *   char    *pw_name;
+ *   char    *pw_passwd;
+ *   uid_t   pw_uid;
+ *   gid_t   pw_gid;
+ *   time_t pw_change;
+ *   char    *pw_class;
+ *   char    *pw_gecos;
+ *   char    *pw_dir;
+ *   char    *pw_shell;
+ *   time_t pw_expire;
  * };
  *
  * @author Sebastian Sdorra
  */
 public class BSDPasswd extends passwd {
+    public BSDPasswd() {
+    }
+
+    public BSDPasswd(Pointer p) {
+        super(p);
+    }
+    
     /* password change time */
     public long pw_change;
 

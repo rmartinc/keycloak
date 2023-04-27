@@ -23,17 +23,17 @@
  */
 package org.jvnet.libpam.impl;
 
-import com.sun.jna.Library;
-import com.sun.jna.Memory;
-import com.sun.jna.Native;
 import com.sun.jna.Platform;
 import com.sun.jna.Pointer;
+import com.sun.jna.Native;
+import com.sun.jna.Library;
 import com.sun.jna.Structure;
+import com.sun.jna.Memory;
 import com.sun.jna.ptr.IntByReference;
-import org.jvnet.libpam.PAMException;
-
+import com.sun.jna.ptr.PointerByReference;
 import java.util.Arrays;
 import java.util.List;
+import org.jvnet.libpam.PAMException;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -45,6 +45,14 @@ public interface CLibrary extends Library {
      * In particular, we cannot read the real name reliably.
      */
     public class passwd extends Structure {
+
+        public passwd() {
+        }
+
+        public passwd(Pointer p) {
+            super(p);
+        }
+        
         /**
          * User name.
          */
@@ -59,11 +67,35 @@ public interface CLibrary extends Library {
         // ... there are a lot more fields
 
         public static passwd loadPasswd(String userName) throws PAMException {
-            passwd pwd = libc.getpwnam(userName);
-            if (pwd == null) {
-                throw new PAMException("No user information is available");
+            // Use one Memory region to save the structure and the strings
+            // the structure is assumed to fit into 256 bytes
+            Memory mem = new Memory(256 + 4096);
+            Pointer structBase = mem.share(0);
+            Pointer bufferBase = mem.share(256);
+            PointerByReference pbr = new PointerByReference();
+            int result = libc.getpwnam_r(userName, structBase, bufferBase, 4096, pbr);
+            Pointer resultPointer = pbr.getValue();
+            if (resultPointer == null) {
+                if(result == 0) {
+                    throw new PAMException("No user information is available");
+                } else {
+                    throw new PAMException("Failed to retrieve user information (Error: " + result + ")");
+                }
             }
-            return pwd;
+            passwd res;
+            if(libc instanceof BSDCLibrary) {
+                res = new BSDPasswd(mem);
+            } else if(libc instanceof FreeBSDCLibrary) {
+                res = new FreeBSDPasswd(mem);
+            } else if(libc instanceof LinuxCLibrary) {
+                res = new LinuxPasswd(mem);
+            } else if(libc instanceof SolarisCLibrary) {
+                res = new SolarisPasswd(mem);
+            } else {
+                res = new passwd(mem);
+            }
+            res.read();
+            return res;
         }
 
         public String getPwName() {
@@ -109,10 +141,9 @@ public interface CLibrary extends Library {
     }
 
     Pointer calloc(int count, int size);
-
     Pointer strdup(String s);
-
     passwd getpwnam(String username);
+    int getpwnam_r(String username, Pointer pwdStruct, Pointer buf, int bufSize, PointerByReference result);
 
     /**
      * Lists up group IDs of the given user. On Linux and most BSDs, but not on Solaris.
@@ -125,9 +156,7 @@ public interface CLibrary extends Library {
      * See http://mail.opensolaris.org/pipermail/sparks-discuss/2008-September/000528.html
      */
     int _getgroupsbymember(String user, Memory groups, int maxgids, int numgids);
-
     group getgrgid(int/*gid_t*/ gid);
-
     group getgrnam(String name);
 
     // other user/group related functions that are likely useful

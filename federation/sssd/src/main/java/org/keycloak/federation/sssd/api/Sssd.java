@@ -17,18 +17,17 @@
 
 package org.keycloak.federation.sssd.api;
 
-import cx.ath.matthew.LibraryLoader;
-import org.freedesktop.dbus.DBusConnection;
-import org.freedesktop.dbus.Variant;
-import org.freedesktop.dbus.exceptions.DBusException;
-import org.freedesktop.sssd.infopipe.InfoPipe;
-import org.jboss.logging.Logger;
-import org.keycloak.models.UserModel;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
+import org.freedesktop.dbus.connections.impl.DBusConnection;
+import org.freedesktop.dbus.connections.impl.DBusConnectionBuilder;
+import org.freedesktop.dbus.exceptions.DBusException;
+import org.freedesktop.dbus.types.DBusListType;
+import org.freedesktop.dbus.types.Variant;
+import org.freedesktop.sssd.infopipe.InfoPipe;
+import org.jboss.logging.Logger;
+import org.keycloak.models.UserModel;
 
 /**
  * @author <a href="mailto:bruno@abstractj.org">Bruno Oliveira</a>
@@ -36,33 +35,20 @@ import java.util.Vector;
  */
 public class Sssd {
 
-    private static DBusConnection dBusConnection;
-
     public static void disconnect() {
-        dBusConnection.disconnect();
     }
 
     private String username;
     private static final Logger logger = Logger.getLogger(Sssd.class);
 
-    private Sssd() {
-    }
-
     public Sssd(String username) {
         this.username = username;
-        try {
-            if (LibraryLoader.load().succeed())
-                dBusConnection = DBusConnection.getConnection(DBusConnection.SYSTEM);
-        } catch (DBusException e) {
-            e.printStackTrace();
-        }
-
     }
 
     public static String getRawAttribute(Variant variant) {
-        if (variant != null) {
-            Vector value = (Vector) variant.getValue();
-            if (value.size() >= 1) {
+        if (variant != null && variant.getType() instanceof DBusListType) {
+            List<?> value = (List) variant.getValue();
+            if (!value.isEmpty()) {
                 return value.get(0).toString();
             }
         }
@@ -71,8 +57,8 @@ public class Sssd {
 
     public List<String> getGroups() {
         List<String> userGroups;
-        try {
-            InfoPipe infoPipe = dBusConnection.getRemoteObject(InfoPipe.BUSNAME, InfoPipe.OBJECTPATH, InfoPipe.class);
+        try (DBusConnection connection = DBusConnectionBuilder.forSystemBus().withShared(false).build()) {
+            InfoPipe infoPipe = connection.getRemoteObject(InfoPipe.BUSNAME, InfoPipe.OBJECTPATH, InfoPipe.class);
             userGroups = infoPipe.getUserGroups(username);
         } catch (Exception e) {
             throw new SSSDException("Failed to retrieve user's groups from SSSD. Check if SSSD service is active.");
@@ -82,21 +68,16 @@ public class Sssd {
 
     public static boolean isAvailable() {
         boolean sssdAvailable = false;
-        try {
-            if (LibraryLoader.load().succeed()) {
-                DBusConnection connection = DBusConnection.getConnection(DBusConnection.SYSTEM);
-                InfoPipe infoPipe = connection.getRemoteObject(InfoPipe.BUSNAME, InfoPipe.OBJECTPATH, InfoPipe.class);
+        try (DBusConnection connection = DBusConnectionBuilder.forSystemBus().withShared(false).build()) {
+            InfoPipe infoPipe = connection.getRemoteObject(InfoPipe.BUSNAME, InfoPipe.OBJECTPATH, InfoPipe.class);
 
-                if (infoPipe.ping("PING") == null || infoPipe.ping("PING").isEmpty()) {
-                    logger.debugv("SSSD is not available in your system. Federation provider will be disabled.");
-                } else {
-                    sssdAvailable = true;
-                }
+            if (infoPipe.ping("PING") == null || infoPipe.ping("PING").isEmpty()) {
+                logger.warn("SSSD is not available in your system. Federation provider will be disabled.");
             } else {
-                logger.debugv("The RPM libunix-dbus-java is not installed. SSSD Federation provider will be disabled.");
+                sssdAvailable = true;
             }
         } catch (Exception e) {
-            logger.debugv("SSSD is not available in your system. Federation provider will be disabled.", e);
+            logger.debug("SSSD is not available in your system. Federation provider will be disabled.", e);
         }
         return sssdAvailable;
     }
@@ -105,8 +86,8 @@ public class Sssd {
 
         String[] attr = {"mail", "givenname", "sn", "telephoneNumber"};
         User user = null;
-        try {
-            InfoPipe infoPipe = dBusConnection.getRemoteObject(InfoPipe.BUSNAME, InfoPipe.OBJECTPATH, InfoPipe.class);
+        try (DBusConnection connection = DBusConnectionBuilder.forSystemBus().withShared(false).build()) {
+            InfoPipe infoPipe = connection.getRemoteObject(InfoPipe.BUSNAME, InfoPipe.OBJECTPATH, InfoPipe.class);
             user = new User(infoPipe.getUserAttributes(username, Arrays.asList(attr)));
         } catch (Exception e) {
             throw new SSSDException("Failed to retrieve user's attributes. Check if SSSD service is active.");

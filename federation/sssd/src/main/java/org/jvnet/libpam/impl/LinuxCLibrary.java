@@ -25,10 +25,12 @@
 package org.jvnet.libpam.impl;
 
 /**
+ *
  * @author Sebastian Sdorra
  */
-public interface LinuxCLibrary extends CLibrary {
+public interface LinuxCLibrary extends CLibrary
+{
 
-    LinuxPasswd getpwnam(String username);
+  LinuxPasswd getpwnam(String username);
 
 }

@@ -63,7 +63,7 @@ public class SSSDFederationProviderFactory implements UserStorageProviderFactory
 
     }
 
-    protected PAMAuthenticator createPAMAuthenticator(String username, String... factors) {
+    protected PAMAuthenticator createPAMAuthenticator(String username, String factors) {
         return new PAMAuthenticator(username, factors);
     }
 

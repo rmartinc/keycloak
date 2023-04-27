@@ -25,10 +25,11 @@
 package org.jvnet.libpam.impl;
 
 /**
+ *
  * @author R. Tyler Croy
  */
 public interface FreeBSDCLibrary extends CLibrary {
 
-    FreeBSDPasswd getpwnam(String username);
+  FreeBSDPasswd getpwnam(String username);
 
 }

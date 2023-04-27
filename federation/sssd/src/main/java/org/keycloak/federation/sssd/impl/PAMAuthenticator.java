@@ -33,9 +33,9 @@ public class PAMAuthenticator {
     private static final String PAM_SERVICE = "keycloak";
     private static final Logger logger = Logger.getLogger(PAMAuthenticator.class);
     private final String username;
-    private final String[] factors;
+    private final String factors;
 
-    public PAMAuthenticator(String username, String... factors) {
+    public PAMAuthenticator(String username, String factors) {
         this.username = username;
         this.factors = factors;
     }
@@ -55,7 +55,9 @@ public class PAMAuthenticator {
             logger.error("Authentication failed", e);
             e.printStackTrace();
         } finally {
-            pam.dispose();
+            if (pam != null) {
+                pam.dispose();
+            }
         }
         return user;
     }
