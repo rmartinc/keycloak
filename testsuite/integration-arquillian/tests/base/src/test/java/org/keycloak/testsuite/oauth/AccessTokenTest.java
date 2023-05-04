@@ -1311,6 +1311,21 @@ public class AccessTokenTest extends AbstractKeycloakTest {
     }
 
     @Test
+    public void accessTokenRequest_ClientEd25519_RealmES256() throws Exception {
+        conductAccessTokenRequest(Algorithm.HS256, Algorithm.Ed25519, Algorithm.ES256);
+    }
+
+    @Test
+    public void accessTokenRequest_ClientEd448_RealmEd25519() throws Exception {
+        conductAccessTokenRequest(Algorithm.HS256, Algorithm.Ed448, Algorithm.Ed25519);
+    }
+
+    @Test
+    public void accessTokenRequest_ClientEd25519_RealmEd448() throws Exception {
+        conductAccessTokenRequest(Algorithm.HS256, Algorithm.Ed25519, Algorithm.Ed448);
+    }
+    
+    @Test
     public void validateECDSASignatures() {
         validateTokenECDSASignature(Algorithm.ES256);
         validateTokenECDSASignature(Algorithm.ES384);
@@ -1373,17 +1388,17 @@ public class AccessTokenTest extends AbstractKeycloakTest {
         assertEquals("Bearer", response.getTokenType());
 
         JWSHeader header = new JWSInput(response.getAccessToken()).getHeader();
-        assertEquals(expectedAccessAlg, header.getAlgorithm().name());
+        verifySignatureAlgorithm(header, expectedAccessAlg);
         assertEquals("JWT", header.getType());
         assertNull(header.getContentType());
 
         header = new JWSInput(response.getIdToken()).getHeader();
-        assertEquals(expectedIdTokenAlg, header.getAlgorithm().name());
+        verifySignatureAlgorithm(header, expectedIdTokenAlg);
         assertEquals("JWT", header.getType());
         assertNull(header.getContentType());
 
         header = new JWSInput(response.getRefreshToken()).getHeader();
-        assertEquals(expectedRefreshAlg, header.getAlgorithm().name());
+        verifySignatureAlgorithm(header, expectedRefreshAlg);
         assertEquals("JWT", header.getType());
         assertNull(header.getContentType());
 
@@ -1399,6 +1414,18 @@ public class AccessTokenTest extends AbstractKeycloakTest {
         assertEquals(token.getId(), event.getDetails().get(Details.TOKEN_ID));
         assertEquals(oauth.parseRefreshToken(response.getRefreshToken()).getId(), event.getDetails().get(Details.REFRESH_TOKEN_ID));
         assertEquals(sessionId, token.getSessionState());
+    }
+
+    private void verifySignatureAlgorithm(JWSHeader header, String expectedAlgorithm) {
+        if (Algorithm.Ed25519.equals(expectedAlgorithm)) {
+            assertEquals(Algorithm.EdDSA, header.getAlgorithm().name());
+            assertEquals(Algorithm.Ed25519, header.getCurve());
+        } else if (Algorithm.Ed448.equals(expectedAlgorithm)) {
+            assertEquals(Algorithm.EdDSA, header.getAlgorithm().name());
+            assertEquals(Algorithm.Ed448, header.getCurve());
+        } else {
+            assertEquals(expectedAlgorithm, header.getAlgorithm().name());
+        }
     }
 
     // KEYCLOAK-16009

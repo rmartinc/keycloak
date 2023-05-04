@@ -233,13 +233,13 @@ public abstract class AbstractOIDCResponseTypeTest extends AbstractTestRealmKeyc
         String accessToken = authzResponse.getAccessToken();
         if (idToken != null) {
             header = new JWSInput(idToken).getHeader();
-            assertEquals(expectedIdTokenAlg, header.getAlgorithm().name());
+            verifySignatureAlgorithm(header, expectedIdTokenAlg);
             assertEquals("JWT", header.getType());
             assertNull(header.getContentType());
         }
         if (accessToken != null) {
             header = new JWSInput(accessToken).getHeader();
-            assertEquals(expectedAccessAlg, header.getAlgorithm().name());
+            verifySignatureAlgorithm(header, expectedAccessAlg);
             assertEquals("JWT", header.getType());
             assertNull(header.getContentType());
         }
@@ -249,6 +249,18 @@ public abstract class AbstractOIDCResponseTypeTest extends AbstractTestRealmKeyc
         for (IDToken idt : idTokens) {
             Assert.assertEquals("abcdef123456", idt.getNonce());
             Assert.assertEquals(authzResponse.getSessionState(), idt.getSessionState());
+        }
+    }
+
+    private void verifySignatureAlgorithm(JWSHeader header, String expectedAlgorithm) {
+        if (Algorithm.Ed25519.equals(expectedAlgorithm)) {
+            assertEquals(Algorithm.EdDSA, header.getAlgorithm().name());
+            assertEquals(Algorithm.Ed25519, header.getCurve());
+        } else if (Algorithm.Ed448.equals(expectedAlgorithm)) {
+            assertEquals(Algorithm.EdDSA, header.getAlgorithm().name());
+            assertEquals(Algorithm.Ed448, header.getCurve());
+        } else {
+            assertEquals(expectedAlgorithm, header.getAlgorithm().name());
         }
     }
 
@@ -270,6 +282,16 @@ public abstract class AbstractOIDCResponseTypeTest extends AbstractTestRealmKeyc
     @Test
     public void oidcFlow_RealmPS256_ClientES256() throws Exception {
         oidcFlowRequest(Algorithm.PS256, Algorithm.ES256);
+    }
+
+    @Test
+    public void oidcFlow_RealmEd25519_ClientES256() throws Exception {
+        oidcFlowRequest(Algorithm.Ed25519, Algorithm.ES256);
+    }
+
+    @Test
+    public void oidcFlow_RealmPS256_ClientEd448() throws Exception {
+        oidcFlowRequest(Algorithm.PS256, Algorithm.Ed448);
     }
 
     private void oidcFlowRequest(String expectedAccessAlg, String expectedIdTokenAlg) throws Exception {

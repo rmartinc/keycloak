@@ -1356,6 +1356,9 @@ public class OAuthClient {
             TokenVerifier<T> verifier = TokenVerifier.create(token, clazz);
             String kid = verifier.getHeader().getKeyId();
             String algorithm = verifier.getHeader().getAlgorithm().name();
+            if (Algorithm.EdDSA.equals(algorithm)) {
+                algorithm = verifier.getHeader().getCurve();
+            }
             KeyWrapper key = getRealmPublicKey(realm, algorithm, kid);
             AsymmetricSignatureVerifierContext verifierContext;
             switch (algorithm) {

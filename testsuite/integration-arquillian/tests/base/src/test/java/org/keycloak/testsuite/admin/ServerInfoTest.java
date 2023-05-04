@@ -71,6 +71,7 @@ public class ServerInfoTest extends AbstractKeycloakTest {
         Assert.assertNames(info.getCryptoInfo().getClientSignatureSymmetricAlgorithms(), Algorithm.HS256, Algorithm.HS384, Algorithm.HS512);
         Assert.assertNames(info.getCryptoInfo().getClientSignatureAsymmetricAlgorithms(),
                 Algorithm.ES256, Algorithm.ES384, Algorithm.ES512,
+                Algorithm.Ed25519, Algorithm.Ed448,
                 Algorithm.PS256, Algorithm.PS384, Algorithm.PS512,
                 Algorithm.RS256, Algorithm.RS384, Algorithm.RS512);
 

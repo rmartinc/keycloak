@@ -61,6 +61,13 @@ class BackchannelAuthenticationEndpointSignedRequestParser extends BackchannelAu
         if (header.getAlgorithm() == Algorithm.none) {
             throw new RuntimeException("None signed algorithm is not allowed");
         }
+        if (header.getAlgorithm() == Algorithm.EdDSA) {
+            if (org.keycloak.crypto.Algorithm.Ed25519.equals(header.getCurve())) {
+                headerAlgorithm = Algorithm.Ed25519;
+            } else if (org.keycloak.crypto.Algorithm.Ed448.equals(header.getCurve())) {
+                headerAlgorithm = Algorithm.Ed448;
+            }
+        }
         SignatureProvider signatureProvider = session.getProvider(SignatureProvider.class, headerAlgorithm.name());
         if (signatureProvider == null) {
             throw new RuntimeException("Not found provider for the algorithm " + headerAlgorithm.name());

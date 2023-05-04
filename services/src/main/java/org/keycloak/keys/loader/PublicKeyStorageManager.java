@@ -19,6 +19,7 @@ package org.keycloak.keys.loader;
 
 import org.jboss.logging.Logger;
 import org.keycloak.broker.oidc.OIDCIdentityProviderConfig;
+import org.keycloak.crypto.Algorithm;
 import org.keycloak.crypto.KeyWrapper;
 import org.keycloak.jose.jwk.JWK;
 import org.keycloak.jose.jws.JWSInput;
@@ -50,6 +51,9 @@ public class PublicKeyStorageManager {
     public static KeyWrapper getClientPublicKeyWrapper(KeycloakSession session, ClientModel client, JWSInput input) {
         String kid = input.getHeader().getKeyId();
         String alg = input.getHeader().getRawAlgorithm();
+        if (Algorithm.EdDSA.equals(alg)) {
+            alg = input.getHeader().getCurve();
+        }
         PublicKeyStorageProvider keyStorage = session.getProvider(PublicKeyStorageProvider.class);
         String modelKey = PublicKeyStorageUtils.getClientModelCacheKey(client.getRealm().getId(), client.getId());
         ClientPublicKeyLoader loader = new ClientPublicKeyLoader(session, client);
@@ -69,6 +73,9 @@ public class PublicKeyStorageManager {
 
         String kid = input.getHeader().getKeyId();
         String alg = input.getHeader().getRawAlgorithm();
+        if (Algorithm.EdDSA.equals(alg)) {
+            alg = input.getHeader().getCurve();
+        }
 
         PublicKeyStorageProvider keyStorage = session.getProvider(PublicKeyStorageProvider.class);
 

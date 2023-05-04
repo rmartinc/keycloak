@@ -39,6 +39,7 @@ import org.keycloak.crypto.KeyUse;
 import org.keycloak.crypto.KeyWrapper;
 import org.keycloak.crypto.MacSignatureSignerContext;
 import org.keycloak.crypto.ServerECDSASignatureSignerContext;
+import org.keycloak.crypto.ServerEDDSASignatureSignerContext;
 import org.keycloak.crypto.SignatureSignerContext;
 import org.keycloak.jose.jwe.JWEConstants;
 import org.keycloak.jose.jwk.JSONWebKeySet;
@@ -88,9 +89,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Stream;
 
@@ -152,6 +150,14 @@ public class TestingOIDCEndpointsApplicationResource {
                     keyType = KeyType.EC;
                     keyPair = generateEcdsaKey("secp521r1");
                     break;
+                case Algorithm.Ed25519:
+                    keyType = KeyType.OKP;
+                    keyPair = generateEddsaKey(Algorithm.Ed25519);
+                    break;
+                case Algorithm.Ed448:
+                    keyType = KeyType.OKP;
+                    keyPair = generateEddsaKey(Algorithm.Ed448);
+                    break;
                 case JWEConstants.RSA1_5:
                 case JWEConstants.RSA_OAEP:
                 case JWEConstants.RSA_OAEP_256:
@@ -186,6 +192,12 @@ public class TestingOIDCEndpointsApplicationResource {
         SecureRandom randomGen = SecureRandom.getInstance("SHA1PRNG");
         ECGenParameterSpec ecSpec = new ECGenParameterSpec(ecDomainParamName);
         keyGen.initialize(ecSpec, randomGen);
+        KeyPair keyPair = keyGen.generateKeyPair();
+        return keyPair;
+    }
+
+    private KeyPair generateEddsaKey(String curveName) throws NoSuchAlgorithmException, InvalidAlgorithmParameterException {
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance(curveName);
         KeyPair keyPair = keyGen.generateKeyPair();
         return keyPair;
     }
@@ -238,6 +250,8 @@ public class TestingOIDCEndpointsApplicationResource {
                         return builder.rsa(keyPair.getPublic(), keyUse);
                     } else if (KeyType.EC.equals(keyType)) {
                         return builder.ec(keyPair.getPublic());
+                    } else if (KeyType.OKP.equals(keyType)) {
+                        return builder.okp(keyPair.getPublic());
                     } else {
                         throw new IllegalArgumentException("Unknown keyType: " + keyType);
                     }
@@ -326,6 +340,10 @@ public class TestingOIDCEndpointsApplicationResource {
                 case Algorithm.ES512:
                     signer = new ServerECDSASignatureSignerContext(keyWrapper);
                     break;
+                case Algorithm.Ed25519:
+                case Algorithm.Ed448:
+                    signer = new ServerEDDSASignatureSignerContext(keyWrapper);
+                    break;
                 default:
                     signer = new AsymmetricSignatureSignerContext(keyWrapper);
             }
@@ -374,6 +392,8 @@ public class TestingOIDCEndpointsApplicationResource {
             case Algorithm.ES256:
             case Algorithm.ES384:
             case Algorithm.ES512:
+            case Algorithm.Ed25519:
+            case Algorithm.Ed448:
             case Algorithm.HS256:
             case Algorithm.HS384:
             case Algorithm.HS512:

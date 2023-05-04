@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.keycloak.jose.JOSEHeader;
 import org.keycloak.jose.jwk.JWK;
 
@@ -45,6 +46,9 @@ public class JWSHeader implements JOSEHeader {
     @JsonProperty("kid")
     private String keyId;
 
+    @JsonProperty("crv")
+    private String curve;
+
     @JsonProperty("jwk")
     private JWK key;
 
@@ -52,13 +56,13 @@ public class JWSHeader implements JOSEHeader {
     }
 
     public JWSHeader(Algorithm algorithm, String type, String contentType) {
-        this.algorithm = algorithm;
+        setAlgorithm(algorithm);
         this.type = type;
         this.contentType = contentType;
     }
 
     public JWSHeader(Algorithm algorithm, String type, String keyId, JWK key) {
-        this.algorithm = algorithm;
+        setAlgorithm(algorithm);
         this.type = type;
         this.keyId = keyId;
         this.key = key;
@@ -86,8 +90,24 @@ public class JWSHeader implements JOSEHeader {
         return keyId;
     }
 
+    public String getCurve() {
+        return curve;
+    }
+
     public JWK getKey() {
         return key;
+    }
+
+    private void setAlgorithm(Algorithm algorithm) {
+        if (org.keycloak.crypto.Algorithm.Ed25519.equals(algorithm.name())) {
+            this.algorithm = Algorithm.EdDSA;
+            this.curve = org.keycloak.crypto.Algorithm.Ed25519;
+        } else if (org.keycloak.crypto.Algorithm.Ed448.equals(algorithm.name())) {
+            this.algorithm = Algorithm.EdDSA;
+            this.curve = org.keycloak.crypto.Algorithm.Ed448;
+        } else {
+            this.algorithm = algorithm;
+        }
     }
 
     private static final ObjectMapper mapper = new ObjectMapper();

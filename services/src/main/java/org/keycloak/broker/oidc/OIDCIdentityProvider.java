@@ -30,6 +30,7 @@ import org.keycloak.broker.provider.util.SimpleHttp;
 import org.keycloak.common.util.Base64Url;
 import org.keycloak.common.util.SecretGenerator;
 import org.keycloak.common.util.Time;
+import org.keycloak.crypto.Algorithm;
 import org.keycloak.crypto.KeyUse;
 import org.keycloak.crypto.KeyWrapper;
 import org.keycloak.crypto.SignatureProvider;
@@ -585,12 +586,16 @@ public class OIDCIdentityProvider extends AbstractOAuth2IdentityProvider<OIDCIde
                 logger.debugf("Failed to verify token, key not found for algorithm %s", jws.getHeader().getRawAlgorithm());
                 return false;
             }
-            if (key.getAlgorithm() == null) {
-                key.setAlgorithm(jws.getHeader().getRawAlgorithm());
+            String algorithm = jws.getHeader().getRawAlgorithm();
+            if (Algorithm.EdDSA.equals(algorithm)) {
+                algorithm = jws.getHeader().getCurve();
             }
-            SignatureProvider signatureProvider = session.getProvider(SignatureProvider.class, jws.getHeader().getRawAlgorithm());
+            if (key.getAlgorithm() == null) {
+                key.setAlgorithm(algorithm);
+            }
+            SignatureProvider signatureProvider = session.getProvider(SignatureProvider.class, algorithm);
             if (signatureProvider == null) {
-                logger.debugf("Failed to verify token, signature provider not found for algorithm %s", jws.getHeader().getRawAlgorithm());
+                logger.debugf("Failed to verify token, signature provider not found for algorithm %s", algorithm);
                 return false;
             }
 

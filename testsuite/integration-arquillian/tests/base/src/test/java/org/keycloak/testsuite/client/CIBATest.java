@@ -1482,6 +1482,16 @@ public class CIBATest extends AbstractClientPoliciesTest {
     }
 
     @Test
+    public void testBackchannelAuthenticationFlowWithSignedAuthenticationRequestEd25519Param() throws Exception {
+        testBackchannelAuthenticationFlowWithSignedAuthenticationRequest(false, Algorithm.Ed25519);
+    }
+
+    @Test
+    public void testBackchannelAuthenticationFlowWithSignedAuthenticationRequestEd448UriParam() throws Exception {
+        testBackchannelAuthenticationFlowWithSignedAuthenticationRequest(true, Algorithm.Ed448);
+    }
+
+    @Test
     public void testBackchannelAuthenticationFlowWithInvalidSignedAuthenticationRequestUriParam() throws Exception {
         testBackchannelAuthenticationFlowWithInvalidSignedAuthenticationRequest(true, "none", 400, "None signed algorithm is not allowed");
     }

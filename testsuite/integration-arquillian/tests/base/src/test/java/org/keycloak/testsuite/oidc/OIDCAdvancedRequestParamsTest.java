@@ -1119,7 +1119,19 @@ public class OIDCAdvancedRequestParamsTest extends AbstractTestRealmKeycloakTest
     }
 
     @Test
-    public void requestUriParamSignedExpectedAnyActualES256() {
+    public void requestUriParamSignedExpectedEd25519ActualEd25519() throws Exception {
+        // will success
+        requestUriParamSignedIn(Algorithm.Ed25519, Algorithm.Ed25519);
+    }
+
+    @Test
+    public void requestUriParamSignedExpectedES256ActualEd448() throws Exception {
+        // will fail
+        requestUriParamSignedIn(Algorithm.ES256, Algorithm.Ed448);
+    }
+
+    @Test
+    public void requestUriParamSignedExpectedAnyActualES256() throws Exception {
         // Algorithm is null if 'any'
         // will success
         requestUriParamSignedIn(null, Algorithm.ES256);

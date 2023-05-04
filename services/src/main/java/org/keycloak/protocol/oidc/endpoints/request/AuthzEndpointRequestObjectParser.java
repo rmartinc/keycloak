@@ -22,10 +22,12 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 
 import org.keycloak.OAuth2Constants;
+import org.keycloak.crypto.Algorithm;
 import org.keycloak.jose.JOSEHeader;
 import org.keycloak.jose.JOSE;
 import org.keycloak.jose.jwe.JWE;
 import org.keycloak.jose.jwe.JWEHeader;
+import org.keycloak.jose.jws.JWSHeader;
 import org.keycloak.jose.jws.JWSInput;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.KeycloakSession;
@@ -88,6 +90,10 @@ public class AuthzEndpointRequestObjectParser extends AuthzEndpointRequestParser
 
                 if (headerAlgorithm == null) {
                     throw new RuntimeException("Request object signed algorithm not specified");
+                }
+
+                if (Algorithm.EdDSA.equals(headerAlgorithm)) {
+                    headerAlgorithm = ((JWSHeader)jwt.getHeader()).getCurve();
                 }
 
                 String requestedSignatureAlgorithm = OIDCAdvancedConfigWrapper.fromClientModel(clientModel)
