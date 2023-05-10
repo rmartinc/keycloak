@@ -25,6 +25,7 @@ import java.util.ServiceLoader;
  *
  * <p>The methods herein provided are basically related with accessing context data from Resteasy, which changed in latest versions of Resteasy.
  *
+ * Change that should not trigger SSSD tests.
  * <p>It is important to use this class when access to context data is necessary in order to avoid incompatibilities with future
  * versions of Resteasy.
  *
