@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -o pipefail
-DOCKER=docker
+DOCKER=podman
 
 echo "Starting ipa-server container..."
 container=$($DOCKER run --detach --rm -h ipa.example.test --sysctl net.ipv6.conf.all.disable_ipv6=0 --workdir /github/workspace -v "$1":"/github/workspace" -v "$HOME/.m2":"/root/.m2" freeipa/freeipa-server:fedora-rawhide ipa-server-install --unattended --realm=EXAMPLE.TEST --ds-password=password --admin-password=password --idstart=60000)
