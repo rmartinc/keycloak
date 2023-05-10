@@ -1,0 +1,38 @@
+#!/bin/bash -x
+
+set -o pipefail
+DOCKER=podman
+
+echo "Starting ipa-server container..."
+container=$($DOCKER run --detach --rm -h ipa.example.test --sysctl net.ipv6.conf.all.disable_ipv6=0 --workdir /github/workspace -v "$1":"/github/workspace" -v "$HOME/.m2":"/root/.m2" freeipa/freeipa-server:fedora-rawhide ipa-server-install --unattended --realm=EXAMPLE.TEST --ds-password=password --admin-password=password --idstart=60000)
+
+echo "Container $container started, waiting ipa-server configuration..."
+sleep 30
+line=$($DOCKER logs $container | tail -1)
+regexp="FreeIPA server configured.|FreeIPA server started."
+while ! [[ "$line" =~ $regexp ]]; do
+  sleep 30
+  line=$($DOCKER logs $container | tail -1)
+  if [ $? -ne 0 ]; then
+    exit 1
+  fi
+done
+
+new_install="false"
+if [[ $line == "FreeIPA server configured." ]]; then
+  new_install="true"
+fi
+echo "The server is ready, performing tests..."
+$DOCKER exec $container .github/scripts/run-ipa-tests.sh $new_install
+result=$?
+
+$DOCKER stop $container
+
+echo "Tests executed with result: $result"
+if [ $result -eq 0 ]; then
+  echo "success" > ~/ipa-result.txt
+else
+  echo "failure" > ~/ipa-result.txt
+fi
+
+exit $result
