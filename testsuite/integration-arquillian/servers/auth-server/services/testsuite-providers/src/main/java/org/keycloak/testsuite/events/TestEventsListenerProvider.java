@@ -22,6 +22,7 @@ import org.keycloak.events.EventListenerProvider;
 import org.keycloak.events.EventListenerTransaction;
 import org.keycloak.events.admin.AdminEvent;
 import org.keycloak.models.KeycloakSession;
+import org.keycloak.models.utils.KeycloakModelUtils;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -31,17 +32,28 @@ import java.util.concurrent.LinkedBlockingQueue;
  */
 public class TestEventsListenerProvider implements EventListenerProvider {
 
-    private static final BlockingQueue<Event> events = new LinkedBlockingQueue<Event>();
+    private static final BlockingQueue<Event> events = new LinkedBlockingQueue<>();
     private static final BlockingQueue<AdminEvent> adminEvents = new LinkedBlockingQueue<>();
     private final EventListenerTransaction tx = new EventListenerTransaction((event, includeRepre) -> adminEvents.add(event), events::add);
+    private final KeycloakSession session;
 
     public TestEventsListenerProvider(KeycloakSession session) {
+        this.session = session;
         session.getTransactionManager().enlistAfterCompletion(tx);
     }
 
     @Override
     public void onEvent(Event event) {
-        tx.addEvent(event);
+        if (event.isStoreImmediately()) {
+            // if immediate do not enroll to current transaction, just create a new one and process event
+            KeycloakModelUtils.runJobInTransaction(session.getKeycloakSessionFactory(), newSession -> {
+                EventListenerTransaction newTx = new EventListenerTransaction((e, includeRepre) -> adminEvents.add(e), events::add);
+                newTx.addEvent(event);
+                newSession.getTransactionManager().enlistAfterCompletion(newTx);
+            });
+        } else {
+            tx.addEvent(event);
+        }
     }
 
     @Override

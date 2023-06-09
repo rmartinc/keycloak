@@ -22,12 +22,10 @@ import org.keycloak.common.ClientConnection;
 import org.keycloak.common.util.Time;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.KeycloakSession;
-import org.keycloak.models.KeycloakSessionFactory;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.UserSessionModel;
 
-import org.keycloak.models.utils.KeycloakModelUtils;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -44,7 +42,6 @@ public class EventBuilder {
 
     private static final Logger log = Logger.getLogger(EventBuilder.class);
 
-    private final KeycloakSession session;
     private EventStoreProvider store;
     private List<EventListenerProvider> listeners;
     private RealmModel realm;
@@ -57,7 +54,6 @@ public class EventBuilder {
     }
 
     public EventBuilder(RealmModel realm, KeycloakSession session) {
-        this.session = session;
         this.realm = realm;
 
         event = new Event();
@@ -86,11 +82,10 @@ public class EventBuilder {
         .collect(Collectors.toList());
     }
 
-    private EventBuilder(KeycloakSession session, EventStoreProvider store, List<EventListenerProvider> listeners, RealmModel realm, Event event) {
+    private EventBuilder(EventStoreProvider store, List<EventListenerProvider> listeners, RealmModel realm, Event event) {
         this.listeners = listeners;
         this.realm = realm;
         this.event = event;
-        this.session = session;
         this.store = store;
     }
 
@@ -226,34 +221,22 @@ public class EventBuilder {
     }
 
     public EventBuilder clone() {
-        return new EventBuilder(session, store, listeners, realm, event.clone());
+        return new EventBuilder(store, listeners, realm, event.clone());
     }
 
     private void send(boolean sendImmediately) {
         event.setTime(Time.currentTimeMillis());
         event.setId(UUID.randomUUID().toString());
+        event.setStoreImmediately(sendImmediately);
 
         Set<String> eventTypes = realm.getEnabledEventTypesStream().collect(Collectors.toSet());
-        if (sendImmediately) {
-            KeycloakModelUtils.runJobInTransaction(session.getKeycloakSessionFactory(), session.getContext(), session -> {
-                EventStoreProvider store = session.getProvider(EventStoreProvider.class);
-                List<EventListenerProvider> listeners = getEventListeners(session, realm);
-
-                sendNow(store, eventTypes, listeners);
-            });
-        } else {
-            sendNow(this.store, eventTypes, this.listeners);
-        }
-    }
-
-    private void sendNow(EventStoreProvider targetStore, Set<String> eventTypes, List<EventListenerProvider> targetListeners) {
-        if (targetStore != null) {
+        if (this.store != null) {
             if (eventTypes.isEmpty() && event.getType().isSaveByDefault() || eventTypes.contains(event.getType().name())) {
-                targetStore.onEvent(event);
+                this.store.onEvent(event);
             }
         }
 
-        for (EventListenerProvider l : targetListeners) {
+        for (EventListenerProvider l : this.listeners) {
             try {
                 l.onEvent(event);
             } catch (Throwable t) {

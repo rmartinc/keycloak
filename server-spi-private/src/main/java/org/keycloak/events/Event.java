@@ -57,6 +57,8 @@ public class Event {
 
     private Map<String, String> details;
 
+    private boolean storeImmediately;
+
     public String getId() {
         return id;
     }
@@ -101,6 +103,10 @@ public class Event {
         return userId;
     }
 
+    public boolean isStoreImmediately() {
+        return storeImmediately;
+    }
+
     public void setUserId(String userId) {
         this.userId = maxLength(userId, 255);
     }
@@ -137,6 +143,10 @@ public class Event {
         this.details = details;
     }
 
+    public void setStoreImmediately(boolean storeImmediately) {
+        this.storeImmediately = storeImmediately;
+    }
+
     public Event clone() {
         Event clone = new Event();
         clone.id = id;
@@ -148,6 +158,7 @@ public class Event {
         clone.sessionId = sessionId;
         clone.ipAddress = ipAddress;
         clone.error = error;
+        clone.storeImmediately = storeImmediately;
         clone.details = details != null ? new HashMap<>(details) : null;
         return clone;
     }

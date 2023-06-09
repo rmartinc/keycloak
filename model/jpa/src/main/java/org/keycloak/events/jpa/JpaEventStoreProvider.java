@@ -21,6 +21,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jboss.logging.Logger;
 import org.keycloak.common.util.Time;
+import org.keycloak.connections.jpa.JpaConnectionProvider;
 import org.keycloak.events.Event;
 import org.keycloak.events.EventQuery;
 import org.keycloak.events.EventStoreProvider;
@@ -121,7 +122,15 @@ public class JpaEventStoreProvider implements EventStoreProvider {
 
     @Override
     public void onEvent(Event event) {
-        em.persist(convertEvent(event));
+        if (event.isStoreImmediately()) {
+            // if inmmediate do not enroll to current transaction, store the event in a new one
+            KeycloakModelUtils.runJobInTransaction(session.getKeycloakSessionFactory(), newSession -> {
+                JpaConnectionProvider connection = newSession.getProvider(JpaConnectionProvider.class);
+                connection.getEntityManager().persist(convertEvent(event));
+            });
+        } else {
+            em.persist(convertEvent(event));
+        }
     }
 
     @Override
