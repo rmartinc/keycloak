@@ -900,7 +900,8 @@ public final class KeycloakModelUtils {
         if ((realmFlow = realm.getResetCredentialsFlow()) != null && realmFlow.getId().equals(model.getId())) return true;
         if ((realmFlow = realm.getDockerAuthenticationFlow()) != null && realmFlow.getId().equals(model.getId())) return true;
 
-        return realm.getIdentityProvidersStream().anyMatch(idp ->
+        // TODO: probably create a specific query for this
+        return realm.getIdentityProvidersStream(null, null, null).anyMatch(idp ->
                 Objects.equals(idp.getFirstBrokerLoginFlowId(), model.getId()) ||
                         Objects.equals(idp.getPostBrokerLoginFlowId(), model.getId()));
     }

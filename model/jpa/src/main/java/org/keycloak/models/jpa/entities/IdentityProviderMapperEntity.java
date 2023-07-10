@@ -28,6 +28,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapKeyColumn;
+import jakarta.persistence.NamedQueries;
+import jakarta.persistence.NamedQuery;
 import jakarta.persistence.Table;
 import java.util.Map;
 
@@ -37,6 +39,9 @@ import java.util.Map;
  */
 @Entity
 @Table(name="IDENTITY_PROVIDER_MAPPER")
+@NamedQueries({
+        @NamedQuery(name="removeIdentityProviderMapperByRealm", query="delete from IdentityProviderMapperEntity where realm = :realm")
+})
 public class IdentityProviderMapperEntity {
 
     @Id

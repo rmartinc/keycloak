@@ -26,6 +26,7 @@ import static java.util.Objects.nonNull;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -72,6 +73,7 @@ import org.keycloak.models.map.realm.entity.MapRequiredActionProviderEntity;
 import org.keycloak.models.map.realm.entity.MapRequiredCredentialEntity;
 import org.keycloak.models.map.realm.entity.MapWebAuthnPolicyEntity;
 import org.keycloak.models.utils.ComponentUtil;
+import org.keycloak.utils.StringUtil;
 
 public class MapRealmAdapter extends AbstractRealmModel<MapRealmEntity> implements RealmModel {
 
@@ -943,11 +945,47 @@ public class MapRealmAdapter extends AbstractRealmModel<MapRealmEntity> implemen
                 .orElse(null);
     }
 
+    //@Override
+    //public Stream<IdentityProviderModel> getIdentityProvidersStream() {
+    //    Set<MapIdentityProviderEntity> ips = entity.getIdentityProviders();
+    //    return ips == null ? Stream.empty() : ips.stream()
+    //      .map(e -> MapIdentityProviderEntity.toModel(e, () -> this.getModelFromProviderFactory(e.getProviderId())));
+    //}
+
     @Override
-    public Stream<IdentityProviderModel> getIdentityProvidersStream() {
+    public Stream<IdentityProviderModel> getIdentityProvidersStream(String search, Integer firstResult, Integer maxResults) {
         Set<MapIdentityProviderEntity> ips = entity.getIdentityProviders();
-        return ips == null ? Stream.empty() : ips.stream()
-          .map(e -> MapIdentityProviderEntity.toModel(e, () -> this.getModelFromProviderFactory(e.getProviderId())));
+        if (ips == null) {
+            return Stream.empty();
+        }
+        Stream<MapIdentityProviderEntity> result = ips.stream();
+        if (!StringUtil.isBlank(search)) {
+            result = result.filter(predicateByName(search));
+        }
+        result = result.sorted((MapIdentityProviderEntity idp1, MapIdentityProviderEntity idp2)
+                -> idp1.getAlias().compareTo(idp2.getAlias()));
+        if (firstResult != null) {
+            result = result.skip(firstResult);
+        }
+        if (maxResults != null) {
+            result = result.limit(maxResults);
+        }
+        return result.map(e -> MapIdentityProviderEntity.toModel(e, () -> this.getModelFromProviderFactory(e.getProviderId())));
+    }
+
+    private Predicate<MapIdentityProviderEntity> predicateByName(final String search) {
+        if (search.startsWith("\"") && search.endsWith("\"")) {
+            final String local = search.substring(1, search.length() - 1);
+            return (m) -> m.getAlias().equals(local);
+        } else if (search.startsWith("*") && search.endsWith("*")) {
+            final String local = search.substring(1, search.length() - 1);
+            return (m) -> m.getAlias().contains(local);
+        } else if (search.endsWith("*")) {
+            final String local = search.substring(0, search.length() - 1);
+            return (m) -> m.getAlias().startsWith(local);
+        } else {
+            return (m) -> m.getAlias().startsWith(search);
+        }
     }
 
     @Override
@@ -955,6 +993,16 @@ public class MapRealmAdapter extends AbstractRealmModel<MapRealmEntity> implemen
         Set<MapIdentityProviderEntity> ips = entity.getIdentityProviders();
         return ips == null ? null : ips.stream()
                 .filter(identityProvider -> Objects.equals(identityProvider.getAlias(), alias))
+                .findFirst()
+                .map(e -> MapIdentityProviderEntity.toModel(e, () -> this.getModelFromProviderFactory(e.getProviderId())))
+                .orElse(null);
+    }
+
+    @Override
+    public IdentityProviderModel getIdentityProviderByInternalId(String id) {
+        Set<MapIdentityProviderEntity> ips = entity.getIdentityProviders();
+        return ips == null ? null : ips.stream()
+                .filter(identityProvider -> Objects.equals(identityProvider.getId(), id))
                 .findFirst()
                 .map(e -> MapIdentityProviderEntity.toModel(e, () -> this.getModelFromProviderFactory(e.getProviderId())))
                 .orElse(null);
@@ -1055,11 +1103,11 @@ public class MapRealmAdapter extends AbstractRealmModel<MapRealmEntity> implemen
         }
     }
 
-    @Override
-    public Stream<IdentityProviderMapperModel> getIdentityProviderMappersStream() {
-        Set<MapIdentityProviderMapperEntity> ipms = entity.getIdentityProviderMappers();
-        return ipms == null ? Stream.empty() : ipms.stream().map(MapIdentityProviderMapperEntity::toModel);
-    }
+    //@Override
+    //public Stream<IdentityProviderMapperModel> getIdentityProviderMappersStream() {
+    //    Set<MapIdentityProviderMapperEntity> ipms = entity.getIdentityProviderMappers();
+    //    return ipms == null ? Stream.empty() : ipms.stream().map(MapIdentityProviderMapperEntity::toModel);
+    //}
 
     @Override
     public Stream<IdentityProviderMapperModel> getIdentityProviderMappersByAliasStream(String brokerAlias) {

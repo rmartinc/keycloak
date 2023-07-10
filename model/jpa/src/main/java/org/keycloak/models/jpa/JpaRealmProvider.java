@@ -188,6 +188,12 @@ public class JpaRealmProvider implements RealmProvider, ClientProvider, ClientSc
         num = em.createNamedQuery("removeClientInitialAccessByRealm")
                 .setParameter("realm", realm).executeUpdate();
 
+        num = em.createNamedQuery("removeIdentityProviderByRealm")
+                .setParameter("realm", realm).executeUpdate();
+
+        num = em.createNamedQuery("removeIdentityProviderMapperByRealm")
+                .setParameter("realm", realm).executeUpdate();
+
         em.remove(realm);
 
         em.flush();

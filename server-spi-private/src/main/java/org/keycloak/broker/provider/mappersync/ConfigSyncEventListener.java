@@ -56,7 +56,9 @@ public final class ConfigSyncEventListener implements ProviderEventListener {
                      * realm
                      */
                     RealmModel realm = configSynchronizer.extractRealm(event);
-                    realmMappers = realm.getIdentityProviderMappersStream()
+                    // TODO: probably get mappers via ROLE config poperty (use in HardcodedRoleMapperTest#mapperStillWorksWhenClientRoleIsRenamed)
+                    realmMappers = realm.getIdentityProvidersStream(null, null, null)
+                            .flatMap(idp -> realm.getIdentityProviderMappersByAliasStream(idp.getAlias()))
                             .collect(Collectors.toList());
                 }
 

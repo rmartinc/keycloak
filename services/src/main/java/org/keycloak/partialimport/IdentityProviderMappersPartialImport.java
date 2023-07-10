@@ -66,7 +66,7 @@ public class IdentityProviderMappersPartialImport extends AbstractPartialImport<
 
     @Override
     public void remove(RealmModel realm, KeycloakSession session, IdentityProviderMapperRepresentation idpMapperRep) {
-        IdentityProviderMapperModel idpMapper = RepresentationToModel.toModel(idpMapperRep);
+        IdentityProviderMapperModel idpMapper = realm.getIdentityProviderMapperByName(idpMapperRep.getIdentityProviderAlias(), idpMapperRep.getName());
         realm.removeIdentityProviderMapper(idpMapper);
     }
 

@@ -74,7 +74,7 @@ public class ExportUtils {
     }
 
     public static RealmRepresentation exportRealm(KeycloakSession session, RealmModel realm, ExportOptions options, boolean internal) {
-        RealmRepresentation rep = ModelToRepresentation.toRepresentation(session, realm, internal);
+        RealmRepresentation rep = ModelToRepresentation.toRepresentation(session, realm, internal, true);
         ModelToRepresentation.exportAuthenticationFlows(realm, rep);
         ModelToRepresentation.exportRequiredActions(realm, rep);
 

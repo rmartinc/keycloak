@@ -212,18 +212,19 @@ public class IdentityProviderResource {
 
     // return ID of IdentityProvider from realm based on internalId of this provider
     private static String getProviderIdByInternalId(RealmModel realm, String providerInternalId) {
-        return realm.getIdentityProvidersStream().filter(p -> Objects.equals(p.getInternalId(), providerInternalId))
-                .map(IdentityProviderModel::getAlias)
-                .findFirst()
-                .orElse(null);
+        IdentityProviderModel idp = realm.getIdentityProviderByInternalId(providerInternalId);
+        if (idp == null) {
+            return null;
+        }
+        return idp.getAlias();
     }
 
     // sets internalId to IdentityProvider based on alias
     private static void lookUpProviderIdByAlias(RealmModel realm, IdentityProviderRepresentation providerRep) {
-        IdentityProviderModel identityProviderModel = realm.getIdentityProvidersStream()
-                .filter(p -> Objects.equals(p.getAlias(), providerRep.getAlias()))
-                .findFirst()
-                .orElseThrow(NotFoundException::new);
+        IdentityProviderModel identityProviderModel = realm.getIdentityProviderByAlias(providerRep.getAlias());
+        if (identityProviderModel == null) {
+            throw new NotFoundException();
+        }
 
         providerRep.setInternalId(identityProviderModel.getInternalId());
     }

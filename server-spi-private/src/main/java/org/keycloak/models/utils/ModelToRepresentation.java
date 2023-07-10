@@ -370,7 +370,7 @@ public class ModelToRepresentation {
         return rep;
     }
 
-    public static RealmRepresentation toRepresentation(KeycloakSession session, RealmModel realm, boolean internal) {
+    public static RealmRepresentation toRepresentation(KeycloakSession session, RealmModel realm, boolean internal, boolean includeIdentityProviders) {
         RealmRepresentation rep = new RealmRepresentation();
         rep.setId(realm.getId());
         rep.setRealm(realm.getName());
@@ -520,13 +520,18 @@ public class ModelToRepresentation {
             rep.setRequiredCredentials(reqCredentials);
         }
 
-        List<IdentityProviderRepresentation> identityProviders = realm.getIdentityProvidersStream()
-                .map(provider -> toRepresentation(realm, provider)).collect(Collectors.toList());
-        rep.setIdentityProviders(identityProviders);
+        if (includeIdentityProviders) {
+            List<IdentityProviderRepresentation> identityProviders = realm.getIdentityProvidersStream(null, null, null)
+                    .map(provider -> toRepresentation(realm, provider)).collect(Collectors.toList());
+            rep.setIdentityProviders(identityProviders);
 
-        List<IdentityProviderMapperRepresentation> identityProviderMappers = realm.getIdentityProviderMappersStream()
-                .map(ModelToRepresentation::toRepresentation).collect(Collectors.toList());
-        rep.setIdentityProviderMappers(identityProviderMappers);
+            rep.setIdentityProviderMappers(new ArrayList<>());
+            for (IdentityProviderRepresentation idp : rep.getIdentityProviders()) {
+                List<IdentityProviderMapperRepresentation> identityProviderMappers = realm.getIdentityProviderMappersByAliasStream(idp.getAlias())
+                        .map(ModelToRepresentation::toRepresentation).collect(Collectors.toList());
+                rep.getIdentityProviderMappers().addAll(identityProviderMappers);
+            }
+        }
 
         rep.setInternationalizationEnabled(realm.isInternationalizationEnabled());
         rep.setSupportedLocales(realm.getSupportedLocalesStream().collect(Collectors.toSet()));

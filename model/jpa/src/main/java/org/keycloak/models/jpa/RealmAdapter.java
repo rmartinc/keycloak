@@ -31,10 +31,15 @@ import org.keycloak.models.*;
 import org.keycloak.models.jpa.entities.*;
 import org.keycloak.models.utils.ComponentUtil;
 import org.keycloak.models.utils.KeycloakModelUtils;
+import org.keycloak.utils.StreamsUtil;
+import org.keycloak.utils.StringUtil;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.TypedQuery;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Root;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -1162,9 +1167,43 @@ public class RealmAdapter implements LegacyRealmModel, JpaModel<RealmEntity> {
         return session.roles().getRoleById(this, realm.getDefaultRoleId());
     }
 
+    //@Override
+    //public Stream<IdentityProviderModel> getIdentityProvidersStream() {
+    //    return realm.getIdentityProviders().stream().map(this::entityToModel);
+    //}
+
     @Override
-    public Stream<IdentityProviderModel> getIdentityProvidersStream() {
-        return realm.getIdentityProviders().stream().map(this::entityToModel);
+    public Stream<IdentityProviderModel> getIdentityProvidersStream(String search, Integer firstResult, Integer maxResults) {
+        return getIdentityProvidersStreamInternal(search, firstResult, maxResults)
+                .map(this::entityToModel);
+    }
+
+    private Stream<IdentityProviderEntity> getIdentityProvidersStreamInternal(String search, Integer firstResult, Integer maxResults) {
+        CriteriaBuilder builder = em.getCriteriaBuilder();
+        CriteriaQuery<IdentityProviderEntity> queryBuilder = builder.createQuery(IdentityProviderEntity.class);
+        Root<IdentityProviderEntity> root = queryBuilder.from(IdentityProviderEntity.class);
+        jakarta.persistence.criteria.Predicate predicateRealm = builder.equal(root.get("realm"), realm);
+        if (!StringUtil.isBlank(search)) {
+            jakarta.persistence.criteria.Predicate predicate;
+            if (search.startsWith("\"") && search.endsWith("\"")) {
+                search = search.substring(1, search.length() - 1);
+                predicate = builder.equal(root.get("alias"), search);
+            } else if (search.startsWith("*") && search.endsWith("*")) {
+                search = search.substring(1, search.length() - 1);
+                predicate = builder.like(root.get("alias"), "%" + search + "%");
+            } else if (search.endsWith("*")) {
+                search = search.substring(0, search.length() - 1);
+                predicate = builder.like(root.get("alias"), search + "%");
+            } else {
+                predicate = builder.like(root.get("alias"), search + "%");
+            }
+            queryBuilder.where(predicateRealm, predicate);
+        } else {
+            queryBuilder.where(predicateRealm);
+        }
+        queryBuilder.orderBy(builder.asc(root.get("alias")));
+        TypedQuery<IdentityProviderEntity> query = em.createQuery(queryBuilder);
+        return StreamsUtil.closing(PaginationUtils.paginateQuery(query, firstResult, maxResults).getResultStream());
     }
 
     private IdentityProviderModel entityToModel(IdentityProviderEntity entity) {
@@ -1206,10 +1245,16 @@ public class RealmAdapter implements LegacyRealmModel, JpaModel<RealmEntity> {
 
     @Override
     public IdentityProviderModel getIdentityProviderByAlias(String alias) {
-        return getIdentityProvidersStream()
-                .filter(model -> Objects.equals(model.getAlias(), alias))
-                .findFirst()
-                .orElse(null);
+        return getIdentityProvidersStream("\"" + alias + "\"", 0, 1).findFirst().orElse(null);
+    }
+
+    @Override
+    public IdentityProviderModel getIdentityProviderByInternalId(String id) {
+        IdentityProviderEntity entity = em.find(IdentityProviderEntity.class, id);
+        if (entity == null) {
+            return null;
+        }
+        return entityToModel(entity);
     }
 
     @Override
@@ -1233,8 +1278,9 @@ public class RealmAdapter implements LegacyRealmModel, JpaModel<RealmEntity> {
         entity.setPostBrokerLoginFlowId(identityProvider.getPostBrokerLoginFlowId());
         entity.setConfig(identityProvider.getConfig());
         entity.setLinkOnly(identityProvider.isLinkOnly());
+        entity.setRealm(realm);
 
-        realm.addIdentityProvider(entity);
+        //realm.addIdentityProvider(entity);
 
         identityProvider.setInternalId(entity.getInternalId());
 
@@ -1244,52 +1290,52 @@ public class RealmAdapter implements LegacyRealmModel, JpaModel<RealmEntity> {
 
     @Override
     public void removeIdentityProviderByAlias(String alias) {
-        for (IdentityProviderEntity entity : realm.getIdentityProviders()) {
-            if (entity.getAlias().equals(alias)) {
+        IdentityProviderEntity entity = getIdentityProvidersStreamInternal("\"" + alias + "\"", 0, 1).findFirst().orElse(null);
+        if (entity != null) {
 
-                IdentityProviderModel model = entityToModel(entity);
-                em.remove(entity);
-                em.flush();
+            IdentityProviderModel model = entityToModel(entity);
+            em.remove(entity);
+            em.flush();
 
-                session.getKeycloakSessionFactory().publish(new RealmModel.IdentityProviderRemovedEvent() {
+            session.getKeycloakSessionFactory().publish(new RealmModel.IdentityProviderRemovedEvent() {
 
-                    @Override
-                    public RealmModel getRealm() {
-                        return RealmAdapter.this;
-                    }
+                @Override
+                public RealmModel getRealm() {
+                    return RealmAdapter.this;
+                }
 
-                    @Override
-                    public IdentityProviderModel getRemovedIdentityProvider() {
-                        return model;
-                    }
+                @Override
+                public IdentityProviderModel getRemovedIdentityProvider() {
+                    return model;
+                }
 
-                    @Override
-                    public KeycloakSession getKeycloakSession() {
-                        return session;
-                    }
-                });
+                @Override
+                public KeycloakSession getKeycloakSession() {
+                    return session;
+                }
+            });
 
-            }
         }
     }
 
     @Override
     public void updateIdentityProvider(IdentityProviderModel identityProvider) {
-        for (IdentityProviderEntity entity : this.realm.getIdentityProviders()) {
-            if (entity.getInternalId().equals(identityProvider.getInternalId())) {
-                entity.setAlias(identityProvider.getAlias());
-                entity.setDisplayName(identityProvider.getDisplayName());
-                entity.setEnabled(identityProvider.isEnabled());
-                entity.setTrustEmail(identityProvider.isTrustEmail());
-                entity.setAuthenticateByDefault(identityProvider.isAuthenticateByDefault());
-                entity.setFirstBrokerLoginFlowId(identityProvider.getFirstBrokerLoginFlowId());
-                entity.setPostBrokerLoginFlowId(identityProvider.getPostBrokerLoginFlowId());
-                entity.setAddReadTokenRoleOnCreate(identityProvider.isAddReadTokenRoleOnCreate());
-                entity.setStoreToken(identityProvider.isStoreToken());
-                entity.setConfig(identityProvider.getConfig());
-                entity.setLinkOnly(identityProvider.isLinkOnly());
-            }
+        IdentityProviderEntity entity = em.find(IdentityProviderEntity.class, identityProvider.getInternalId());
+        if (entity == null) {
+            return;
         }
+
+        entity.setAlias(identityProvider.getAlias());
+        entity.setDisplayName(identityProvider.getDisplayName());
+        entity.setEnabled(identityProvider.isEnabled());
+        entity.setTrustEmail(identityProvider.isTrustEmail());
+        entity.setAuthenticateByDefault(identityProvider.isAuthenticateByDefault());
+        entity.setFirstBrokerLoginFlowId(identityProvider.getFirstBrokerLoginFlowId());
+        entity.setPostBrokerLoginFlowId(identityProvider.getPostBrokerLoginFlowId());
+        entity.setAddReadTokenRoleOnCreate(identityProvider.isAddReadTokenRoleOnCreate());
+        entity.setStoreToken(identityProvider.isStoreToken());
+        entity.setConfig(identityProvider.getConfig());
+        entity.setLinkOnly(identityProvider.isLinkOnly());
 
         em.flush();
 
@@ -1314,7 +1360,7 @@ public class RealmAdapter implements LegacyRealmModel, JpaModel<RealmEntity> {
 
     @Override
     public boolean isIdentityFederationEnabled() {
-        return !this.realm.getIdentityProviders().isEmpty();
+        return getIdentityProvidersStream(null, 0, 1).findAny().isPresent();
     }
 
     @Override
@@ -1350,16 +1396,22 @@ public class RealmAdapter implements LegacyRealmModel, JpaModel<RealmEntity> {
         em.flush();
     }
 
-    @Override
-    public Stream<IdentityProviderMapperModel> getIdentityProviderMappersStream() {
-        return realm.getIdentityProviderMappers().stream().map(this::entityToModel);
-    }
+    //@Override
+    //public Stream<IdentityProviderMapperModel> getIdentityProviderMappersStream() {
+    //    return realm.getIdentityProviderMappers().stream().map(this::entityToModel);
+    //}
 
     @Override
     public Stream<IdentityProviderMapperModel> getIdentityProviderMappersByAliasStream(String brokerAlias) {
-        return realm.getIdentityProviderMappers().stream()
-                .filter(e -> Objects.equals(e.getIdentityProviderAlias(), brokerAlias))
-                .map(this::entityToModel);
+        CriteriaBuilder builder = em.getCriteriaBuilder();
+        CriteriaQuery<IdentityProviderMapperEntity> queryBuilder = builder.createQuery(IdentityProviderMapperEntity.class);
+        Root<IdentityProviderMapperEntity> root = queryBuilder.from(IdentityProviderMapperEntity.class);
+        jakarta.persistence.criteria.Predicate predicateAlias = builder.equal(root.get("identityProviderAlias"), brokerAlias);
+        jakarta.persistence.criteria.Predicate predicateRealm = builder.equal(root.get("realm"), realm);
+        queryBuilder.where(predicateRealm, predicateAlias);
+        queryBuilder.orderBy(builder.asc(root.get("name")));
+        TypedQuery<IdentityProviderMapperEntity> query = em.createQuery(queryBuilder);
+        return StreamsUtil.closing(PaginationUtils.paginateQuery(query, null, null).getResultStream().map(this::entityToModel));
     }
 
     @Override
@@ -1377,35 +1429,15 @@ public class RealmAdapter implements LegacyRealmModel, JpaModel<RealmEntity> {
         entity.setConfig(model.getConfig());
 
         em.persist(entity);
-        this.realm.getIdentityProviderMappers().add(entity);
+        //this.realm.getIdentityProviderMappers().add(entity);
         return entityToModel(entity);
-    }
-
-    protected IdentityProviderMapperEntity getIdentityProviderMapperEntity(String id) {
-        for (IdentityProviderMapperEntity entity : this.realm.getIdentityProviderMappers()) {
-            if (entity.getId().equals(id)) {
-                return entity;
-            }
-        }
-        return null;
-
-    }
-
-    protected IdentityProviderMapperEntity getIdentityProviderMapperEntityByName(String alias, String name) {
-        for (IdentityProviderMapperEntity entity : this.realm.getIdentityProviderMappers()) {
-            if (entity.getIdentityProviderAlias().equals(alias) && entity.getName().equals(name)) {
-                return entity;
-            }
-        }
-        return null;
-
     }
 
     @Override
     public void removeIdentityProviderMapper(IdentityProviderMapperModel mapping) {
-        IdentityProviderMapperEntity toDelete = getIdentityProviderMapperEntity(mapping.getId());
+        IdentityProviderMapperEntity toDelete = em.find(IdentityProviderMapperEntity.class, mapping.getId());
         if (toDelete != null) {
-            this.realm.getIdentityProviderMappers().remove(toDelete);
+            //this.realm.getIdentityProviderMappers().remove(toDelete);
             em.remove(toDelete);
         }
 
@@ -1413,7 +1445,7 @@ public class RealmAdapter implements LegacyRealmModel, JpaModel<RealmEntity> {
 
     @Override
     public void updateIdentityProviderMapper(IdentityProviderMapperModel mapping) {
-        IdentityProviderMapperEntity entity = getIdentityProviderMapperEntity(mapping.getId());
+        IdentityProviderMapperEntity entity = em.find(IdentityProviderMapperEntity.class, mapping.getId());
         entity.setIdentityProviderAlias(mapping.getIdentityProviderAlias());
         entity.setIdentityProviderMapper(mapping.getIdentityProviderMapper());
         if (entity.getConfig() == null) {
@@ -1430,16 +1462,27 @@ public class RealmAdapter implements LegacyRealmModel, JpaModel<RealmEntity> {
 
     @Override
     public IdentityProviderMapperModel getIdentityProviderMapperById(String id) {
-        IdentityProviderMapperEntity entity = getIdentityProviderMapperEntity(id);
+        IdentityProviderMapperEntity entity = em.find(IdentityProviderMapperEntity.class, id);
         if (entity == null) return null;
         return entityToModel(entity);
     }
 
     @Override
     public IdentityProviderMapperModel getIdentityProviderMapperByName(String alias, String name) {
-        IdentityProviderMapperEntity entity = getIdentityProviderMapperEntityByName(alias, name);
-        if (entity == null) return null;
-        return entityToModel(entity);
+        CriteriaBuilder builder = em.getCriteriaBuilder();
+        CriteriaQuery<IdentityProviderMapperEntity> queryBuilder = builder.createQuery(IdentityProviderMapperEntity.class);
+        Root<IdentityProviderMapperEntity> root = queryBuilder.from(IdentityProviderMapperEntity.class);
+        jakarta.persistence.criteria.Predicate predicateRealm = builder.equal(root.get("realm"), realm);
+        jakarta.persistence.criteria.Predicate predicateAlias = builder.equal(root.get("identityProviderAlias"), alias);
+        jakarta.persistence.criteria.Predicate predicateName = builder.equal(root.get("name"), name);
+        queryBuilder.where(predicateRealm, predicateAlias, predicateName);
+        queryBuilder.orderBy(builder.asc(root.get("name")));
+        TypedQuery<IdentityProviderMapperEntity> query = em.createQuery(queryBuilder);
+
+        return StreamsUtil.closing(PaginationUtils.paginateQuery(query, 0, 1).getResultStream())
+                .findFirst()
+                .map(this::entityToModel)
+                .orElse(null);
     }
 
     protected IdentityProviderMapperModel entityToModel(IdentityProviderMapperEntity entity) {

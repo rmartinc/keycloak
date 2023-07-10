@@ -841,19 +841,27 @@ public class RealmAdapter implements CachedRealmModel {
     }
 
 
+    //@Override
+    //public Stream<IdentityProviderModel> getIdentityProvidersStream() {
+    //    if (isUpdated()) return updated.getIdentityProvidersStream();
+    //    return cached.getIdentityProviders().stream();
+    //}
+
     @Override
-    public Stream<IdentityProviderModel> getIdentityProvidersStream() {
-        if (isUpdated()) return updated.getIdentityProvidersStream();
-        return cached.getIdentityProviders().stream();
+    public Stream<IdentityProviderModel> getIdentityProvidersStream(String search, Integer firstResult, Integer maxResults) {
+        return cached.getIdentityProviders(modelSupplier, search, firstResult, maxResults);
     }
 
     @Override
     public IdentityProviderModel getIdentityProviderByAlias(String alias) {
         if (isUpdated()) return updated.getIdentityProviderByAlias(alias);
-        return getIdentityProvidersStream()
-                .filter(model -> Objects.equals(model.getAlias(), alias))
-                .findFirst()
-                .orElse(null);
+        return getIdentityProvidersStream("\"" + alias + "\"", 0, 1).findFirst().orElse(null);
+    }
+
+    @Override
+    public IdentityProviderModel getIdentityProviderByInternalId(String id) {
+        if (isUpdated()) return updated.getIdentityProviderByInternalId(id);
+        return cached.getIdentityProviderByInternalId(modelSupplier, id);
     }
 
     @Override
@@ -1121,17 +1129,16 @@ public class RealmAdapter implements CachedRealmModel {
         updated.setDefaultLocale(locale);
     }
 
-    @Override
-    public Stream<IdentityProviderMapperModel> getIdentityProviderMappersStream() {
-        if (isUpdated()) return updated.getIdentityProviderMappersStream();
-        return cached.getIdentityProviderMapperSet().stream();
-    }
+    //@Override
+    //public Stream<IdentityProviderMapperModel> getIdentityProviderMappersStream() {
+    //    if (isUpdated()) return updated.getIdentityProviderMappersStream();
+    //    return cached.getIdentityProviderMapperSet().stream();
+    //}
 
     @Override
     public Stream<IdentityProviderMapperModel> getIdentityProviderMappersByAliasStream(String brokerAlias) {
         if (isUpdated()) return updated.getIdentityProviderMappersByAliasStream(brokerAlias);
-        Set<IdentityProviderMapperModel> mappings = new HashSet<>(cached.getIdentityProviderMappers().getList(brokerAlias));
-        return mappings.stream();
+        return cached.getIdentityProviderMappersByAliasStream(modelSupplier, brokerAlias);
     }
 
     @Override
@@ -1155,23 +1162,13 @@ public class RealmAdapter implements CachedRealmModel {
     @Override
     public IdentityProviderMapperModel getIdentityProviderMapperById(String id) {
         if (isUpdated()) return updated.getIdentityProviderMapperById(id);
-        for (List<IdentityProviderMapperModel> models : cached.getIdentityProviderMappers().values()) {
-            for (IdentityProviderMapperModel model : models) {
-                if (model.getId().equals(id)) return model;
-            }
-        }
-        return null;
+        return cached.getIdentityProviderMapperById(modelSupplier, id);
     }
 
     @Override
     public IdentityProviderMapperModel getIdentityProviderMapperByName(String alias, String name) {
         if (isUpdated()) return updated.getIdentityProviderMapperByName(alias, name);
-        List<IdentityProviderMapperModel> models = cached.getIdentityProviderMappers().getList(alias);
-        if (models == null) return null;
-        for (IdentityProviderMapperModel model : models) {
-            if (model.getName().equals(name)) return model;
-        }
-        return null;
+        return cached.getIdentityProviderMapperByName(modelSupplier, alias, name);
     }
 
     @Override

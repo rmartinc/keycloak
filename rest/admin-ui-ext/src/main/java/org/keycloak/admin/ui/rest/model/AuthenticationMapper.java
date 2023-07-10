@@ -14,7 +14,7 @@ public class AuthenticationMapper {
 
     public static Authentication convertToModel(AuthenticationFlowModel flow, RealmModel realm) {
 
-        final Stream<IdentityProviderModel> identityProviders = realm.getIdentityProvidersStream();
+        final Stream<IdentityProviderModel> identityProviders = realm.getIdentityProvidersStream(null, null, null);
         final Stream<ClientModel> clients = realm.getClientsStream();
 
         final Authentication authentication = new Authentication();

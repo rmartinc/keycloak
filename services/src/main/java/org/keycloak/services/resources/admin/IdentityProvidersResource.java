@@ -60,7 +60,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static jakarta.ws.rs.core.Response.Status.BAD_REQUEST;
@@ -195,10 +194,12 @@ public class IdentityProvidersResource {
             maxResults = 100;
         }
 
-        return realm.getIdentityProvidersStream()
+        /*return realm.getIdentityProvidersStream()
                 .filter(predicateByName(search))
                 .skip(firstResult)
                 .limit(maxResults)
+                .map(provider -> StripSecretsUtils.strip(ModelToRepresentation.toRepresentation(realm, provider)));*/
+        return realm.getIdentityProvidersStream(search, firstResult, maxResults)
                 .map(provider -> StripSecretsUtils.strip(ModelToRepresentation.toRepresentation(realm, provider)));
     }
 
@@ -218,24 +219,7 @@ public class IdentityProvidersResource {
             @Parameter(description = "Filter to search specific providers by name. Search can be prefixed (name*), contains (*name*) or exact (\"name\"). Default prefixed.") @QueryParam("search") String search) {
         this.auth.realm().requireViewIdentityProviders();
 
-        return Math.toIntExact(this.realm.getIdentityProvidersStream().filter(predicateByName(search)).count());
-    }
-
-    private Predicate<IdentityProviderModel> predicateByName(final String search) {
-        if (StringUtil.isBlank(search)) {
-            return (m) -> true;
-        } else if (search.startsWith("\"") && search.endsWith("\"")) {
-            final String name = search.substring(1, search.length() - 1);
-            return (m) -> m.getAlias().equals(name);
-        } else if (search.startsWith("*") && search.endsWith("*")) {
-            final String name = search.substring(1, search.length() - 1);
-            return (m) -> m.getAlias().contains(name);
-        } else if (search.endsWith("*")) {
-            final String name = search.substring(0, search.length() - 1);
-            return (m) -> m.getAlias().startsWith(name);
-        } else {
-            return (m) -> m.getAlias().startsWith(search);
-        }
+        return Math.toIntExact(realm.getIdentityProvidersStream(search, null, null).count());
     }
 
     /**
@@ -279,9 +263,10 @@ public class IdentityProvidersResource {
     @Path("instances/{alias}")
     public IdentityProviderResource getIdentityProvider(@PathParam("alias") String alias) {
         this.auth.realm().requireViewIdentityProviders();
-        IdentityProviderModel identityProviderModel =  this.realm.getIdentityProvidersStream()
-                .filter(p -> Objects.equals(p.getAlias(), alias) || Objects.equals(p.getInternalId(), alias))
-                .findFirst().orElse(null);
+        IdentityProviderModel identityProviderModel =  this.realm.getIdentityProviderByAlias(alias);
+        if (identityProviderModel == null) {
+            identityProviderModel =  this.realm.getIdentityProviderByInternalId(alias);
+        }
 
         return new IdentityProviderResource(this.auth, realm, session, identityProviderModel, adminEvent);
     }

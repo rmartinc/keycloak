@@ -75,11 +75,8 @@ public class IdentityProviderAuthenticator implements Authenticator {
     }
 
     private void redirect(AuthenticationFlowContext context, String providerId) {
-        Optional<IdentityProviderModel> idp = context.getRealm().getIdentityProvidersStream()
-                .filter(IdentityProviderModel::isEnabled)
-                .filter(identityProvider -> Objects.equals(providerId, identityProvider.getAlias()))
-                .findFirst();
-        if (idp.isPresent()) {
+        IdentityProviderModel idp = context.getRealm().getIdentityProviderByAlias(providerId);
+        if (idp != null && idp.isEnabled()) {
             String accessCode = new ClientSessionCode<>(context.getSession(), context.getRealm(), context.getAuthenticationSession()).getOrGenerateCode();
             String clientId = context.getAuthenticationSession().getClient().getClientId();
             String tabId = context.getAuthenticationSession().getTabId();
@@ -88,7 +85,7 @@ public class IdentityProviderAuthenticator implements Authenticator {
                     .build();
             // will forward the request to the IDP with prompt=none if the IDP accepts forwards with prompt=none.
             if ("none".equals(context.getAuthenticationSession().getClientNote(OIDCLoginProtocol.PROMPT_PARAM)) &&
-                    Boolean.valueOf(idp.get().getConfig().get(ACCEPTS_PROMPT_NONE))) {
+                    Boolean.valueOf(idp.getConfig().get(ACCEPTS_PROMPT_NONE))) {
                 context.getAuthenticationSession().setAuthNote(AuthenticationProcessor.FORWARDED_PASSIVE_LOGIN, "true");
             }
             LOG.debugf("Redirecting to %s", providerId);

@@ -1348,8 +1348,18 @@ public class IdentityBrokerStateTestHelpers {
             return null;
         }
 
+        //@Override
+        //public Stream<IdentityProviderModel> getIdentityProvidersStream() {
+        //    return null;
+        //}
+
         @Override
-        public Stream<IdentityProviderModel> getIdentityProvidersStream() {
+        public Stream<IdentityProviderModel> getIdentityProvidersStream(String search, Integer firstResult, Integer maxResults) {
+            return null;
+        }
+
+        @Override
+        public IdentityProviderModel getIdentityProviderByInternalId(String id) {
             return null;
         }
 
@@ -1373,10 +1383,10 @@ public class IdentityBrokerStateTestHelpers {
 
         }
 
-        @Override
-        public Stream<IdentityProviderMapperModel> getIdentityProviderMappersStream() {
-            return null;
-        }
+        //@Override
+        //public Stream<IdentityProviderMapperModel> getIdentityProviderMappersStream() {
+        //    return null;
+        //}
 
         @Override
         public Stream<IdentityProviderMapperModel> getIdentityProviderMappersByAliasStream(String brokerAlias) {

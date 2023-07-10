@@ -474,7 +474,7 @@ public class DefaultTokenExchangeProvider implements TokenExchangeProvider {
         AtomicReference<ExchangeExternalToken> externalIdp = new AtomicReference<>(null);
         AtomicReference<IdentityProviderModel> externalIdpModel = new AtomicReference<>(null);
 
-        realm.getIdentityProvidersStream().filter(idpModel -> {
+        realm.getIdentityProvidersStream(null, null, null).filter(idpModel -> {
             IdentityProviderFactory factory = IdentityBrokerService.getIdentityProviderFactory(session, idpModel);
             IdentityProvider idp = factory.create(session, idpModel);
             if (idp instanceof ExchangeExternalToken) {

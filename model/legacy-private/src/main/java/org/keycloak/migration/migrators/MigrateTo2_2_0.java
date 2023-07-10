@@ -45,7 +45,7 @@ public class MigrateTo2_2_0 implements Migration {
     }
 
     private void addIdentityProviderAuthenticator(RealmModel realm) {
-        String defaultProvider = realm.getIdentityProvidersStream()
+        String defaultProvider = realm.getIdentityProvidersStream(null, null, null)
                 .filter(IdentityProviderModel::isEnabled)
                 .filter(IdentityProviderModel::isAuthenticateByDefault)
                 .map(IdentityProviderModel::getAlias)

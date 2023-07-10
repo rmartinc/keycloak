@@ -104,7 +104,7 @@ public class AuthenticationManagementResource extends RoleMappingResource {
         }
 
         if ("idp".equals(type)) {
-            final Stream<IdentityProviderModel> identityProviders = realm.getIdentityProvidersStream();
+            final Stream<IdentityProviderModel> identityProviders = realm.getIdentityProvidersStream(null, null, null);
             return identityProviders.filter(idp -> flow.getId().equals(idp.getFirstBrokerLoginFlowId())
                             || flow.getId().equals(idp.getPostBrokerLoginFlowId()))
                     .map(IdentityProviderModel::getAlias).filter(f -> f.contains(search))

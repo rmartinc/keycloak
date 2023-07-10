@@ -132,32 +132,30 @@ public class IdentityProviderTest extends AbstractAdminTest {
 
     @Test
     public void testFind() {
-        create(createRep("github", "github"));
-        create(createRep("google", "google"));
-        create(createRep("facebook", "facebook"));
-        create(createRep("linkedin", "linkedin"));
-        create(createRep("twitter", "twitter"));
+        Map<String, String> config = Map.of("key1","value1", "key2", "value2");
+        for (int i = 0; i < 200; i++) {
+            create(createRep(String.format("test-oidc-%03d", i), "oidc", true, config));
+        }
 
-        Assert.assertEquals((Integer) 5, realm.identityProviders().count(null));
-        Assert.assertNames(realm.identityProviders().findAll(), "github", "google", "facebook", "linkedin", "twitter");
+        Assert.assertEquals((Integer) 200, realm.identityProviders().count(null));
 
-        Assert.assertNames(realm.identityProviders().find(null, 0, 2), "github", "google");
-        Assert.assertNames(realm.identityProviders().find(null, 2, 2), "facebook", "linkedin");
-        Assert.assertNames(realm.identityProviders().find(null, 4, 2), "twitter");
+        Assert.assertNames(realm.identityProviders().find(null, 0, 2), "test-oidc-000", "test-oidc-001");
+        Assert.assertNames(realm.identityProviders().find(null, 2, 2), "test-oidc-002", "test-oidc-003");
+        Assert.assertNames(realm.identityProviders().find(null, 4, 2), "test-oidc-004", "test-oidc-005");
 
-        Assert.assertEquals((Integer) 2, realm.identityProviders().count("g"));
-        Assert.assertNames(realm.identityProviders().find("g", 0, 5), "github", "google");
+        Assert.assertEquals((Integer) 10, realm.identityProviders().count("test-oidc-11"));
+        Assert.assertNames(realm.identityProviders().find("test-oidc-11", 0, 3), "test-oidc-110", "test-oidc-111", "test-oidc-112");
 
-        Assert.assertEquals((Integer) 2, realm.identityProviders().count("g*"));
-        Assert.assertNames(realm.identityProviders().find("g*", 0, 5), "github", "google");
-        Assert.assertNames(realm.identityProviders().find("g*", 0, 1), "github");
-        Assert.assertNames(realm.identityProviders().find("g*", 1, 1), "google");
+        Assert.assertEquals((Integer) 10, realm.identityProviders().count("test-oidc-12*"));
+        Assert.assertNames(realm.identityProviders().find("test-oidc-12*", 0, 2), "test-oidc-120", "test-oidc-121");
+        Assert.assertNames(realm.identityProviders().find("test-oidc-12*", 5, 1), "test-oidc-125");
+        Assert.assertNames(realm.identityProviders().find("test-oidc-12*", 1, 1), "test-oidc-121");
 
-        Assert.assertEquals((Integer) 2, realm.identityProviders().count("*oo*"));
-        Assert.assertNames(realm.identityProviders().find("*oo*", 0, 5), "google", "facebook");
+        Assert.assertEquals((Integer) 10, realm.identityProviders().count("*est-oidc-15*"));
+        Assert.assertNames(realm.identityProviders().find("*est-oidc-15*", 0, 2), "test-oidc-150", "test-oidc-151");
 
-        Assert.assertEquals((Integer) 1, realm.identityProviders().count("\"twitter\""));
-        Assert.assertNames(realm.identityProviders().find("\"twitter\"", 0, 5), "twitter");
+        Assert.assertEquals((Integer) 1, realm.identityProviders().count("\"test-oidc-183\""));
+        Assert.assertNames(realm.identityProviders().find("\"test-oidc-183\"", 0, 5), "test-oidc-183");
     }
 
     @Test

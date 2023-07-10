@@ -375,7 +375,7 @@ public class RealmAdminResource {
     @Operation( summary = "Get the top-level representation of the realm It will not include nested information like User and Client representations.")
     public RealmRepresentation getRealm() {
         if (auth.realm().canViewRealm()) {
-            return ModelToRepresentation.toRepresentation(session, realm, false);
+            return ModelToRepresentation.toRepresentation(session, realm, false, false);
         } else {
             auth.realm().requireViewRealmNameList();
 
@@ -387,7 +387,7 @@ public class RealmAdminResource {
             }
 
             if (auth.realm().canViewIdentityProviders()) {
-                RealmRepresentation r = ModelToRepresentation.toRepresentation(session, realm, false);
+                RealmRepresentation r = ModelToRepresentation.toRepresentation(session, realm, false, false);
                 rep.setIdentityProviders(r.getIdentityProviders());
                 rep.setIdentityProviderMappers(r.getIdentityProviderMappers());
             }

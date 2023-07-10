@@ -48,8 +48,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.keycloak.utils.StringUtil;
 
 /**
  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
@@ -154,10 +157,6 @@ public class CachedRealm extends AbstractExtendableRevisioned {
     protected String defaultRoleId;
     private boolean allowUserManagedAccess;
 
-    public Set<IdentityProviderMapperModel> getIdentityProviderMapperSet() {
-        return identityProviderMapperSet;
-    }
-
     protected List<String> defaultGroups;
     protected List<String> defaultDefaultClientScopes = new LinkedList<>();
     protected List<String> optionalDefaultClientScopes = new LinkedList<>();
@@ -165,7 +164,6 @@ public class CachedRealm extends AbstractExtendableRevisioned {
     protected Set<String> supportedLocales;
     protected String defaultLocale;
     protected MultivaluedHashMap<String, IdentityProviderMapperModel> identityProviderMappers = new MultivaluedHashMap<>();
-    protected Set<IdentityProviderMapperModel> identityProviderMapperSet;
 
     protected Map<String, String> attributes;
 
@@ -240,15 +238,18 @@ public class CachedRealm extends AbstractExtendableRevisioned {
         requiredCredentials = model.getRequiredCredentialsStream().collect(Collectors.toList());
         userActionTokenLifespans = Collections.unmodifiableMap(new HashMap<>(model.getUserActionTokenLifespans()));
 
-        this.identityProviders = model.getIdentityProvidersStream().map(IdentityProviderModel::new)
+        this.identityProviders = model.getIdentityProvidersStream(null, 0, 101).map(IdentityProviderModel::new)
                 .collect(Collectors.toList());
-        this.identityProviders = Collections.unmodifiableList(this.identityProviders);
+        this.identityProviders = this.identityProviders.size() < 101
+                ? Collections.unmodifiableList(this.identityProviders)
+                : null;
 
-        this.identityProviderMapperSet = model.getIdentityProviderMappersStream().collect(Collectors.toSet());
-        for (IdentityProviderMapperModel mapper : identityProviderMapperSet) {
-            identityProviderMappers.add(mapper.getIdentityProviderAlias(), mapper);
+        if (this.identityProviders != null) {
+            for (IdentityProviderModel identityProvider : this.identityProviders) {
+                model.getIdentityProviderMappersByAliasStream(identityProvider.getAlias())
+                        .forEach(mapper -> identityProviderMappers.add(mapper.getIdentityProviderAlias(), mapper));
+            }
         }
-
 
 
         smtpConfig = model.getSmtpConfig();
@@ -601,6 +602,45 @@ public class CachedRealm extends AbstractExtendableRevisioned {
         return identityProviders;
     }
 
+    public Stream<IdentityProviderModel> getIdentityProviders(Supplier<RealmModel> realmModel, String search, Integer firstResult, Integer maxResults) {
+        if (identityProviders != null) {
+            Stream<IdentityProviderModel> result = identityProviders.stream();
+            if (!StringUtil.isBlank(search)){
+                result = result.filter(predicateByName(search));
+            }
+            if (firstResult != null) {
+                result = result.skip(firstResult);
+            }
+            if (maxResults != null) {
+                result = result.limit(maxResults);
+            }
+            return result;
+        }
+        return realmModel.get().getIdentityProvidersStream(search, firstResult, maxResults);
+    }
+    
+    private Predicate<IdentityProviderModel> predicateByName(final String search) {
+        if (search.startsWith("\"") && search.endsWith("\"")) {
+            final String local = search.substring(1, search.length() - 1);
+            return (m) -> m.getAlias().equals(local);
+        } else if (search.startsWith("*") && search.endsWith("*")) {
+            final String local = search.substring(1, search.length() - 1);
+            return (m) -> m.getAlias().contains(local);
+        } else if (search.endsWith("*")) {
+            final String local = search.substring(0, search.length() - 1);
+            return (m) -> m.getAlias().startsWith(local);
+        } else {
+            return (m) -> m.getAlias().startsWith(search);
+        }
+    }
+
+    public IdentityProviderModel getIdentityProviderByInternalId(Supplier<RealmModel> realmModel, String id) {
+        if (identityProviders != null) {
+            return identityProviders.stream().filter(idp -> idp.getInternalId().equals(id)).findFirst().orElse(null);
+        }
+        return realmModel.get().getIdentityProviderByInternalId(id);
+    }
+
     public boolean isInternationalizationEnabled() {
         return internationalizationEnabled;
     }
@@ -613,8 +653,36 @@ public class CachedRealm extends AbstractExtendableRevisioned {
         return defaultLocale;
     }
 
-    public MultivaluedHashMap<String, IdentityProviderMapperModel> getIdentityProviderMappers() {
-        return identityProviderMappers;
+    public IdentityProviderMapperModel getIdentityProviderMapperById(Supplier<RealmModel> realmModel, String id) {
+        if (identityProviderMappers != null) {
+            return identityProviderMappers.entrySet().stream()
+                    .map(Map.Entry::getValue)
+                    .flatMap(List::stream)
+                    .filter(m -> m.getId().equals(id))
+                    .findFirst().orElse(null);
+        }
+        return realmModel.get().getIdentityProviderMapperById(id);
+    }
+
+    public IdentityProviderMapperModel getIdentityProviderMapperByName(Supplier<RealmModel> realmModel, String alias, String name) {
+        if (identityProviderMappers != null) {
+            List<IdentityProviderMapperModel> mappers = identityProviderMappers.getList(alias);
+            if (mappers == null) {
+                return null;
+            }
+            return mappers.stream()
+                    .filter(m -> m.getName().equals(name))
+                    .findFirst().orElse(null);
+        }
+        return realmModel.get().getIdentityProviderMapperByName(alias, name);
+    }
+
+    public Stream<IdentityProviderMapperModel> getIdentityProviderMappersByAliasStream(Supplier<RealmModel> realmModel, String alias) {
+        if (identityProviderMappers != null) {
+            List<IdentityProviderMapperModel> mappers = identityProviderMappers.getList(alias);
+            return mappers == null? null : mappers.stream();
+        }
+        return realmModel.get().getIdentityProviderMappersByAliasStream(alias);
     }
 
     public Map<String, AuthenticationFlowModel> getAuthenticationFlows() {

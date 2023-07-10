@@ -440,9 +440,20 @@ public interface RealmModel extends RoleContainerModel {
      * Returns identity providers as a stream.
      * @return Stream of {@link IdentityProviderModel}. Never returns {@code null}.
      */
-    Stream<IdentityProviderModel> getIdentityProvidersStream();
+    // TODO: just commenting to put it back before real deletion
+    //Stream<IdentityProviderModel> getIdentityProvidersStream();
+
+    /**
+     * Returns the identity providers as a Stream but filtered by alias and paginated.
+     * @param search Filter for the alias (prefix: name*, contains: *name*, exact: "name"; Default prefix)
+     * @param firstResult The initial result to return
+     * @param maxResults The max results to include
+     * @return The stream with the identity providers
+     */
+    Stream<IdentityProviderModel> getIdentityProvidersStream(String search, Integer firstResult, Integer maxResults);
 
     IdentityProviderModel getIdentityProviderByAlias(String alias);
+    IdentityProviderModel getIdentityProviderByInternalId(String id);
     void addIdentityProvider(IdentityProviderModel identityProvider);
     void removeIdentityProviderByAlias(String alias);
     void updateIdentityProvider(IdentityProviderModel identityProvider);
@@ -451,7 +462,8 @@ public interface RealmModel extends RoleContainerModel {
      * Returns identity provider mappers as a stream.
      * @return Stream of {@link IdentityProviderMapperModel}. Never returns {@code null}.
      */
-    Stream<IdentityProviderMapperModel> getIdentityProviderMappersStream();
+    // TODO: just commenting to put it back before real deletion
+    //Stream<IdentityProviderMapperModel> getIdentityProviderMappersStream();
 
     /**
      * Returns identity provider mappers by the provided alias as a stream.

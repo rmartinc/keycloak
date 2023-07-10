@@ -35,7 +35,7 @@ public final class UsernameForm extends UsernamePasswordForm {
         if (context.getUser() != null) {
             // We can skip the form when user is re-authenticating. Unless current user has some IDP set, so he can re-authenticate with that IDP
             List<IdentityProviderModel> identityProviders = LoginFormsUtil
-                    .filterIdentityProviders(context.getRealm().getIdentityProvidersStream(), context.getSession(), context);
+                    .filterIdentityProviders(context.getRealm().getIdentityProvidersStream(null, null, null), context.getSession(), context);
             if (identityProviders.isEmpty()) {
                 context.success();
                 return;

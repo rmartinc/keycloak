@@ -115,7 +115,7 @@ public class RealmsAdminResource {
 
     protected RealmRepresentation toRealmRep(RealmModel realm, boolean briefRep) {
         if (AdminPermissions.realms(session, auth).canView(realm)) {
-            return briefRep ? ModelToRepresentation.toBriefRepresentation(realm) : ModelToRepresentation.toRepresentation(session, realm, false);
+            return briefRep ? ModelToRepresentation.toBriefRepresentation(realm) : ModelToRepresentation.toRepresentation(session, realm, false, false);
         } else if (AdminPermissions.realms(session, auth).isAdmin(realm)) {
             RealmRepresentation rep = new RealmRepresentation();
             rep.setRealm(realm.getName());
@@ -153,7 +153,7 @@ public class RealmsAdminResource {
             adminEvent.resource(ResourceType.REALM).realm(auth.getRealm().getId()).operation(OperationType.CREATE)
                     .resourcePath(realm.getName())
                     .representation(
-                            StripSecretsUtils.strip(ModelToRepresentation.toRepresentation(session, realm, false)))
+                            StripSecretsUtils.strip(ModelToRepresentation.toRepresentation(session, realm, false, false)))
                     .success();
 
             return Response.created(location).build();
