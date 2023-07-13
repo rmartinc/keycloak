@@ -97,6 +97,7 @@ public class OIDCIdentityProvider extends AbstractOAuth2IdentityProvider<OIDCIde
     public static final String VALIDATED_ID_TOKEN = "VALIDATED_ID_TOKEN";
     public static final String ACCESS_TOKEN_EXPIRATION = "accessTokenExpiration";
     public static final String EXCHANGE_PROVIDER = "EXCHANGE_PROVIDER";
+    public static final String VALIDATED_ACCESS_TOKEN = "VALIDATED_ACCESS_TOKEN";
     private static final String BROKER_NONCE_PARAM = "BROKER_NONCE";
 
     public OIDCIdentityProvider(KeycloakSession session, OIDCIdentityProviderConfig config) {
@@ -258,8 +259,11 @@ public class OIDCIdentityProvider extends AbstractOAuth2IdentityProvider<OIDCIde
 
     protected void processAccessTokenResponse(BrokeredIdentityContext context, AccessTokenResponse response) {
         // Don't verify audience on accessToken as it may not be there. It was verified on IDToken already
-        JsonWebToken access = validateToken(response.getToken(), true);
-        context.getContextData().put(KeycloakOIDCIdentityProvider.VALIDATED_ACCESS_TOKEN, access);
+        JOSE joseToken = JOSEParser.parseIfJWT(response.getToken());
+        if (joseToken != null) {
+            JsonWebToken access = validateToken(joseToken, true);
+            context.getContextData().put(VALIDATED_ACCESS_TOKEN, access);
+        }
     }
 
     protected SimpleHttp getRefreshTokenRequest(KeycloakSession session, String refreshToken, String clientId, String clientSecret) {
@@ -621,9 +625,13 @@ public class OIDCIdentityProvider extends AbstractOAuth2IdentityProvider<OIDCIde
             throw new IdentityBrokerException("No token from server.");
         }
 
+        JOSE joseToken = JOSEParser.parse(encodedToken);
+        return parseTokenInput(joseToken, shouldBeSigned);
+    }
+
+    private String parseTokenInput(JOSE joseToken, boolean shouldBeSigned) {
         try {
             JWSInput jws;
-            JOSE joseToken = JOSEParser.parse(encodedToken);
             if (joseToken instanceof JWE) {
                 // encrypted JWE token
                 JWE jwe = (JWE) joseToken;
@@ -642,12 +650,10 @@ public class OIDCIdentityProvider extends AbstractOAuth2IdentityProvider<OIDCIde
                 jwe.verifyAndDecodeJwe();
                 String content = new String(jwe.getContent(), StandardCharsets.UTF_8);
 
-                try {
-                    // try to decode the token just in case it is a JWS
-                    joseToken = JOSEParser.parse(content);
-                } catch(Exception e) {
+                joseToken = JOSEParser.parseIfJWT(content);
+                if (joseToken == null) {
                     if (shouldBeSigned) {
-                        throw new IdentityBrokerException("Token is not a signed JWS", e);
+                        throw new IdentityBrokerException("Token is not a signed JWS");
                     }
                     // the token is only a encrypted JWE (user-info)
                     return content;
@@ -682,9 +688,14 @@ public class OIDCIdentityProvider extends AbstractOAuth2IdentityProvider<OIDCIde
     }
 
     protected JsonWebToken validateToken(String encodedToken, boolean ignoreAudience) {
+        JOSE joseToken = JOSEParser.parse(encodedToken);
+        return validateToken(joseToken, ignoreAudience);
+    }
+
+    private JsonWebToken validateToken(JOSE joseToken, boolean ignoreAudience) {
         JsonWebToken token;
         try {
-            token = JsonSerialization.readValue(parseTokenInput(encodedToken, true), JsonWebToken.class);
+            token = JsonSerialization.readValue(parseTokenInput(joseToken, true), JsonWebToken.class);
         } catch (IOException e) {
             throw new IdentityBrokerException("Invalid token", e);
         }
@@ -866,7 +877,7 @@ public class OIDCIdentityProvider extends AbstractOAuth2IdentityProvider<OIDCIde
             if (idTokenType) {
                 context.getContextData().put(VALIDATED_ID_TOKEN, subjectToken);
             } else {
-                context.getContextData().put(KeycloakOIDCIdentityProvider.VALIDATED_ACCESS_TOKEN, parsedToken);
+                context.getContextData().put(VALIDATED_ACCESS_TOKEN, parsedToken);
             }
             context.getContextData().put(EXCHANGE_PROVIDER, getConfig().getAlias());
             context.setIdp(this);
