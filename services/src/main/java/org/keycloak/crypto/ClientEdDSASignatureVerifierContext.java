@@ -26,8 +26,8 @@ import org.keycloak.models.KeycloakSession;
 /**
  * @author <a href="mailto:takashi.norimatsu.ws@hitachi.com">Takashi Norimatsu</a>
  */
-public class ClientEDDSASignatureVerifierContext extends AsymmetricSignatureVerifierContext {
-    public ClientEDDSASignatureVerifierContext(KeycloakSession session, ClientModel client, JWSInput input) throws VerificationException {
+public class ClientEdDSASignatureVerifierContext extends AsymmetricSignatureVerifierContext {
+    public ClientEdDSASignatureVerifierContext(KeycloakSession session, ClientModel client, JWSInput input) throws VerificationException {
         super(getKey(session, client, input));
     }
 
@@ -39,14 +39,14 @@ public class ClientEDDSASignatureVerifierContext extends AsymmetricSignatureVeri
         if (!KeyType.OKP.equals(key.getType())) {
             throw new VerificationException("Key Type is not OKP: " + key.getType());
         }
+        if (key.getCurve() == null) {
+            throw new VerificationException("EdDSA key should have curve defined");
+        }
         if (key.getAlgorithm() == null) {
             // defaults to the algorithm set to the JWS
             // validations should be performed prior to verifying signature in case there are restrictions on the algorithms
             // that can used for signing
-            key.setAlgorithm(input.getHeader().getCurve());
-        } else if (!key.getAlgorithm().equals(input.getHeader().getCurve())) {
-            throw new VerificationException("Key Algorithms are different, key-algorithm=" + key.getAlgorithm()
-                    + " jwt-algorithm=" + input.getHeader().getCurve());
+            key.setAlgorithm(input.getHeader().getRawAlgorithm());
         }
         return key;
     }

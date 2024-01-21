@@ -39,7 +39,7 @@ import org.keycloak.crypto.KeyUse;
 import org.keycloak.crypto.KeyWrapper;
 import org.keycloak.crypto.MacSignatureSignerContext;
 import org.keycloak.crypto.ServerECDSASignatureSignerContext;
-import org.keycloak.crypto.ServerEDDSASignatureSignerContext;
+import org.keycloak.crypto.ServerEdDSASignatureSignerContext;
 import org.keycloak.crypto.SignatureSignerContext;
 import org.keycloak.jose.jwe.JWEConstants;
 import org.keycloak.jose.jwk.JSONWebKeySet;
@@ -119,6 +119,7 @@ public class TestingOIDCEndpointsApplicationResource {
     @Path("/generate-keys")
     @NoCache
     public Map<String, String> generateKeys(@QueryParam("jwaAlgorithm") String jwaAlgorithm,
+                                            @QueryParam("crv") String curve,
                                             @QueryParam("advertiseJWKAlgorithm") Boolean advertiseJWKAlgorithm,
                                             @QueryParam("keepExistingKeys") Boolean keepExistingKeys,
                                             @QueryParam("kid") String kid) {
@@ -150,13 +151,12 @@ public class TestingOIDCEndpointsApplicationResource {
                     keyType = KeyType.EC;
                     keyPair = generateEcdsaKey("secp521r1");
                     break;
-                case Algorithm.Ed25519:
+                case Algorithm.EdDSA:
+                    if (curve == null) {
+                        curve = Algorithm.Ed25519;
+                    }
                     keyType = KeyType.OKP;
-                    keyPair = generateEddsaKey(Algorithm.Ed25519);
-                    break;
-                case Algorithm.Ed448:
-                    keyType = KeyType.OKP;
-                    keyPair = generateEddsaKey(Algorithm.Ed448);
+                    keyPair = generateEddsaKey(curve);
                     break;
                 case JWEConstants.RSA1_5:
                 case JWEConstants.RSA_OAEP:
@@ -174,6 +174,7 @@ public class TestingOIDCEndpointsApplicationResource {
             keyData.setKid(kid); // Can be null. It will be generated in that case
             keyData.setKeyPair(keyPair);
             keyData.setKeyType(keyType);
+            keyData.setCurve(curve);
             if (advertiseJWKAlgorithm == null || Boolean.TRUE.equals(advertiseJWKAlgorithm)) {
                 keyData.setKeyAlgorithm(jwaAlgorithm);
             } else {
@@ -340,9 +341,9 @@ public class TestingOIDCEndpointsApplicationResource {
                 case Algorithm.ES512:
                     signer = new ServerECDSASignatureSignerContext(keyWrapper);
                     break;
-                case Algorithm.Ed25519:
-                case Algorithm.Ed448:
-                    signer = new ServerEDDSASignatureSignerContext(keyWrapper);
+                case Algorithm.EdDSA:
+                    keyWrapper.setCurve(keyData.getCurve());
+                    signer = new ServerEdDSASignatureSignerContext(keyWrapper);
                     break;
                 default:
                     signer = new AsymmetricSignatureSignerContext(keyWrapper);
@@ -392,8 +393,7 @@ public class TestingOIDCEndpointsApplicationResource {
             case Algorithm.ES256:
             case Algorithm.ES384:
             case Algorithm.ES512:
-            case Algorithm.Ed25519:
-            case Algorithm.Ed448:
+            case Algorithm.EdDSA:
             case Algorithm.HS256:
             case Algorithm.HS384:
             case Algorithm.HS512:

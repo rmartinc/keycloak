@@ -18,34 +18,44 @@
 package org.keycloak.crypto;
 
 import org.keycloak.common.VerificationException;
-import org.keycloak.jose.jws.JWSInput;
-import org.keycloak.models.ClientModel;
 import org.keycloak.models.KeycloakSession;
 
 /**
  * @author <a href="mailto:takashi.norimatsu.ws@hitachi.com">Takashi Norimatsu</a>
  */
-public class EDDSAClientSignatureVerifierProvider implements ClientSignatureVerifierProvider {
+public class EdDSASignatureProvider implements SignatureProvider {
+
     private final KeycloakSession session;
-    private final String algorithm;
 
-    public EDDSAClientSignatureVerifierProvider(KeycloakSession session, String algorithm) {
+    public EdDSASignatureProvider(KeycloakSession session) {
         this.session = session;
-        this.algorithm = algorithm;
     }
 
     @Override
-    public SignatureVerifierContext verifier(ClientModel client, JWSInput input) throws VerificationException {
-        return new ClientEDDSASignatureVerifierContext(session, client, input);
+    public SignatureSignerContext signer() throws SignatureException {
+        return new ServerEdDSASignatureSignerContext(session, Algorithm.EdDSA);
     }
 
     @Override
-    public String getAlgorithm() {
-        return algorithm;
+    public SignatureSignerContext signer(KeyWrapper key) throws SignatureException {
+        SignatureProvider.checkKeyForSignature(key, Algorithm.EdDSA, KeyType.OKP);
+        return new ServerEdDSASignatureSignerContext(key);
+    }
+
+    @Override
+    public SignatureVerifierContext verifier(String kid) throws VerificationException {
+        return new ServerEdDSASignatureVerifierContext(session, kid, Algorithm.EdDSA);
+    }
+
+    @Override
+    public SignatureVerifierContext verifier(KeyWrapper key) throws VerificationException {
+        SignatureProvider.checkKeyForVerification(key, Algorithm.EdDSA, KeyType.OKP);
+        return new ServerEdDSASignatureVerifierContext(key);
     }
 
     @Override
     public boolean isAsymmetricAlgorithm() {
         return true;
     }
+
 }

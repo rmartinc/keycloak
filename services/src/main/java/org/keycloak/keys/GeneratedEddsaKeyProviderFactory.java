@@ -58,7 +58,7 @@ public class GeneratedEddsaKeyProviderFactory extends AbstractEddsaKeyProviderFa
 
     @Override
     public boolean createFallbackKeys(KeycloakSession session, KeyUse keyUse, String algorithm) {
-        if (keyUse.equals(KeyUse.SIG) && (algorithm.equals(Algorithm.Ed25519) || algorithm.equals(Algorithm.Ed448))) {
+        if (keyUse.equals(KeyUse.SIG) && algorithm.equals(Algorithm.EdDSA)) {
             RealmModel realm = session.getContext().getRealm();
 
             ComponentModel generated = new ComponentModel();
@@ -69,7 +69,7 @@ public class GeneratedEddsaKeyProviderFactory extends AbstractEddsaKeyProviderFa
 
             MultivaluedHashMap<String, String> config = new MultivaluedHashMap<>();
             config.putSingle(Attributes.PRIORITY_KEY, "-100");
-            config.putSingle(EDDSA_ELLIPTIC_CURVE_KEY, algorithm);
+            config.putSingle(EDDSA_ELLIPTIC_CURVE_KEY, DEFAULT_EDDSA_ELLIPTIC_CURVE);
             generated.setConfig(config);
 
             realm.addComponentModel(generated);

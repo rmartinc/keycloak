@@ -253,15 +253,7 @@ public abstract class AbstractOIDCResponseTypeTest extends AbstractTestRealmKeyc
     }
 
     private void verifySignatureAlgorithm(JWSHeader header, String expectedAlgorithm) {
-        if (Algorithm.Ed25519.equals(expectedAlgorithm)) {
-            assertEquals(Algorithm.EdDSA, header.getAlgorithm().name());
-            assertEquals(Algorithm.Ed25519, header.getCurve());
-        } else if (Algorithm.Ed448.equals(expectedAlgorithm)) {
-            assertEquals(Algorithm.EdDSA, header.getAlgorithm().name());
-            assertEquals(Algorithm.Ed448, header.getCurve());
-        } else {
-            assertEquals(expectedAlgorithm, header.getAlgorithm().name());
-        }
+        assertEquals(expectedAlgorithm, header.getAlgorithm().name());
     }
 
     @Test
@@ -285,13 +277,13 @@ public abstract class AbstractOIDCResponseTypeTest extends AbstractTestRealmKeyc
     }
 
     @Test
-    public void oidcFlow_RealmEd25519_ClientES256() throws Exception {
-        oidcFlowRequest(Algorithm.Ed25519, Algorithm.ES256);
+    public void oidcFlow_RealmEdDSA_ClientES256() throws Exception {
+        oidcFlowRequest(Algorithm.EdDSA, Algorithm.ES256);
     }
 
     @Test
-    public void oidcFlow_RealmPS256_ClientEd448() throws Exception {
-        oidcFlowRequest(Algorithm.PS256, Algorithm.Ed448);
+    public void oidcFlow_RealmPS256_ClientEdDSA() throws Exception {
+        oidcFlowRequest(Algorithm.PS256, Algorithm.EdDSA);
     }
 
     private void oidcFlowRequest(String expectedAccessAlg, String expectedIdTokenAlg) throws Exception {

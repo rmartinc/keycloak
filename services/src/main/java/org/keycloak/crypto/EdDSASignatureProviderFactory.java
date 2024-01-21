@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.keycloak.crypto;
 
 import org.keycloak.models.KeycloakSession;
@@ -22,9 +21,9 @@ import org.keycloak.models.KeycloakSession;
 /**
  * @author <a href="mailto:takashi.norimatsu.ws@hitachi.com">Takashi Norimatsu</a>
  */
-public class Ed25519ClientSignatureVerifierProviderFactory implements ClientSignatureVerifierProviderFactory {
+public class EdDSASignatureProviderFactory implements SignatureProviderFactory {
 
-    public static final String ID = Algorithm.Ed25519;
+    public static final String ID = Algorithm.EdDSA;
 
     @Override
     public String getId() {
@@ -32,8 +31,8 @@ public class Ed25519ClientSignatureVerifierProviderFactory implements ClientSign
     }
 
     @Override
-    public ClientSignatureVerifierProvider create(KeycloakSession session) {
-        return new EDDSAClientSignatureVerifierProvider(session, Algorithm.Ed25519);
+    public SignatureProvider create(KeycloakSession session) {
+        return new EdDSASignatureProvider(session);
     }
 
 }

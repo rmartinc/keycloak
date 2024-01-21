@@ -20,7 +20,6 @@ package org.keycloak.testsuite.oauth;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.junit.Test;
 import org.keycloak.OAuth2Constants;

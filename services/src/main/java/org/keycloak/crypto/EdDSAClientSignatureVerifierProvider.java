@@ -18,46 +18,34 @@
 package org.keycloak.crypto;
 
 import org.keycloak.common.VerificationException;
+import org.keycloak.jose.jws.JWSInput;
+import org.keycloak.models.ClientModel;
 import org.keycloak.models.KeycloakSession;
 
 /**
  * @author <a href="mailto:takashi.norimatsu.ws@hitachi.com">Takashi Norimatsu</a>
  */
-public class EDDSASignatureProvider implements SignatureProvider {
-
+public class EdDSAClientSignatureVerifierProvider implements ClientSignatureVerifierProvider {
     private final KeycloakSession session;
     private final String algorithm;
 
-    public EDDSASignatureProvider(KeycloakSession session, String algorithm) {
+    public EdDSAClientSignatureVerifierProvider(KeycloakSession session, String algorithm) {
         this.session = session;
         this.algorithm = algorithm;
     }
 
     @Override
-    public SignatureSignerContext signer() throws SignatureException {
-        return new ServerEDDSASignatureSignerContext(session, algorithm);
+    public SignatureVerifierContext verifier(ClientModel client, JWSInput input) throws VerificationException {
+        return new ClientEdDSASignatureVerifierContext(session, client, input);
     }
 
     @Override
-    public SignatureSignerContext signer(KeyWrapper key) throws SignatureException {
-        SignatureProvider.checkKeyForSignature(key, algorithm, KeyType.OKP);
-        return new ServerEDDSASignatureSignerContext(key);
-    }
-
-    @Override
-    public SignatureVerifierContext verifier(String kid) throws VerificationException {
-        return new ServerEDDSASignatureVerifierContext(session, kid, algorithm);
-    }
-
-    @Override
-    public SignatureVerifierContext verifier(KeyWrapper key) throws VerificationException {
-        SignatureProvider.checkKeyForVerification(key, algorithm, KeyType.OKP);
-        return new ServerEDDSASignatureVerifierContext(key);
+    public String getAlgorithm() {
+        return algorithm;
     }
 
     @Override
     public boolean isAsymmetricAlgorithm() {
         return true;
     }
-
 }

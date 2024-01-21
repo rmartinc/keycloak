@@ -54,17 +54,17 @@ public abstract class ServerJWKTest {
         KeyPair keyPair = keyGen.generateKeyPair();
 
         PublicKey publicKey = keyPair.getPublic();
-        JWK jwk = JWKBuilder.create().kid(KeyUtils.createKeyId(keyPair.getPublic())).algorithm(Algorithm.Ed25519).okp(publicKey);
+        JWK jwk = JWKBuilder.create().kid(KeyUtils.createKeyId(keyPair.getPublic())).algorithm(Algorithm.EdDSA).okp(publicKey);
 
         assertEquals("OKP", jwk.getKeyType());
-        assertEquals("Ed25519", jwk.getAlgorithm());
+        assertEquals("EdDSA", jwk.getAlgorithm());
         assertEquals("sig", jwk.getPublicKeyUse());
 
         assertTrue(jwk instanceof OKPPublicJWK);
 
         OKPPublicJWK okpJwk = (OKPPublicJWK) jwk;
 
-        assertNotNull(okpJwk.getCrv());
+        assertEquals("Ed25519", okpJwk.getCrv());
         assertNotNull(okpJwk.getX());
 
         String jwkJson = JsonSerialization.writeValueAsString(jwk);
@@ -85,17 +85,17 @@ public abstract class ServerJWKTest {
         KeyPair keyPair = keyGen.generateKeyPair();
 
         PublicKey publicKey = keyPair.getPublic();
-        JWK jwk = JWKBuilder.create().kid(KeyUtils.createKeyId(keyPair.getPublic())).algorithm(Algorithm.Ed448).okp(publicKey);
+        JWK jwk = JWKBuilder.create().kid(KeyUtils.createKeyId(keyPair.getPublic())).algorithm(Algorithm.EdDSA).okp(publicKey);
 
         assertEquals("OKP", jwk.getKeyType());
-        assertEquals("Ed448", jwk.getAlgorithm());
+        assertEquals("EdDSA", jwk.getAlgorithm());
         assertEquals("sig", jwk.getPublicKeyUse());
 
         assertTrue(jwk instanceof OKPPublicJWK);
 
         OKPPublicJWK okpJwk = (OKPPublicJWK) jwk;
 
-        assertNotNull(okpJwk.getCrv());
+        assertEquals("Ed448", okpJwk.getCrv());
         assertNotNull(okpJwk.getX());
 
         String jwkJson = JsonSerialization.writeValueAsString(jwk);

@@ -171,9 +171,6 @@ public class DefaultTokenManager implements TokenManager {
     private <T> T verifyJWS(ClientModel client, Class<T> clazz, JWSInput jws) {
         try {
             String signatureAlgorithm = jws.getHeader().getAlgorithm().name();
-            if (Algorithm.EdDSA.equals(signatureAlgorithm)) {
-                signatureAlgorithm = jws.getHeader().getCurve();
-            }
             ClientSignatureVerifierProvider signatureProvider = session.getProvider(ClientSignatureVerifierProvider.class, signatureAlgorithm);
 
             if (signatureProvider == null) {

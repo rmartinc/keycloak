@@ -76,12 +76,12 @@ public class JWKParser extends AbstractJWKParser {
 
     private PublicKey createOKPPublicKey() {
         String x = (String) jwk.getOtherClaims().get(OKPPublicJWK.X);
-
+        String crv = (String) jwk.getOtherClaims().get(OKPPublicJWK.CRV);
         // JWK representation "x" of a public key
         int bytesLength = 0;
-        if (Algorithm.Ed25519.equals(jwk.getAlgorithm())) {
+        if (Algorithm.Ed25519.equals(crv)) {
             bytesLength = 32;
-        } else if (Algorithm.Ed448.equals(jwk.getAlgorithm())) {
+        } else if (Algorithm.Ed448.equals(crv)) {
             bytesLength = 57;
         } else {
             throw new RuntimeException("Invalid JWK representation of OKP type algorithm");
@@ -103,13 +103,13 @@ public class JWKParser extends AbstractJWKParser {
 
         // both x and y-coordinate in twisted Edwards curve are always 0 or natural number
         BigInteger y = new BigInteger(1, JWKBuilder.reverseBytes(decodedX));
-        NamedParameterSpec spec = new NamedParameterSpec(jwk.getAlgorithm());
+        NamedParameterSpec spec = new NamedParameterSpec(crv);
         EdECPoint ep = new EdECPoint(isOddX, y);
         EdECPublicKeySpec keySpec = new EdECPublicKeySpec(spec, ep);
 
         PublicKey publicKey = null;
         try {
-            publicKey = KeyFactory.getInstance(jwk.getAlgorithm()).generatePublic(keySpec);
+            publicKey = KeyFactory.getInstance(crv).generatePublic(keySpec);
         } catch (InvalidKeySpecException | NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }

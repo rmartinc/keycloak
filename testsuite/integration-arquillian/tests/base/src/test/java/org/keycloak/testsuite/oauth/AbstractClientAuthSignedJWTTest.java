@@ -281,6 +281,10 @@ public abstract class AbstractClientAuthSignedJWTTest extends AbstractKeycloakTe
     }
 
     protected void testCodeToTokenRequestSuccess(String algorithm, boolean useJwksUri) throws Exception {
+        testCodeToTokenRequestSuccess(algorithm, null, useJwksUri);
+    }
+
+    protected void testCodeToTokenRequestSuccess(String algorithm, String curve, boolean useJwksUri) throws Exception {
         ClientRepresentation clientRepresentation = app2;
         ClientResource clientResource = getClient(testRealm.getRealm(), clientRepresentation.getId());
         clientRepresentation = clientResource.toRepresentation();
@@ -288,9 +292,9 @@ public abstract class AbstractClientAuthSignedJWTTest extends AbstractKeycloakTe
             // setup Jwks
             KeyPair keyPair;
             if (useJwksUri) {
-                keyPair = setupJwksUrl(algorithm, clientRepresentation, clientResource);
+                keyPair = setupJwksUrl(algorithm, curve, true, false, null, clientRepresentation, clientResource);
             } else {
-                keyPair = setupJwks(algorithm, clientRepresentation, clientResource);
+                keyPair = setupJwks(algorithm, curve, clientRepresentation, clientResource);
             }
             PublicKey publicKey = keyPair.getPublic();
             PrivateKey privateKey = keyPair.getPrivate();
@@ -303,7 +307,8 @@ public abstract class AbstractClientAuthSignedJWTTest extends AbstractKeycloakTe
                     .assertEvent();
 
             String code = oauth.getCurrentQuery().get(OAuth2Constants.CODE);
-            OAuthClient.AccessTokenResponse response = doAccessTokenRequest(code, createSignedRequestToken("client2", getRealmInfoUrl(), privateKey, publicKey, algorithm));
+            OAuthClient.AccessTokenResponse response = doAccessTokenRequest(code,
+                    createSignedRequestToken("client2", getRealmInfoUrl(), privateKey, publicKey, algorithm, curve));
 
             assertEquals(200, response.getStatusCode());
             oauth.verifyToken(response.getAccessToken());
@@ -505,7 +510,7 @@ public abstract class AbstractClientAuthSignedJWTTest extends AbstractKeycloakTe
             parameters
                 .add(new BasicNameValuePair(OAuth2Constants.CLIENT_ASSERTION_TYPE, OAuth2Constants.CLIENT_ASSERTION_TYPE_JWT));
             parameters.add(new BasicNameValuePair(OAuth2Constants.CLIENT_ASSERTION,
-                createSignledRequestToken(privateKey, publicKey, Algorithm.PS256, null, assertion)));
+                createSignedRequestToken(privateKey, publicKey, Algorithm.PS256, null, assertion, null)));
 
             try (CloseableHttpResponse resp = sendRequest(oauth.getServiceAccountUrl(), parameters)) {
                 OAuthClient.AccessTokenResponse response = new OAuthClient.AccessTokenResponse(resp);
@@ -817,16 +822,21 @@ public abstract class AbstractClientAuthSignedJWTTest extends AbstractKeycloakTe
     }
 
     protected KeyPair setupJwksUrl(String algorithm, ClientRepresentation clientRepresentation, ClientResource clientResource) throws Exception {
-        return setupJwksUrl(algorithm, true, false, null, clientRepresentation, clientResource);
+        return setupJwksUrl(algorithm, null, true, false, null, clientRepresentation, clientResource);
     }
 
     protected KeyPair setupJwksUrl(String algorithm, boolean advertiseJWKAlgorithm, boolean keepExistingKeys, String kid,
                                  ClientRepresentation clientRepresentation, ClientResource clientResource) throws Exception {
+        return setupJwksUrl(algorithm, null, advertiseJWKAlgorithm, keepExistingKeys, kid, clientRepresentation, clientResource);
+    }
+
+    protected KeyPair setupJwksUrl(String algorithm, String curve, boolean advertiseJWKAlgorithm, boolean keepExistingKeys, String kid,
+                                 ClientRepresentation clientRepresentation, ClientResource clientResource) throws Exception {
         // generate and register client keypair
         TestOIDCEndpointsApplicationResource oidcClientEndpointsResource = testingClient.testApp().oidcClientEndpoints();
-        oidcClientEndpointsResource.generateKeys(algorithm, advertiseJWKAlgorithm, keepExistingKeys, kid);
+        oidcClientEndpointsResource.generateKeys(algorithm, curve, advertiseJWKAlgorithm, keepExistingKeys, kid);
         Map<String, String> generatedKeys = oidcClientEndpointsResource.getKeysAsBase64();
-        KeyPair keyPair = getKeyPairFromGeneratedBase64(generatedKeys, algorithm);
+        KeyPair keyPair = getKeyPairFromGeneratedBase64(generatedKeys, algorithm, curve);
 
         // use and set jwks_url
         OIDCAdvancedConfigWrapper.fromClientRepresentation(clientRepresentation).setUseJwksUrl(true);
@@ -840,13 +850,13 @@ public abstract class AbstractClientAuthSignedJWTTest extends AbstractKeycloakTe
         return keyPair;
     }
 
-    private KeyPair setupJwks(String algorithm, ClientRepresentation clientRepresentation, ClientResource clientResource)
+    private KeyPair setupJwks(String algorithm, String curve, ClientRepresentation clientRepresentation, ClientResource clientResource)
         throws Exception {
         // generate and register client keypair
         TestOIDCEndpointsApplicationResource oidcClientEndpointsResource = testingClient.testApp().oidcClientEndpoints();
-        oidcClientEndpointsResource.generateKeys(algorithm);
+        oidcClientEndpointsResource.generateKeys(algorithm, curve);
         Map<String, String> generatedKeys = oidcClientEndpointsResource.getKeysAsBase64();
-        KeyPair keyPair = getKeyPairFromGeneratedBase64(generatedKeys, algorithm);
+        KeyPair keyPair = getKeyPairFromGeneratedBase64(generatedKeys, algorithm, curve);
 
         // use and set JWKS
         OIDCAdvancedConfigWrapper.fromClientRepresentation(clientRepresentation).setUseJwksString(true);
@@ -873,38 +883,46 @@ public abstract class AbstractClientAuthSignedJWTTest extends AbstractKeycloakTe
         clientResource.update(clientRepresentation);
     }
 
-    private KeyPair getKeyPairFromGeneratedBase64(Map<String, String> generatedKeys, String algorithm) throws Exception {
+    private KeyPair getKeyPairFromGeneratedBase64(Map<String, String> generatedKeys, String algorithm, String curve) throws Exception {
         // It seems that PemUtils.decodePrivateKey, decodePublicKey can only treat RSA type keys, not EC type keys. Therefore, these are not used.
         String privateKeyBase64 = generatedKeys.get(TestingOIDCEndpointsApplicationResource.PRIVATE_KEY);
         String publicKeyBase64 =  generatedKeys.get(TestingOIDCEndpointsApplicationResource.PUBLIC_KEY);
-        PrivateKey privateKey = decodePrivateKey(Base64.decode(privateKeyBase64), algorithm);
-        PublicKey publicKey = decodePublicKey(Base64.decode(publicKeyBase64), algorithm);
+        PrivateKey privateKey = decodePrivateKey(Base64.decode(privateKeyBase64), algorithm, curve);
+        PublicKey publicKey = decodePublicKey(Base64.decode(publicKeyBase64), algorithm, curve);
         return new KeyPair(publicKey, privateKey);
     }
 
-    private PrivateKey decodePrivateKey(byte[] der, String algorithm) throws NoSuchAlgorithmException, InvalidKeySpecException, NoSuchProviderException {
+    private PrivateKey decodePrivateKey(byte[] der, String algorithm, String curve) throws NoSuchAlgorithmException, InvalidKeySpecException, NoSuchProviderException {
         PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(der);
-        String keyAlg = getKeyAlgorithmFromJwaAlgorithm(algorithm);
+        String keyAlg = getKeyAlgorithmFromJwaAlgorithm(algorithm, curve);
         KeyFactory kf = CryptoIntegration.getProvider().getKeyFactory(keyAlg);
         return kf.generatePrivate(spec);
     }
 
-    private PublicKey decodePublicKey(byte[] der, String algorithm) throws NoSuchAlgorithmException, InvalidKeySpecException, NoSuchProviderException {
+    private PublicKey decodePublicKey(byte[] der, String algorithm, String curve) throws NoSuchAlgorithmException, InvalidKeySpecException, NoSuchProviderException {
         X509EncodedKeySpec spec = new X509EncodedKeySpec(der);
-        String keyAlg = getKeyAlgorithmFromJwaAlgorithm(algorithm);
+        String keyAlg = getKeyAlgorithmFromJwaAlgorithm(algorithm, curve);
         KeyFactory kf = CryptoIntegration.getProvider().getKeyFactory(keyAlg);
         return kf.generatePublic(spec);
     }
 
     protected String createSignedRequestToken(String clientId, String realmInfoUrl, PrivateKey privateKey, PublicKey publicKey, String algorithm) {
-        return createSignledRequestToken(privateKey, publicKey, algorithm, null, createRequestToken(clientId, realmInfoUrl));
+        return createSignedRequestToken(privateKey, publicKey, algorithm, null, createRequestToken(clientId, realmInfoUrl), null);
+    }
+
+    protected String createSignedRequestToken(String clientId, String realmInfoUrl, PrivateKey privateKey, PublicKey publicKey, String algorithm, String curve) {
+        return createSignedRequestToken(privateKey, publicKey, algorithm, null, createRequestToken(clientId, realmInfoUrl), curve);
     }
 
     protected String createSignledRequestToken(PrivateKey privateKey, PublicKey publicKey, String algorithm, String kid, JsonWebToken jwt) {
+        return createSignedRequestToken(privateKey, publicKey, algorithm, kid, jwt, null);
+    }
+
+    protected String createSignedRequestToken(PrivateKey privateKey, PublicKey publicKey, String algorithm, String kid, JsonWebToken jwt, String curve) {
         if (kid == null) {
             kid = KeyUtils.createKeyId(publicKey);
         }
-        SignatureSignerContext signer = oauth.createSigner(privateKey, kid, algorithm);
+        SignatureSignerContext signer = oauth.createSigner(privateKey, kid, algorithm, curve);
         String ret = new JWSBuilder().kid(kid).jsonContent(jwt).sign(signer);
         return ret;
     }
@@ -924,7 +942,7 @@ public abstract class AbstractClientAuthSignedJWTTest extends AbstractKeycloakTe
         return reqToken;
     }
 
-    protected String getKeyAlgorithmFromJwaAlgorithm(String jwaAlgorithm) {
+    protected String getKeyAlgorithmFromJwaAlgorithm(String jwaAlgorithm, String curve) {
         String keyAlg = null;
         switch (jwaAlgorithm) {
             case Algorithm.RS256:

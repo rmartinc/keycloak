@@ -587,9 +587,6 @@ public class OIDCIdentityProvider extends AbstractOAuth2IdentityProvider<OIDCIde
                 return false;
             }
             String algorithm = jws.getHeader().getRawAlgorithm();
-            if (Algorithm.EdDSA.equals(algorithm)) {
-                algorithm = jws.getHeader().getCurve();
-            }
             if (key.getAlgorithm() == null) {
                 key.setAlgorithm(algorithm);
             }

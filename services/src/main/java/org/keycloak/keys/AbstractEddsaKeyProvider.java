@@ -18,6 +18,7 @@ package org.keycloak.keys;
 
 import org.keycloak.common.util.KeyUtils;
 import org.keycloak.component.ComponentModel;
+import org.keycloak.crypto.Algorithm;
 import org.keycloak.crypto.KeyStatus;
 import org.keycloak.crypto.KeyType;
 import org.keycloak.crypto.KeyUse;
@@ -66,7 +67,8 @@ public abstract class AbstractEddsaKeyProvider implements KeyProvider {
         key.setKid(KeyUtils.createKeyId(keyPair.getPublic()));
         key.setUse(KeyUse.SIG);
         key.setType(KeyType.OKP);
-        key.setAlgorithm(curveName);
+        key.setAlgorithm(Algorithm.EdDSA);
+        key.setCurve(curveName);
         key.setStatus(status);
         key.setPrivateKey(keyPair.getPrivate());
         key.setPublicKey(keyPair.getPublic());

@@ -39,6 +39,10 @@ public class JavaAlgorithm {
     public static final String SHA512 = "SHA-512";
 
     public static String getJavaAlgorithm(String algorithm) {
+        return getJavaAlgorithm(algorithm, null);
+    }
+
+    public static String getJavaAlgorithm(String algorithm, String curve) {
         switch (algorithm) {
             case Algorithm.RS256:
                 return RS256;
@@ -64,10 +68,11 @@ public class JavaAlgorithm {
                 return PS384;
             case Algorithm.PS512:
                 return PS512;
-            case Algorithm.Ed25519:
+            case Algorithm.EdDSA:
+                if (curve != null) {
+                    return curve;
+                }
                 return Ed25519;
-            case Algorithm.Ed448:
-                return Ed448;
             case Algorithm.AES:
                 return AES;
             default:
@@ -75,8 +80,11 @@ public class JavaAlgorithm {
         }
     }
 
-
     public static String getJavaAlgorithmForHash(String algorithm) {
+        return getJavaAlgorithmForHash(algorithm, null);
+    }
+
+    public static String getJavaAlgorithmForHash(String algorithm, String curve) {
         switch (algorithm) {
             case Algorithm.RS256:
                 return SHA256;
@@ -102,10 +110,18 @@ public class JavaAlgorithm {
                 return SHA384;
             case Algorithm.PS512:
                 return SHA512;
-            case Algorithm.Ed25519:
+            case Algorithm.EdDSA:
+                if (curve != null) {
+                    switch (curve) {
+                        case Algorithm.Ed25519:
+                            return SHA256;
+                        case Algorithm.Ed448:
+                            return SHA384;
+                        default:
+                            throw new IllegalArgumentException("Unknown curve for EdDSA " + curve);
+                    }
+                }
                 return SHA256;
-            case Algorithm.Ed448:
-                return SHA384;
             case Algorithm.AES:
                 return AES;
             default:

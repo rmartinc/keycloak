@@ -1311,18 +1311,13 @@ public class AccessTokenTest extends AbstractKeycloakTest {
     }
 
     @Test
-    public void accessTokenRequest_ClientEd25519_RealmES256() throws Exception {
-        conductAccessTokenRequest(Algorithm.HS256, Algorithm.Ed25519, Algorithm.ES256);
+    public void accessTokenRequest_ClientEdDSA_RealmES256() throws Exception {
+        conductAccessTokenRequest(Algorithm.HS256, Algorithm.EdDSA, Algorithm.ES256);
     }
 
     @Test
-    public void accessTokenRequest_ClientEd448_RealmEd25519() throws Exception {
-        conductAccessTokenRequest(Algorithm.HS256, Algorithm.Ed448, Algorithm.Ed25519);
-    }
-
-    @Test
-    public void accessTokenRequest_ClientEd25519_RealmEd448() throws Exception {
-        conductAccessTokenRequest(Algorithm.HS256, Algorithm.Ed25519, Algorithm.Ed448);
+    public void accessTokenRequest_ClientEdDSA_RealmEdDSA() throws Exception {
+        conductAccessTokenRequest(Algorithm.HS256, Algorithm.EdDSA, Algorithm.EdDSA);
     }
     
     @Test
@@ -1369,7 +1364,6 @@ public class AccessTokenTest extends AbstractKeycloakTest {
             TokenSignatureUtil.changeRealmTokenSignatureProvider(adminClient, Algorithm.RS256);
             TokenSignatureUtil.changeClientAccessTokenSignatureProvider(ApiUtil.findClientByClientId(adminClient.realm("test"), "test-app"), Algorithm.RS256);
         }
-        return;
     }
 
     private void tokenRequest(String expectedRefreshAlg, String expectedAccessAlg, String expectedIdTokenAlg) throws Exception {
@@ -1417,15 +1411,7 @@ public class AccessTokenTest extends AbstractKeycloakTest {
     }
 
     private void verifySignatureAlgorithm(JWSHeader header, String expectedAlgorithm) {
-        if (Algorithm.Ed25519.equals(expectedAlgorithm)) {
-            assertEquals(Algorithm.EdDSA, header.getAlgorithm().name());
-            assertEquals(Algorithm.Ed25519, header.getCurve());
-        } else if (Algorithm.Ed448.equals(expectedAlgorithm)) {
-            assertEquals(Algorithm.EdDSA, header.getAlgorithm().name());
-            assertEquals(Algorithm.Ed448, header.getCurve());
-        } else {
-            assertEquals(expectedAlgorithm, header.getAlgorithm().name());
-        }
+        assertEquals(expectedAlgorithm, header.getAlgorithm().name());
     }
 
     // KEYCLOAK-16009

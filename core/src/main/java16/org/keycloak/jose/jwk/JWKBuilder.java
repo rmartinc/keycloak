@@ -19,14 +19,8 @@ package org.keycloak.jose.jwk;
 
 import java.math.BigInteger;
 import java.security.Key;
-import java.security.KeyFactory;
-import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
 import java.security.interfaces.EdECPublicKey;
 import java.security.spec.EdECPoint;
-import java.security.spec.EdECPublicKeySpec;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.NamedParameterSpec;
 import java.util.Arrays;
 import java.util.Optional;
 
@@ -35,7 +29,6 @@ import org.keycloak.common.util.KeyUtils;
 import org.keycloak.crypto.Algorithm;
 import org.keycloak.crypto.KeyType;
 import org.keycloak.crypto.KeyUse;
-import org.keycloak.util.JsonSerialization;
 
 /**
  * @author <a href="mailto:takashi.norimatsu.ws@hitachi.com">Takashi Norimatsu</a>
@@ -76,7 +69,7 @@ public class JWKBuilder extends AbstractJWKBuilder {
         k.setKeyType(KeyType.OKP);
         k.setAlgorithm(algorithm);
         k.setPublicKeyUse(keyUse == null ? DEFAULT_PUBLIC_KEY_USE.getSpecName() : keyUse.getSpecName());
-        k.setCrv(algorithm);
+        k.setCrv(eddsaPublicKey.getParams().getName());
 
         Optional<String> x = edPublicKeyInJwkRepresentation(eddsaPublicKey);
         k.setX(x.orElse(""));
@@ -90,9 +83,9 @@ public class JWKBuilder extends AbstractJWKBuilder {
 
         // JWK representation "x" of a public key
         int bytesLength = 0;
-        if (Algorithm.Ed25519.equals(algorithm)) {
+        if (Algorithm.Ed25519.equals(eddsaPublicKey.getParams().getName())) {
             bytesLength = 32;
-        } else if (Algorithm.Ed448.equals(algorithm)) {
+        } else if (Algorithm.Ed448.equals(eddsaPublicKey.getParams().getName())) {
             bytesLength = 57;
         } else {
             return Optional.ofNullable(null);

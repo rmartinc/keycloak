@@ -19,7 +19,6 @@ package org.keycloak.testsuite.oauth;
 
 import org.junit.Test;
 import org.keycloak.crypto.Algorithm;
-import org.keycloak.crypto.KeyType;
 
 /**
  * @author <a href="mailto:takashi.norimatsu.ws@hitachi.com">Takashi Norimatsu</a>
@@ -28,27 +27,26 @@ public class ClientAuthEdDSASignedJWTTest extends AbstractClientAuthSignedJWTTes
 
     @Test
     public void testCodeToTokenRequestSuccessEd448usingJwksUri() throws Exception {
-        testCodeToTokenRequestSuccess(Algorithm.Ed448, true);
+        testCodeToTokenRequestSuccess(Algorithm.EdDSA, Algorithm.Ed448, true);
     }
 
     @Test
     public void testCodeToTokenRequestSuccessEd25519usingJwks() throws Exception {
-        testCodeToTokenRequestSuccess(Algorithm.Ed25519, false);
+        testCodeToTokenRequestSuccess(Algorithm.EdDSA, Algorithm.Ed25519, false);
     }
 
     @Override
-    protected String getKeyAlgorithmFromJwaAlgorithm(String jwaAlgorithm) {
-        String keyAlg = null;
-        switch (jwaAlgorithm) {
-            case Algorithm.Ed25519:
-                keyAlg = Algorithm.Ed25519;
-                break;
-            case Algorithm.Ed448:
-                keyAlg = Algorithm.Ed448;
-                break;
-            default :
-                throw new RuntimeException("Unsupported signature algorithm");
+    protected String getKeyAlgorithmFromJwaAlgorithm(String jwaAlgorithm, String curve) {
+        if (!Algorithm.EdDSA.equals(jwaAlgorithm)) {
+            throw new RuntimeException("Unsupported signature algorithm: " + jwaAlgorithm);
         }
-        return keyAlg;
+        switch (curve) {
+            case Algorithm.Ed25519:
+                return Algorithm.Ed25519;
+            case Algorithm.Ed448:
+                return Algorithm.Ed448;
+            default :
+                throw new RuntimeException("Unsupported signature curve " + curve);
+        }
     }
 }
