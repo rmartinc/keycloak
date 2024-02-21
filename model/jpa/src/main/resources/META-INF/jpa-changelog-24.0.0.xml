@@ -50,4 +50,94 @@
         <customChange class="org.keycloak.connections.jpa.updater.liquibase.custom.FederatedUserAttributeTextColumnMigration" />
     </changeSet>
 
+    <changeSet author="keycloak" id="24.0.0-26618-1">
+        <preConditions onSqlOutput="TEST" onFail="MARK_RAN">
+            <indexExists tableName="CLIENT_ATTRIBUTES" indexName="IDX_CLIENT_ATT_BY_NAME_VALUE" />
+        </preConditions>
+        <dropIndex tableName="CLIENT_ATTRIBUTES" indexName="IDX_CLIENT_ATT_BY_NAME_VALUE"/>
+    </changeSet>
+
+    <changeSet author="keycloak" id="24.0.0-26618-2-oracle">
+        <preConditions onSqlOutput="TEST" onFail="MARK_RAN">
+            <dbms type="oracle"/>
+        </preConditions>
+        <renameColumn tableName="CLIENT_ATTRIBUTES" oldColumnName="VALUE" newColumnName="LONG_VALUE" columnDataType="NCLOB" />
+        <addColumn tableName="CLIENT_ATTRIBUTES">
+            <column name="VALUE" type="VARCHAR2(255 CHAR)" />
+            <column name="LONG_VALUE_HASH" type="BINARY(64)" />
+        </addColumn>
+    </changeSet>
+
+    <changeSet author="keycloak" id="24.0.0-26618-2-default">
+        <preConditions onSqlOutput="TEST" onFail="MARK_RAN">
+            <not>
+                <dbms type="oracle"/>
+            </not>
+        </preConditions>
+        <renameColumn tableName="CLIENT_ATTRIBUTES" oldColumnName="VALUE" newColumnName="LONG_VALUE" columnDataType="NCLOB" />
+        <addColumn tableName="CLIENT_ATTRIBUTES">
+            <column name="VALUE" type="VARCHAR(255)" />
+            <column name="LONG_VALUE_HASH" type="BINARY(64)" />
+        </addColumn>
+    </changeSet>
+
+    <changeSet author="keycloak" id="24.0.0-26618-3-mssql">
+        <preConditions onSqlOutput="TEST" onFail="MARK_RAN">
+            <dbms type="mssql"/>
+        </preConditions>
+        <update tableName="CLIENT_ATTRIBUTES">
+            <column name="VALUE" valueComputed="CONVERT(VARCHAR(255), LONG_VALUE)" />
+            <where>LEN(LONG_VALUE) &lt;= 255</where>
+        </update>
+        <update tableName="CLIENT_ATTRIBUTES">
+            <column name="LONG_VALUE" />
+            <where>LEN(LONG_VALUE) &lt;= 255</where>
+        </update>
+    </changeSet>
+
+    <changeSet author="keycloak" id="24.0.0-26618-3-oracle">
+        <preConditions onSqlOutput="TEST" onFail="MARK_RAN">
+            <dbms type="oracle"/>
+        </preConditions>
+        <update tableName="CLIENT_ATTRIBUTES">
+            <column name="VALUE" valueComputed="LONG_VALUE" />
+            <where>LENGTH(LONG_VALUE) &lt;= 255</where>
+        </update>
+        <update tableName="CLIENT_ATTRIBUTES">
+            <column name="LONG_VALUE" />
+            <where>LENGTH(LONG_VALUE) &lt;= 255</where>
+        </update>
+    </changeSet>
+
+    <changeSet author="keycloak" id="24.0.0-26618-3-default">
+        <preConditions onSqlOutput="TEST" onFail="MARK_RAN">
+            <not>
+                <or>
+                    <dbms type="mssql"/>
+                    <dbms type="oracle"/>
+                </or>
+            </not>
+        </preConditions>
+        <update tableName="CLIENT_ATTRIBUTES">
+            <column name="VALUE" valueComputed="LONG_VALUE" />
+            <where>CHAR_LENGTH(LONG_VALUE) &lt;= 255</where>
+        </update>
+        <update tableName="CLIENT_ATTRIBUTES">
+            <column name="LONG_VALUE" />
+            <where>CHAR_LENGTH(LONG_VALUE) &lt;= 255</where>
+        </update>
+    </changeSet>
+
+    <changeSet author="keycloak" id="24.0.0-26618-4">
+        <customChange class="org.keycloak.connections.jpa.updater.liquibase.custom.ClientAttributesLongValueHashMigration" />
+        <createIndex tableName="CLIENT_ATTRIBUTES" indexName="IDX_CLIENT_ATT_BY_NAME_VALUE">
+            <column name="NAME" />
+            <column name="VALUE" />
+        </createIndex>
+        <createIndex tableName="CLIENT_ATTRIBUTES" indexName="IDX_CLIENT_ATT_BY_NAME_LONG_VALUE_HASH">
+            <column name="NAME" />
+            <column name="LONG_VALUE_HASH" />
+        </createIndex>
+    </changeSet>
+
 </databaseChangeLog>

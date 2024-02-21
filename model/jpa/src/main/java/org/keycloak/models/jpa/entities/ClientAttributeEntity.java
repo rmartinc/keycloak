@@ -29,6 +29,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 import org.hibernate.annotations.Nationalized;
+import org.keycloak.storage.jpa.JpaHashUtils;
 
 
 /**
@@ -48,9 +49,15 @@ public class ClientAttributeEntity {
     @Column(name="NAME")
     protected String name;
 
-    @Nationalized
     @Column(name = "VALUE")
     protected String value;
+
+    @Nationalized
+    @Column(name = "LONG_VALUE")
+    protected String longValue;
+
+    @Column(name = "LONG_VALUE_HASH")
+    protected byte[] longValueHash;
 
     public ClientEntity getClient() {
         return client;
@@ -69,11 +76,19 @@ public class ClientAttributeEntity {
     }
 
     public String getValue() {
-        return value;
+        return value != null ? value : longValue;
     }
 
     public void setValue(String value) {
-        this.value = value;
+        if (JpaHashUtils.isHashNeeded(value)) {
+            this.value = null;
+            this.longValue = value;
+            this.longValueHash = JpaHashUtils.hashForAttributeValue(value);
+        } else {
+            this.value = value;
+            this.longValue = null;
+            this.longValueHash = null;
+        }
     }
 
 

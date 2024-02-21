@@ -39,6 +39,8 @@ import java.util.function.BiPredicate;
  */
 public class JpaHashUtils {
 
+    public static int MAX_LENGTH_FOR_INDEXED_VALUE = 255;
+
     private static byte[] hash(byte[] inputBytes) {
         try {
             MessageDigest md = MessageDigest.getInstance(JavaAlgorithm.SHA512);
@@ -47,6 +49,10 @@ public class JpaHashUtils {
         } catch (Exception e) {
             throw new HashException("Error when creating token hash", e);
         }
+    }
+
+    public static boolean isHashNeeded(String value) {
+        return value != null && value.length() > MAX_LENGTH_FOR_INDEXED_VALUE;
     }
 
     public static byte[] hashForAttributeValue(String value) {

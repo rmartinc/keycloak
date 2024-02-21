@@ -74,6 +74,7 @@ import org.keycloak.models.jpa.entities.RealmLocalizationTextsEntity;
 import org.keycloak.models.jpa.entities.RoleEntity;
 import org.keycloak.models.utils.KeycloakModelUtils;
 import org.keycloak.protocol.oidc.OIDCLoginProtocol;
+import org.keycloak.storage.jpa.JpaHashUtils;
 
 
 /**
@@ -864,19 +865,21 @@ public class JpaRealmProvider implements RealmProvider, ClientProvider, ClientSc
 
             Predicate attrNamePredicate = builder.equal(attributeJoin.get("name"), key);
 
-            Predicate attrValuePredicate;
-            if (dbProductName.equals("Oracle")) {
-                // SELECT * FROM client_attributes WHERE ... DBMS_LOB.COMPARE(value, '0') = 0 ...;
-                // Oracle is not able to compare a CLOB with a VARCHAR unless it being converted with TO_CHAR
-                // But for this all values in the table need to be smaller than 4K, otherwise the cast will fail with
-                // "ORA-22835: Buffer too small for CLOB to CHAR" (even if it is in another row).
-                // This leaves DBMS_LOB.COMPARE as the option to compare the CLOB with the value.
-                attrValuePredicate = builder.equal(builder.function("DBMS_LOB.COMPARE", Integer.class, attributeJoin.get("value"), builder.literal(value)), 0);
+            if (JpaHashUtils.isHashNeeded(value)) {
+                Predicate attrHashPredicate = builder.equal(attributeJoin.get("longValueHash"), JpaHashUtils.hashForAttributeValue(value));
+                Predicate attrValuePredicate = dbProductName.equals("Oracle")
+                        // SELECT * FROM client_attributes WHERE ... DBMS_LOB.COMPARE(value, '0') = 0 ...;
+                        // Oracle is not able to compare a CLOB with a VARCHAR unless it being converted with TO_CHAR
+                        // But for this all values in the table need to be smaller than 4K, otherwise the cast will fail with
+                        // "ORA-22835: Buffer too small for CLOB to CHAR" (even if it is in another row).
+                        // This leaves DBMS_LOB.COMPARE as the option to compare the CLOB with the value.
+                        ? builder.equal(builder.function("DBMS_LOB.COMPARE", Integer.class, attributeJoin.get("longValue"), builder.literal(value)), 0)
+                        : builder.equal(attributeJoin.get("longValue"), value);
+                predicates.add(builder.and(attrNamePredicate, attrHashPredicate, attrValuePredicate));
             } else {
-                attrValuePredicate = builder.equal(attributeJoin.get("value"), value);
+                Predicate attrValuePredicate = builder.equal(attributeJoin.get("value"), value);
+                predicates.add(builder.and(attrNamePredicate, attrValuePredicate));
             }
-
-            predicates.add(builder.and(attrNamePredicate, attrValuePredicate));
         }
 
         Predicate finalPredicate = builder.and(predicates.toArray(new Predicate[0]));
