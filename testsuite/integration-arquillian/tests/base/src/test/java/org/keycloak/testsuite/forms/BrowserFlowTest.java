@@ -48,6 +48,7 @@ import org.keycloak.testsuite.util.FlowUtil;
 import org.keycloak.testsuite.util.OAuthClient;
 import org.keycloak.testsuite.util.RoleBuilder;
 import org.keycloak.testsuite.util.URLUtils;
+import org.keycloak.testsuite.util.WaitUtils;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -565,10 +566,8 @@ public class BrowserFlowTest extends AbstractTestRealmKeycloakTest {
             WebElement aHref = driver.findElement(By.tagName("a"));
             driver.get(aHref.getAttribute("href"));
             // Waiting for account redirection from app page
-            driver.wait(1000);
+            WaitUtils.waitForPageToLoad();
             assertThat(driver.getTitle(), containsString("Account Management"));
-        } catch (Throwable t) {
-            t.printStackTrace();
         } finally {
             revertFlows("browser - alternative non-interactive executor");
         }
