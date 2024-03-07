@@ -21,6 +21,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.keycloak.common.util.StreamUtil;
+import org.keycloak.connections.httpclient.HttpClientProvider;
 
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -64,7 +65,7 @@ public final class SimpleHttpTest {
         @Test
         public void withCharset() throws IOException {
             HttpResponse httpResponse = createBasicResponse(entity);
-            SimpleHttp.Response response = new SimpleHttp.Response(httpResponse);
+            SimpleHttp.Response response = new SimpleHttp.Response(httpResponse, HttpClientProvider.DEFAULT_MAX_CONSUMED_RESPONSE_SIZE);
             if (success) {
                 assertEquals(original, response.asString());
             } else {
