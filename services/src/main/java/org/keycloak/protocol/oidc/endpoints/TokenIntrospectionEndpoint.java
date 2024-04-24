@@ -31,7 +31,9 @@ import org.keycloak.protocol.oidc.utils.AuthorizeClientUtil;
 import org.keycloak.services.ErrorResponseException;
 import org.keycloak.services.clientpolicy.ClientPolicyException;
 import org.keycloak.services.clientpolicy.context.TokenIntrospectContext;
+import org.keycloak.services.cors.Cors;
 
+import jakarta.ws.rs.OPTIONS;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
@@ -117,6 +119,11 @@ public class TokenIntrospectionEndpoint {
         } catch (Exception e) {
             throw throwErrorResponseException(Errors.INVALID_REQUEST, "Failed to introspect token.", Status.BAD_REQUEST);
         }
+    }
+
+    @OPTIONS
+    public Response preflight() {
+        return Cors.add(request, Response.ok()).auth().preflight().allowedMethods("POST", "OPTIONS").build();
     }
 
     private void authorizeClient() {

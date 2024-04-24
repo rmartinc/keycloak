@@ -465,8 +465,12 @@ public class OAuthClient {
     }
 
     public CloseableHttpResponse doPreflightRequest() {
+        return doPreflightRequest(getAccessTokenUrl());
+    }
+
+    public CloseableHttpResponse doPreflightRequest(String url) {
         try (CloseableHttpClient client = httpClient.get()) {
-            HttpOptions options = new HttpOptions(getAccessTokenUrl());
+            HttpOptions options = new HttpOptions(url);
             options.setHeader("Origin", "http://example.com");
 
             return client.execute(options);

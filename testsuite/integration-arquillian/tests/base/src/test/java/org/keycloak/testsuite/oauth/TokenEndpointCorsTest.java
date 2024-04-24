@@ -1,5 +1,6 @@
 package org.keycloak.testsuite.oauth;
 
+import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.junit.Rule;
 import org.junit.Test;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.keycloak.testsuite.admin.AbstractAdminTest.loadJson;
@@ -43,15 +45,23 @@ public class TokenEndpointCorsTest extends AbstractKeycloakTest {
         testRealms.add(realm);
     }
 
+    private void preflightRequest(String url) {
+        CloseableHttpResponse response = oauth.doPreflightRequest(url);
+
+        Header[] accessControlAllowMethods = response.getHeaders("Access-Control-Allow-Methods");
+        assertNotNull("Access-Control-Allow-Methods is null", accessControlAllowMethods);
+        assertTrue("Access-Control-Allow-Methods is empty", accessControlAllowMethods.length > 0);
+        String[] methods = accessControlAllowMethods[0].getValue().split(", ");
+        Set<String> allowedMethods = new HashSet<>(Arrays.asList(methods));
+
+        assertEquals("Access-Control-Allow-Methods is not POST,OPTIONS", 2, allowedMethods.size());
+        assertTrue("Access-Control-Allow-Methods is not POST,OPTIONS", allowedMethods.containsAll(Arrays.asList("POST", "OPTIONS")));
+    }
+
     @Test
     public void preflightRequest() throws Exception {
-        CloseableHttpResponse response = oauth.doPreflightRequest();
-
-        String[] methods = response.getHeaders("Access-Control-Allow-Methods")[0].getValue().split(", ");
-        Set allowedMethods = new HashSet(Arrays.asList(methods));
-
-        assertEquals(2, allowedMethods.size());
-        assertTrue(allowedMethods.containsAll(Arrays.asList("POST", "OPTIONS")));
+        preflightRequest(oauth.getAccessTokenUrl());
+        preflightRequest(oauth.getTokenIntrospectionUrl());
     }
 
     @Test
