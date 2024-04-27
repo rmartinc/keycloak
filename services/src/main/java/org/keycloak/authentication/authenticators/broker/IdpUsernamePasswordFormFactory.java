@@ -17,15 +17,21 @@
 
 package org.keycloak.authentication.authenticators.broker;
 
+import java.util.List;
+import org.keycloak.Config;
 import org.keycloak.authentication.Authenticator;
+import org.keycloak.authentication.AuthenticatorFactory;
 import org.keycloak.authentication.authenticators.browser.UsernamePasswordForm;
-import org.keycloak.authentication.authenticators.browser.UsernamePasswordFormFactory;
+import org.keycloak.models.AuthenticationExecutionModel;
 import org.keycloak.models.KeycloakSession;
+import org.keycloak.models.KeycloakSessionFactory;
+import org.keycloak.models.credential.PasswordCredentialModel;
+import org.keycloak.provider.ProviderConfigProperty;
 
 /**
  * @author <a href="mailto:mposolda@redhat.com">Marek Posolda</a>
  */
-public class IdpUsernamePasswordFormFactory extends UsernamePasswordFormFactory {
+public class IdpUsernamePasswordFormFactory implements AuthenticatorFactory {
 
     public static final String PROVIDER_ID = "idp-username-password-form";
     public static final UsernamePasswordForm IDP_SINGLETON = new IdpUsernamePasswordForm();
@@ -33,6 +39,28 @@ public class IdpUsernamePasswordFormFactory extends UsernamePasswordFormFactory 
     @Override
     public Authenticator create(KeycloakSession session) {
         return IDP_SINGLETON;
+    }
+
+    @Override
+    public void init(Config.Scope config) {
+    }
+
+    @Override
+    public void postInit(KeycloakSessionFactory factory) {
+    }
+
+    @Override
+    public void close() {
+    }
+
+    @Override
+    public AuthenticationExecutionModel.Requirement[] getRequirementChoices() {
+        return new AuthenticationExecutionModel.Requirement[]{AuthenticationExecutionModel.Requirement.REQUIRED};
+    }
+
+    @Override
+    public String getReferenceCategory() {
+        return PasswordCredentialModel.TYPE;
     }
 
     @Override
@@ -49,4 +77,19 @@ public class IdpUsernamePasswordFormFactory extends UsernamePasswordFormFactory 
     public String getDisplayType() {
         return "Username Password Form for identity provider reauthentication";
     }
+
+    @Override
+    public boolean isConfigurable() {
+       return false;
+    }
+
+    @Override
+    public boolean isUserSetupAllowed() {
+        return false;
+    }
+
+    @Override
+     public List<ProviderConfigProperty> getConfigProperties() {
+         return null;
+     }
 }

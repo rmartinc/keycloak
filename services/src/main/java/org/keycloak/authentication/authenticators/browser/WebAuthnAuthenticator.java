@@ -66,15 +66,24 @@ import static org.keycloak.services.messages.Messages.*;
 public class WebAuthnAuthenticator implements Authenticator, CredentialValidator<WebAuthnCredentialProvider> {
 
     private static final Logger logger = Logger.getLogger(WebAuthnAuthenticator.class);
-    private KeycloakSession session;
+    private final KeycloakSession session;
 
     public WebAuthnAuthenticator(KeycloakSession session) {
         this.session = session;
     }
 
+    @Override
     public void authenticate(AuthenticationFlowContext context) {
+        LoginFormsProvider form = fillContextForm(context);
+        if (form == null) {
+            return;
+        }
+        context.challenge(form.createLoginWebAuthn());
+    }
+
+    protected LoginFormsProvider fillContextForm(AuthenticationFlowContext context) {
         LoginFormsProvider form = context.form();
- 
+
         Challenge challenge = new DefaultChallenge();
         String challengeValue = Base64Url.encode(challenge.getValue());
         context.getAuthenticationSession().setAuthNote(WebAuthnConstants.AUTH_CHALLENGE_NOTE, challengeValue);
@@ -92,7 +101,7 @@ public class WebAuthnAuthenticator implements Authenticator, CredentialValidator
             WebAuthnAuthenticatorsBean authenticators = new WebAuthnAuthenticatorsBean(context.getSession(), context.getRealm(), user, getCredentialType());
             if (authenticators.getAuthenticators().isEmpty()) {
                 // require the user to register webauthn authenticator
-                return;
+                return null;
             }
             isUserIdentified = true;
             form.setAttribute(WebAuthnConstants.ALLOWED_AUTHENTICATORS, authenticators);
@@ -107,7 +116,7 @@ public class WebAuthnAuthenticator implements Authenticator, CredentialValidator
         form.setAttribute(WebAuthnConstants.USER_VERIFICATION, userVerificationRequirement);
         form.setAttribute(WebAuthnConstants.SHOULD_DISPLAY_AUTHENTICATORS, shouldDisplayAuthenticators(context));
 
-        context.challenge(form.createLoginWebAuthn());
+        return form;
     }
 
     protected WebAuthnPolicy getWebAuthnPolicy(AuthenticationFlowContext context) {
@@ -129,6 +138,7 @@ public class WebAuthnAuthenticator implements Authenticator, CredentialValidator
         return context.getUser() != null;
     }
 
+    @Override
     public void action(AuthenticationFlowContext context) {
         MultivaluedMap<String, String> params = context.getHttpRequest().getDecodedFormParameters();
 
@@ -194,6 +204,10 @@ public class WebAuthnAuthenticator implements Authenticator, CredentialValidator
         if (WebAuthnConstants.OPTION_REQUIRED.equals(userVerificationRequirement)) isUVFlagChecked = true;
 
         UserModel user = session.users().getUserById(context.getRealm(), userId);
+        if (user == null) {
+            setErrorResponse(context, WEBAUTHN_ERROR_USER_NOT_FOUND, null);
+            return;
+        }
 
         AuthenticationRequest authenticationRequest = new AuthenticationRequest(
                 credentialId,
@@ -237,14 +251,17 @@ public class WebAuthnAuthenticator implements Authenticator, CredentialValidator
         }
     }
 
+    @Override
     public boolean requiresUser() {
         return true;
     }
 
+    @Override
     public boolean configuredFor(KeycloakSession session, RealmModel realm, UserModel user) {
         return user.credentialManager().isConfiguredFor(getCredentialType());
     }
 
+    @Override
     public void setRequiredActions(KeycloakSession session, RealmModel realm, UserModel user) {
         // ask the user to do required action to register webauthn authenticator
         AuthenticationSessionModel authenticationSession = session.getContext().getAuthenticationSession();
@@ -253,10 +270,12 @@ public class WebAuthnAuthenticator implements Authenticator, CredentialValidator
         }
     }
 
+    @Override
     public List<RequiredActionFactory> getRequiredActions(KeycloakSession session) {
         return Collections.singletonList((WebAuthnRegisterFactory)session.getKeycloakSessionFactory().getProviderFactory(RequiredActionProvider.class, WebAuthnRegisterFactory.PROVIDER_ID));
     }
 
+    @Override
     public void close() {
         // NOP
     }

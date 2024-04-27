@@ -11,7 +11,8 @@
                         <div class="${properties.kcFormGroupClass!}">
                             <label for="username" class="${properties.kcLabelClass!}"><#if !realm.loginWithEmailAllowed>${msg("username")}<#elseif !realm.registrationEmailAsUsername>${msg("usernameOrEmail")}<#else>${msg("email")}</#if></label>
 
-                            <input tabindex="2" id="username" class="${properties.kcInputClass!}" name="username" value="${(login.username!'')}"  type="text" autofocus autocomplete="username"
+                            <input tabindex="2" id="username" class="${properties.kcInputClass!}" name="username" value="${(login.username!'')}"  type="text" autofocus
+                                   autocomplete="<#if enableWebAuthnConditionalUI??>username webauthn<#else>username</#if>"
                                    aria-invalid="<#if messagesPerField.existsError('username','password')>true</#if>"
                             />
 
@@ -78,6 +79,44 @@
             </div>
         </div>
         <script type="module" src="${url.resourcesPath}/js/passwordVisibility.js"></script>
+
+        <#if enableWebAuthnConditionalUI??>
+            <form id="webauth" action="${url.loginAction}" method="post">
+                <input type="hidden" id="clientDataJSON" name="clientDataJSON"/>
+                <input type="hidden" id="authenticatorData" name="authenticatorData"/>
+                <input type="hidden" id="signature" name="signature"/>
+                <input type="hidden" id="credentialId" name="credentialId"/>
+                <input type="hidden" id="userHandle" name="userHandle"/>
+                <input type="hidden" id="error" name="error"/>
+            </form>
+
+            <script type="module">
+                import { authenticateByWebAuthn } from "${url.resourcesPath}/js/webauthnAuthenticate.js";
+                import { initAuthenticate } from "${url.resourcesPath}/js/passkeysConditionalAuth.js";
+
+                const authButton = document.getElementById('authenticateWebAuthnButton');
+                const input = {
+                    isUserIdentified : ${isUserIdentified},
+                    challenge : '${challenge}',
+                    userVerification : '${userVerification}',
+                    rpId : '${rpId}',
+                    createTimeout : ${createTimeout},
+                    errmsg : "${msg("webauthn-unsupported-browser-text")?no_esc}"
+                };
+
+                const args = {
+                    isUserIdentified : ${isUserIdentified},
+                    challenge : '${challenge}',
+                    userVerification : '${userVerification}',
+                    rpId : '${rpId}',
+                    createTimeout : ${createTimeout},
+                    errmsg : "${msg("passkey-unsupported-browser-text")?no_esc}"
+                };
+
+                document.addEventListener("DOMContentLoaded", (event) => initAuthenticate(args));
+            </script>
+        </#if>
+
     <#elseif section = "info" >
         <#if realm.password && realm.registrationAllowed && !registrationDisabled??>
             <div id="kc-registration-container">

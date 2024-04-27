@@ -133,7 +133,7 @@ public class InitialFlowsTest extends AbstractAuthenticationTest {
         addExecInfo(execs, "Kerberos", "auth-spnego", false, 0, 1, DISABLED, null, kerberosAuthExpectedChoices);
         addExecInfo(execs, "Identity Provider Redirector", "identity-provider-redirector", true, 0, 2, ALTERNATIVE, null, new String[]{REQUIRED, ALTERNATIVE, DISABLED});
         addExecInfo(execs, "forms", null, false, 0, 3, ALTERNATIVE, true, new String[]{REQUIRED, ALTERNATIVE, DISABLED, CONDITIONAL});
-        addExecInfo(execs, "Username Password Form", "auth-username-password-form", false, 1, 0, REQUIRED, null, new String[]{REQUIRED});
+        addExecInfo(execs, "Username Password Form", "auth-username-password-form", true, 1, 0, REQUIRED, null, new String[]{REQUIRED});
         addExecInfo(execs, "Browser - Conditional OTP", null, false, 1, 1, CONDITIONAL, true, new String[]{REQUIRED, ALTERNATIVE, DISABLED, CONDITIONAL});
         addExecInfo(execs, "Condition - user configured", "conditional-user-configured", false, 2, 0, REQUIRED, null, new String[]{REQUIRED, DISABLED});
         addExecInfo(execs, "OTP Form", "auth-otp-form", false, 2, 1, REQUIRED, null, new String[]{REQUIRED, ALTERNATIVE, DISABLED});

@@ -17,12 +17,16 @@
 
 package org.keycloak.authentication.authenticators.browser;
 
+import org.keycloak.WebAuthnConstants;
 import org.keycloak.authentication.AuthenticationFlowContext;
 import org.keycloak.authentication.Authenticator;
+import org.keycloak.common.Profile;
 import org.keycloak.forms.login.LoginFormsProvider;
+import org.keycloak.models.AuthenticatorConfigModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
+import org.keycloak.models.utils.FormMessage;
 import org.keycloak.protocol.oidc.OIDCLoginProtocol;
 import org.keycloak.services.ServicesLogger;
 import org.keycloak.services.managers.AuthenticationManager;
@@ -37,22 +41,56 @@ import jakarta.ws.rs.core.Response;
  */
 public class UsernamePasswordForm extends AbstractUsernameFormAuthenticator implements Authenticator {
     protected static ServicesLogger log = ServicesLogger.LOGGER;
+    private final KeycloakSession session;
+    private final WebAuthnConditionalUIAuthenticator webauthnAuth;
+
+    private static class WebAuthnConditionalUIAuthenticator extends WebAuthnPasswordlessAuthenticator {
+
+        public WebAuthnConditionalUIAuthenticator(KeycloakSession session) {
+            super(session);
+        }
+
+        @Override
+        protected LoginFormsProvider fillContextForm(AuthenticationFlowContext context) {
+            context.form().setAttribute(WebAuthnConstants.ENABLE_WEBAUTHN_CONDITIONAL_UI, Boolean.TRUE);
+            return super.fillContextForm(context);
+        }
+    }
+
+    public UsernamePasswordForm() {
+        session = null;
+        webauthnAuth = null;
+    }
+
+    public UsernamePasswordForm(KeycloakSession session) {
+        this.session = session;
+        webauthnAuth = new WebAuthnConditionalUIAuthenticator(session);
+    }
 
     @Override
     public void action(AuthenticationFlowContext context) {
         MultivaluedMap<String, String> formData = context.getHttpRequest().getDecodedFormParameters();
         if (formData.containsKey("cancel")) {
             context.cancelLogin();
-            return;
+        } else if (formData.containsKey(WebAuthnConstants.AUTHENTICATOR_DATA) && isWebAuthnConditionalUIEnabled(context)) {
+            webauthnAuth.action(context);
+        } else if (validateForm(context, formData)) {
+            context.success();
         }
-        if (!validateForm(context, formData)) {
-            return;
-        }
-        context.success();
     }
 
     protected boolean validateForm(AuthenticationFlowContext context, MultivaluedMap<String, String> formData) {
         return validateUserAndPassword(context, formData);
+    }
+
+    protected boolean isWebAuthnConditionalUIEnabled(AuthenticationFlowContext context) {
+        if (webauthnAuth != null && Profile.isFeatureEnabled(Profile.Feature.PASSKEYS)) {
+            AuthenticatorConfigModel config = context.getAuthenticatorConfig();
+            if (config != null) {
+                return Boolean.parseBoolean(config.getConfig().get(WebAuthnConstants.ENABLE_WEBAUTHN_CONDITIONAL_UI));
+            }
+        }
+        return false;
     }
 
     @Override
@@ -78,6 +116,11 @@ public class UsernamePasswordForm extends AbstractUsernameFormAuthenticator impl
                 }
             }
         }
+
+        if (isWebAuthnConditionalUIEnabled(context)) {
+            webauthnAuth.fillContextForm(context);
+        }
+
         Response challengeResponse = challenge(context, formData);
         context.challenge(challengeResponse);
     }
@@ -85,6 +128,15 @@ public class UsernamePasswordForm extends AbstractUsernameFormAuthenticator impl
     @Override
     public boolean requiresUser() {
         return false;
+    }
+
+    @Override
+    protected Response challenge(AuthenticationFlowContext context, String error, String field) {
+        if (isWebAuthnConditionalUIEnabled(context)) {
+            webauthnAuth.fillContextForm(context);
+        }
+
+        return super.challenge(context, error, field);
     }
 
     protected Response challenge(AuthenticationFlowContext context, MultivaluedMap<String, String> formData) {

@@ -18,6 +18,7 @@
 package org.keycloak.authentication.authenticators.browser;
 
 import org.keycloak.Config;
+import org.keycloak.WebAuthnConstants;
 import org.keycloak.authentication.Authenticator;
 import org.keycloak.authentication.AuthenticatorFactory;
 import org.keycloak.models.AuthenticationExecutionModel;
@@ -25,6 +26,7 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
 import org.keycloak.models.credential.PasswordCredentialModel;
 import org.keycloak.provider.ProviderConfigProperty;
+import org.keycloak.provider.ProviderConfigurationBuilder;
 
 import java.util.List;
 
@@ -35,11 +37,10 @@ import java.util.List;
 public class UsernamePasswordFormFactory implements AuthenticatorFactory {
 
     public static final String PROVIDER_ID = "auth-username-password-form";
-    public static final UsernamePasswordForm SINGLETON = new UsernamePasswordForm();
 
     @Override
     public Authenticator create(KeycloakSession session) {
-        return SINGLETON;
+        return new UsernamePasswordForm(session);
     }
 
     @Override
@@ -69,8 +70,9 @@ public class UsernamePasswordFormFactory implements AuthenticatorFactory {
 
     @Override
     public boolean isConfigurable() {
-        return false;
+        return true;
     }
+
     public static final AuthenticationExecutionModel.Requirement[] REQUIREMENT_CHOICES = {
             AuthenticationExecutionModel.Requirement.REQUIRED
     };
@@ -92,12 +94,20 @@ public class UsernamePasswordFormFactory implements AuthenticatorFactory {
 
     @Override
     public List<ProviderConfigProperty> getConfigProperties() {
-        return null;
+        return ProviderConfigurationBuilder.create()
+                .property()
+                    .name(WebAuthnConstants.ENABLE_WEBAUTHN_CONDITIONAL_UI)
+                    .defaultValue(Boolean.FALSE)
+                    .label("Enable WebAuthn conditional UI passkeys")
+                    .helpText("If enabled the username input allows WebAuthn Conditional UI passkeys authentication")
+                    .type(ProviderConfigProperty.BOOLEAN_TYPE)
+                    .add()
+                .build();
     }
 
     @Override
     public boolean isUserSetupAllowed() {
-        return false;
+        return true;
     }
 
 }
