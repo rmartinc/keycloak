@@ -19,9 +19,6 @@
         <module>hello-world-authz-service</module>
         <module>servlet-authz</module>
         <module>servlet-policy-enforcer</module>
-        <module>servlets</module>
-        <module>servlets-jakarta</module>
-        <module>app-profile-jee</module>
         <module>cors</module>
     </modules>
 </project>
