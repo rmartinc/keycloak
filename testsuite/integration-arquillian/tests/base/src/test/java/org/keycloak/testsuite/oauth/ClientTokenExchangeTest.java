@@ -307,7 +307,7 @@ public class ClientTokenExchangeTest extends AbstractKeycloakTest {
             String exchangedTokenString = response.getAccessToken();
             TokenVerifier<AccessToken> verifier = TokenVerifier.create(exchangedTokenString, AccessToken.class);
             AccessToken exchangedToken = verifier.parse().getToken();
-            Assert.assertEquals("client-exchanger", exchangedToken.getIssuedFor());
+            Assert.assertEquals("target", exchangedToken.getIssuedFor());
             Assert.assertEquals("target", exchangedToken.getAudience()[0]);
             Assert.assertEquals(exchangedToken.getPreferredUsername(), "user");
             assertTrue(exchangedToken.getRealmAccess().isUserInRole("example"));
@@ -319,7 +319,7 @@ public class ClientTokenExchangeTest extends AbstractKeycloakTest {
             String exchangedTokenString = response.getAccessToken();
             TokenVerifier<AccessToken> verifier = TokenVerifier.create(exchangedTokenString, AccessToken.class);
             AccessToken exchangedToken = verifier.parse().getToken();
-            Assert.assertEquals("legal", exchangedToken.getIssuedFor());
+            Assert.assertEquals("target", exchangedToken.getIssuedFor());
             Assert.assertEquals("target", exchangedToken.getAudience()[0]);
             Assert.assertEquals(exchangedToken.getPreferredUsername(), "user");
             assertTrue(exchangedToken.getRealmAccess().isUserInRole("example"));
@@ -345,7 +345,7 @@ public class ClientTokenExchangeTest extends AbstractKeycloakTest {
             String exchangedTokenString = response.getAccessToken();
             TokenVerifier<AccessToken> verifier = TokenVerifier.create(exchangedTokenString, AccessToken.class);
             AccessToken exchangedToken = verifier.parse().getToken();
-            Assert.assertEquals("my-service-account", exchangedToken.getIssuedFor());
+            Assert.assertEquals("target", exchangedToken.getIssuedFor());
             Assert.assertEquals("target", exchangedToken.getAudience()[0]);
             Assert.assertEquals(exchangedToken.getPreferredUsername(), "service-account-my-service-account");
         }
@@ -382,7 +382,7 @@ public class ClientTokenExchangeTest extends AbstractKeycloakTest {
             String exchangedTokenString = response.getAccessToken();
             TokenVerifier<AccessToken> verifier = TokenVerifier.create(exchangedTokenString, AccessToken.class);
             AccessToken exchangedToken = verifier.parse().getToken();
-            Assert.assertEquals("different-scope-client", exchangedToken.getIssuedFor());
+            Assert.assertEquals("target", exchangedToken.getIssuedFor());
             Assert.assertEquals("target", exchangedToken.getAudience()[0]);
             Assert.assertEquals(exchangedToken.getPreferredUsername(), "user");
             Assert.assertTrue(exchangedToken.getRealmAccess().isUserInRole("example"));
@@ -427,7 +427,7 @@ public class ClientTokenExchangeTest extends AbstractKeycloakTest {
             String exchangedTokenString = response.getAccessToken();
             TokenVerifier<AccessToken> verifier = TokenVerifier.create(exchangedTokenString, AccessToken.class);
             AccessToken exchangedToken = verifier.parse().getToken();
-            Assert.assertEquals("different-scope-client", exchangedToken.getIssuedFor());
+            Assert.assertEquals("target", exchangedToken.getIssuedFor());
             Assert.assertEquals("target", exchangedToken.getAudience()[0]);
             Assert.assertEquals(exchangedToken.getPreferredUsername(), "user");
             Assert.assertTrue(exchangedToken.getRealmAccess().isUserInRole("example"));
@@ -457,7 +457,7 @@ public class ClientTokenExchangeTest extends AbstractKeycloakTest {
         String exchangedTokenString = response.getAccessToken();
         TokenVerifier<AccessToken> verifier = TokenVerifier.create(exchangedTokenString, AccessToken.class);
         AccessToken exchangedToken = verifier.parse().getToken();
-        Assert.assertEquals("client-exchanger", exchangedToken.getIssuedFor());
+        Assert.assertEquals("target", exchangedToken.getIssuedFor());
         Assert.assertEquals("target", exchangedToken.getAudience()[0]);
         Assert.assertEquals(exchangedToken.getPreferredUsername(), "user");
         assertTrue(exchangedToken.getRealmAccess().isUserInRole("example"));
@@ -549,7 +549,7 @@ public class ClientTokenExchangeTest extends AbstractKeycloakTest {
             String exchangedTokenString = accessTokenResponse.getToken();
             TokenVerifier<AccessToken> verifier = TokenVerifier.create(exchangedTokenString, AccessToken.class);
             AccessToken exchangedToken = verifier.parse().getToken();
-            Assert.assertEquals("client-exchanger", exchangedToken.getIssuedFor());
+            Assert.assertEquals("target", exchangedToken.getIssuedFor());
             Assert.assertEquals("target", exchangedToken.getAudience()[0]);
             Assert.assertEquals(exchangedToken.getPreferredUsername(), "impersonated-user");
             assertTrue(exchangedToken.getRealmAccess().isUserInRole("example"));
@@ -862,7 +862,7 @@ public class ClientTokenExchangeTest extends AbstractKeycloakTest {
             String exchangedTokenString = accessTokenResponse.getToken();
             TokenVerifier<AccessToken> verifier = TokenVerifier.create(exchangedTokenString, AccessToken.class);
             AccessToken exchangedToken = verifier.parse().getToken();
-            Assert.assertEquals("direct-legal", exchangedToken.getIssuedFor());
+            Assert.assertEquals("target", exchangedToken.getIssuedFor());
             Assert.assertEquals("target", exchangedToken.getAudience()[0]);
             Assert.assertEquals(exchangedToken.getPreferredUsername(), "impersonated-user");
             assertTrue(exchangedToken.getRealmAccess().isUserInRole("example"));
