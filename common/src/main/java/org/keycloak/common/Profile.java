@@ -34,6 +34,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -83,7 +85,7 @@ public class Profile {
         STEP_UP_AUTHENTICATION("Step-up Authentication", Type.DEFAULT),
 
         // Check if kerberos is available in underlying JVM and auto-detect if feature should be enabled or disabled by default based on that
-        KERBEROS("Kerberos", KerberosJdkProvider.getProvider().isKerberosAvailable() ? Type.DEFAULT : Type.DISABLED_BY_DEFAULT),
+        KERBEROS("Kerberos", Type.DEFAULT, 1, () -> KerberosJdkProvider.getProvider().isKerberosAvailable()),
 
         RECOVERY_CODES("Recovery codes", Type.PREVIEW),
 
@@ -122,21 +124,27 @@ public class Profile {
         private final String label;
         private final String unversionedKey;
         private final String key;
+        private final BooleanSupplier isAvailable;
 
         private Set<Feature> dependencies;
         private int version;
 
         Feature(String label, Type type, Feature... dependencies) {
-            this(label, type, 1, dependencies);
+            this(label, type, 1, null, dependencies);
+        }
+
+        Feature(String label, Type type, int version, Feature... dependencies) {
+            this(label, type, 1, null, dependencies);
         }
 
         /**
          * allowNameKey should be false for new versioned features to disallow using a legacy name, like account2
          */
-        Feature(String label, Type type, int version, Feature... dependencies) {
+        Feature(String label, Type type, int version, BooleanSupplier isAvailable, Feature... dependencies) {
             this.label = label;
             this.type = type;
             this.version = version;
+            this.isAvailable = isAvailable;
             this.key = name().toLowerCase().replaceAll("_", "-");
             if (this.name().endsWith("_V" + version)) {
                 unversionedKey = key.substring(0, key.length() - (String.valueOf(version).length() + 2));
@@ -190,6 +198,10 @@ public class Profile {
             return version;
         }
 
+        public boolean isAvailable() {
+            return isAvailable == null || isAvailable.getAsBoolean();
+        }
+
         public enum Type {
             // in priority order
             DEFAULT("Default"),
@@ -238,6 +250,9 @@ public class Profile {
             Feature enabledFeature = null;
             if (unversionedConfig == FeatureConfig.ENABLED) {
                 enabledFeature = entry.getValue().iterator().next();
+                if (!enabledFeature.isAvailable()) {
+                    throw new ProfileException(String.format("Feature %s cannot be enabled as it is not available.", unversionedFeature));
+                }
             } else if (unversionedConfig == FeatureConfig.DISABLED && ESSENTIAL_FEATURES.contains(unversionedFeature)) {
                 throw new ProfileException(String.format("Feature %s cannot be disabled.", unversionedFeature));
             }
@@ -259,6 +274,9 @@ public class Profile {
                                         enabledFeature.getVersionedKey(), f.getVersionedKey()));
                     }
                     // even if something else was enabled by default, explicitly enabling a lower priority feature takes precedence
+                    if (!f.isAvailable()) {
+                        throw new ProfileException(String.format("Feature %s cannot be enabled as it is not available.", f.getKey()));
+                    }
                     enabledFeature = f;
                     isExplicitlyEnabledFeature = true;
                     break;
@@ -272,7 +290,7 @@ public class Profile {
                 }
             }
             for (Feature f : entry.getValue()) {
-                features.put(f, f == enabledFeature);
+                features.put(f, f == enabledFeature && f.isAvailable());
             }
         }
 
