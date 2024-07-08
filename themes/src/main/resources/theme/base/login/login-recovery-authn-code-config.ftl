@@ -6,17 +6,17 @@
     ${msg("recovery-code-config-header")}
 <#elseif section = "form">
     <!-- warning -->
-    <div class="pf-c-alert pf-m-warning pf-m-inline ${properties.kcRecoveryCodesWarning!}" aria-label="Warning alert">
-        <div class="pf-c-alert__icon">
-            <i class="pficon-warning-triangle-o" aria-hidden="true"></i>
+    <div class="alert-warning ${properties.kcAlertClass!} pf-m-warning">
+        <div class="${properties.kcAlertIcon!}">
+            <span class="${properties.kcFeedbackWarningIcon!}"></span>
         </div>
-        <h4 class="pf-c-alert__title">
-            <span class="pf-screen-reader">Warning alert:</span>
-            ${msg("recovery-code-config-warning-title")}
-        </h4>
-        <div class="pf-c-alert__description">
-            <p>${msg("recovery-code-config-warning-message")}</p>
+        <span class="${properties.kcAlertTitleClass!}">${msg("recovery-code-config-warning-title")}</span>
+    </div>
+    <div class="alert-warning ${properties.kcAlertClass!} pf-m-warning">
+        <div class="${properties.kcAlertIcon!}">
+            <span class="${properties.kcFeedbackWarningIcon!}"></span>
         </div>
+        <span class="${properties.kcAlertTitleClass!}">${msg("recovery-code-config-warning-message")}</span>
     </div>
 
     <ol id="kc-recovery-codes-list" class="${properties.kcRecoveryCodesList!}">
