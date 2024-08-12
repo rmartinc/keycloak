@@ -58,8 +58,7 @@ export const NumberControl = <
         render={({ field }) => {
           const required = !!controller.rules?.required;
           const min = controller.rules?.min;
-          const value =
-            field.value === 0 ? controller.defaultValue : field.value;
+          const value = field.value;
           const setValue = (newValue: number) =>
             field.onChange(min ? Math.max(newValue, Number(min)) : newValue);
 
@@ -78,7 +77,12 @@ export const NumberControl = <
               onMinus={() => setValue(value - 1)}
               onChange={(event) => {
                 const newValue = Number(event.currentTarget.value);
-                setValue(!isNaN(newValue) ? newValue : controller.defaultValue);
+                setValue(
+                  isNaN(newValue) ||
+                    (newValue === 0 && event.currentTarget.value.trim() === "")
+                    ? controller.defaultValue
+                    : newValue,
+                );
               }}
             />
           );
