@@ -155,7 +155,7 @@ export class Groups extends Resource<{ realm?: string }> {
    */
 
   public listMembers = this.makeRequest<
-    { id: string; first?: number; max?: number },
+    { id: string; first?: number; max?: number; briefRepresentation?: boolean },
     UserRepresentation[]
   >({
     method: "GET",
