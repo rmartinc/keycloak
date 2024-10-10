@@ -18,6 +18,7 @@
 package org.keycloak.authentication;
 
 import org.jboss.logging.Logger;
+import org.keycloak.OAuth2Constants;
 import org.keycloak.http.HttpRequest;
 import org.keycloak.authentication.authenticators.browser.AbstractUsernameFormAuthenticator;
 import org.keycloak.authentication.authenticators.client.ClientAuthUtil;
@@ -61,6 +62,7 @@ import org.keycloak.sessions.AuthenticationSessionModel;
 import org.keycloak.sessions.CommonClientSessionModel;
 import org.keycloak.sessions.RootAuthenticationSessionModel;
 import org.keycloak.util.JsonSerialization;
+import org.keycloak.util.TokenUtil;
 
 import jakarta.ws.rs.core.MultivaluedHashMap;
 import jakarta.ws.rs.core.Response;
@@ -92,6 +94,9 @@ public class AuthenticationProcessor {
 
     // Boolean flag, which is true when authentication-selector screen should be rendered (typically displayed when user clicked on 'try another way' link)
     public static final String AUTHENTICATION_SELECTOR_SCREEN_DISPLAYED = "auth.selector.screen.rendered";
+
+    // Boolean note in the client session indicating it was first created for offline session
+    public static final String FIRST_OFFLINE_ACCESS = "first.offline.access";
 
     protected static final Logger logger = Logger.getLogger(AuthenticationProcessor.class);
     protected RealmModel realm;
@@ -1108,13 +1113,14 @@ public class AuthenticationProcessor {
         String brokerSessionId = authSession.getAuthNote(BROKER_SESSION_ID);
         String brokerUserId = authSession.getAuthNote(BROKER_USER_ID);
 
+        UserSessionManager userSessionManager = new UserSessionManager(session);
         if (userSession == null) { // if no authenticator attached a usersession
 
             userSession = session.sessions().getUserSession(realm, authSession.getParentSession().getId());
             if (userSession == null) {
                 UserSessionModel.SessionPersistenceState persistenceState = UserSessionModel.SessionPersistenceState.fromString(authSession.getClientNote(AuthenticationManager.USER_SESSION_PERSISTENT_STATE));
 
-                userSession = new UserSessionManager(session).createUserSession(authSession.getParentSession().getId(), realm, authSession.getAuthenticatedUser(), username, connection.getRemoteAddr(), authSession.getProtocol()
+                userSession = userSessionManager.createUserSession(authSession.getParentSession().getId(), realm, authSession.getAuthenticatedUser(), username, connection.getRemoteAddr(), authSession.getProtocol()
                         , remember, brokerSessionId, brokerUserId, persistenceState);
 
                 if (isLightweightUser(userSession.getUser())) {
@@ -1142,6 +1148,11 @@ public class AuthenticationProcessor {
         }
 
         ClientSessionContext clientSessionCtx = TokenManager.attachAuthenticationSession(session, userSession, authSession);
+        if (userSessionManager.isSessionCreatedInRequest(userSession) && TokenUtil.hasScope(clientSessionCtx.getScopeString(), OAuth2Constants.OFFLINE_ACCESS)) {
+            clientSessionCtx.getClientSession().setNote(FIRST_OFFLINE_ACCESS, Boolean.TRUE.toString());
+        } else if (clientSessionCtx.getClientSession().getNote(FIRST_OFFLINE_ACCESS) != null) {
+            clientSessionCtx.getClientSession().removeNote(FIRST_OFFLINE_ACCESS);
+        }
 
         event.user(userSession.getUser())
                 .detail(Details.USERNAME, username)

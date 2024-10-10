@@ -16,6 +16,7 @@
  */
 package org.keycloak.services.managers;
 
+import java.util.HashSet;
 import org.jboss.logging.Logger;
 import org.keycloak.common.util.Time;
 import org.keycloak.device.DeviceActivityManager;
@@ -31,6 +32,7 @@ import org.keycloak.models.UserSessionModel;
 import org.keycloak.services.ServicesLogger;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -43,6 +45,7 @@ import java.util.stream.Stream;
  */
 public class UserSessionManager {
 
+    private static final String USER_SESSIONS_CREATED_IN_REQUEST = "USER_SESSIONS_CREATED_IN_REQUEST";
     private static final Logger logger = Logger.getLogger(UserSessionManager.class);
 
     private final KeycloakSession kcSession;
@@ -176,8 +179,20 @@ public class UserSessionManager {
         // Attach device info into user session notes
         if (userSession != null) {
             DeviceActivityManager.attachDevice(userSession, kcSession);
+
+            Set<String> userSessionsCreated = (Set<String>) kcSession.getAttribute(USER_SESSIONS_CREATED_IN_REQUEST, Set.class);
+            if (userSessionsCreated == null) {
+                userSessionsCreated = new HashSet<>();
+                kcSession.setAttribute(USER_SESSIONS_CREATED_IN_REQUEST, userSessionsCreated);
+            }
+            userSessionsCreated.add(userSession.getId());
         }
 
         return userSession;
+    }
+
+    public boolean isSessionCreatedInRequest(UserSessionModel userSession) {
+        Set<String> userSessionsCreated = (Set<String>) kcSession.getAttribute(USER_SESSIONS_CREATED_IN_REQUEST, Set.class);
+        return userSession != null && userSession.getId() != null && userSessionsCreated != null && userSessionsCreated.contains(userSession.getId());
     }
 }
