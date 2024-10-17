@@ -171,7 +171,7 @@ public class FlowTest extends AbstractAuthenticationTest {
         AuthenticationFlowRepresentation found = findFlowByAlias("browser-2", flows);
 
         Assert.assertNotNull("created flow visible in parent", found);
-        compareFlows(newFlow, found);
+        compareFlows(newFlow, found, null);
 
         // check lookup flow with unexistent ID
         try {
@@ -184,7 +184,7 @@ public class FlowTest extends AbstractAuthenticationTest {
         // check that new flow is returned individually
         AuthenticationFlowRepresentation found2 = authMgmtResource.getFlow(found.getId());
         Assert.assertNotNull("created flow visible directly", found2);
-        compareFlows(newFlow, found2);
+        compareFlows(newFlow, found2, null);
 
 
         // add execution flow to some parent flow
@@ -241,7 +241,7 @@ public class FlowTest extends AbstractAuthenticationTest {
         expected.setAuthenticatorFlow(true);
         expected.setRequirement("DISABLED");
         expected.setPriority(0);
-        compareExecution(expected, execs.get(0));
+        compareExecution(expected, execs.get(0), null);
 
         expected = new AuthenticationExecutionExportRepresentation();
         expected.setFlowAlias("SomeFlow2");
@@ -250,7 +250,7 @@ public class FlowTest extends AbstractAuthenticationTest {
         expected.setAuthenticatorFlow(true);
         expected.setRequirement("DISABLED");
         expected.setPriority(1);
-        compareExecution(expected, execs.get(1));
+        compareExecution(expected, execs.get(1), null);
 
         // delete non-built-in flow
         authMgmtResource.deleteFlow(found.getId());
@@ -410,12 +410,12 @@ public class FlowTest extends AbstractAuthenticationTest {
         browser.setBuiltIn(false);
         browser.getAuthenticationExecutions().get(3).setFlowAlias("Copy of browser Organization");
         browser.getAuthenticationExecutions().get(4).setFlowAlias("Copy of browser forms");
-        compareFlows(browser, copyOfBrowser);
+        compareFlows(browser, copyOfBrowser, null);
 
         // get new flow directly and compare
         copyOfBrowser = authMgmtResource.getFlow(copyOfBrowser.getId());
         Assert.assertNotNull(copyOfBrowser);
-        compareFlows(browser, copyOfBrowser);
+        compareFlows(browser, copyOfBrowser, null);
         authMgmtResource.deleteFlow(copyOfBrowser.getId());
     }
 
@@ -476,7 +476,7 @@ public class FlowTest extends AbstractAuthenticationTest {
         AuthenticationFlowRepresentation found = findFlowByAlias("New Flow", flows);
 
         Assert.assertNotNull("created flow visible in parent", found);
-        compareFlows(newFlow, found);
+        compareFlows(newFlow, found, null);
 
         //try to update old flow with alias that already exists
         testFlow.setAlias("New Flow");

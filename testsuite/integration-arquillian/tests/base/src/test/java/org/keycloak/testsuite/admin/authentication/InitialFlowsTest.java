@@ -78,7 +78,7 @@ public class InitialFlowsTest extends AbstractAuthenticationTest {
             FlowExecutions fe1 = it1.next();
             FlowExecutions fe2 = it2.next();
 
-            compareFlows(fe1.flow, fe2.flow);
+            compareFlows(fe1.flow, fe2.flow, configs);
             compareExecutionsInfo(fe1.executions, fe2.executions);
         }
     }

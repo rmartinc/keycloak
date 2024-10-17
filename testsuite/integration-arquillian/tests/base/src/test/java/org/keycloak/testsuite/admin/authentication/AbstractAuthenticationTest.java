@@ -39,6 +39,7 @@ import jakarta.ws.rs.core.Response;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -125,26 +126,33 @@ public abstract class AbstractAuthenticationTest extends AbstractKeycloakTest {
         Assert.assertEquals("Execution requirement choices - " + actual.getProviderId(), expected.getRequirementChoices(), actual.getRequirementChoices());
     }
 
-    void compareExecution(AuthenticationExecutionExportRepresentation expected, AuthenticationExecutionExportRepresentation actual) {
+    void compareExecution(AuthenticationExecutionExportRepresentation expected, AuthenticationExecutionExportRepresentation actual, Map<String,AuthenticatorConfigRepresentation> configs) {
         Assert.assertEquals("Execution flowAlias - " + actual.getFlowAlias(), expected.getFlowAlias(), actual.getFlowAlias());
         Assert.assertEquals("Execution authenticator - " + actual.getAuthenticator(), expected.getAuthenticator(), actual.getAuthenticator());
         Assert.assertEquals("Execution userSetupAllowed - " + actual.getAuthenticator(), expected.isUserSetupAllowed(), actual.isUserSetupAllowed());
         Assert.assertEquals("Execution authenticatorFlow - " + actual.getAuthenticator(), expected.isAuthenticatorFlow(), actual.isAuthenticatorFlow());
-        Assert.assertEquals("Execution authenticatorConfig - " + actual.getAuthenticatorConfig(), expected.getAuthenticatorConfig(), actual.getAuthenticatorConfig());
+        String configIdOrAlias = actual.getAuthenticatorConfig();
+        if (configs != null && configIdOrAlias != null) {
+            // if configs passed the comparison is for the alias (initial flows)
+            AuthenticatorConfigRepresentation config = configs.get(actual.getAuthenticatorConfig());
+            Assert.assertNotNull(config);
+            configIdOrAlias = config.getAlias();
+        }
+        Assert.assertEquals("Execution authenticatorConfig - " + actual.getAuthenticatorConfig(), expected.getAuthenticatorConfig(), configIdOrAlias);
         Assert.assertEquals("Execution priority - " + actual.getAuthenticator(), expected.getPriority(), actual.getPriority());
         Assert.assertEquals("Execution requirement - " + actual.getAuthenticator(), expected.getRequirement(), actual.getRequirement());
     }
 
-    void compareExecutions(List<AuthenticationExecutionExportRepresentation> expected, List<AuthenticationExecutionExportRepresentation> actual) {
+    void compareExecutions(List<AuthenticationExecutionExportRepresentation> expected, List<AuthenticationExecutionExportRepresentation> actual, Map<String,AuthenticatorConfigRepresentation> configs) {
         Assert.assertNotNull("Executions should not be null", actual);
         Assert.assertEquals("Size", expected.size(), actual.size());
 
         for (int i = 0; i < expected.size(); i++) {
-            compareExecution(expected.get(i), actual.get(i));
+            compareExecution(expected.get(i), actual.get(i), configs);
         }
     }
 
-    void compareFlows(AuthenticationFlowRepresentation expected, AuthenticationFlowRepresentation actual) {
+    void compareFlows(AuthenticationFlowRepresentation expected, AuthenticationFlowRepresentation actual, Map<String,AuthenticatorConfigRepresentation> configs) {
         Assert.assertEquals("Flow alias", expected.getAlias(), actual.getAlias());
         Assert.assertEquals("Flow description", expected.getDescription(), actual.getDescription());
         Assert.assertEquals("Flow providerId", expected.getProviderId(), actual.getProviderId());
@@ -157,7 +165,7 @@ public abstract class AbstractAuthenticationTest extends AbstractKeycloakTest {
         if (expectedExecs == null) {
             Assert.assertTrue("Executions should be null or empty", actualExecs == null || actualExecs.size() == 0);
         } else {
-            compareExecutions(expectedExecs, actualExecs);
+            compareExecutions(expectedExecs, actualExecs, configs);
         }
     }
 

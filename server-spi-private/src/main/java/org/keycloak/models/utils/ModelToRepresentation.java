@@ -926,7 +926,7 @@ public class ModelToRepresentation {
         AuthenticationExecutionExportRepresentation rep = new AuthenticationExecutionExportRepresentation();
         if (model.getAuthenticatorConfig() != null) {
             AuthenticatorConfigModel config = new DeployedConfigurationsManager(session).getAuthenticatorConfig(realm, model.getAuthenticatorConfig());
-            rep.setAuthenticatorConfig(config.getAlias());
+            rep.setAuthenticatorConfig(config.getId());
         }
         rep.setAuthenticator(model.getAuthenticator());
         rep.setAuthenticatorFlow(model.isAuthenticatorFlow());

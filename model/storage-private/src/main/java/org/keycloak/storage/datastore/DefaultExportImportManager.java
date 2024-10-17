@@ -1420,7 +1420,11 @@ public class DefaultExportImportManager implements ExportImportManager {
     private static AuthenticationExecutionModel toModel(KeycloakSession session, RealmModel realm, AuthenticationFlowModel parentFlow, AuthenticationExecutionExportRepresentation rep) {
         AuthenticationExecutionModel model = new AuthenticationExecutionModel();
         if (rep.getAuthenticatorConfig() != null) {
-            AuthenticatorConfigModel config = new DeployedConfigurationsManager(session).getAuthenticatorConfigByAlias(realm, rep.getAuthenticatorConfig());
+            AuthenticatorConfigModel config = new DeployedConfigurationsManager(session).getAuthenticatorConfig(realm, rep.getAuthenticatorConfig());
+            if (config == null) {
+                // load it by alias like in previous configurations
+                config = new DeployedConfigurationsManager(session).getAuthenticatorConfigByAlias(realm, rep.getAuthenticatorConfig());
+            }
             model.setAuthenticatorConfig(config.getId());
         }
         model.setAuthenticator(rep.getAuthenticator());
