@@ -49,6 +49,7 @@ import org.keycloak.representations.idm.UserRepresentation;
 import org.keycloak.storage.StorageId;
 import org.keycloak.storage.UserStorageProvider;
 import org.keycloak.storage.ldap.LDAPStorageProvider;
+import org.keycloak.storage.ldap.idm.model.LDAPObject;
 import org.keycloak.storage.ldap.mappers.FullNameLDAPStorageMapper;
 import org.keycloak.storage.ldap.mappers.FullNameLDAPStorageMapperFactory;
 import org.keycloak.storage.ldap.mappers.LDAPStorageMapper;
@@ -385,5 +386,45 @@ public class LDAPProvidersIntegrationNoImportTest extends LDAPProvidersIntegrati
     @Ignore
     @Override
     public void updateLDAPUsernameTest() {
+    }
+
+    @Test
+    @Override
+    public void testAlwaysReadValueFromLdapCached() throws Exception {
+        try {
+            // import user from the ldap johnkeycloak, it should be cached
+            List<UserRepresentation> users = testRealm().users().search("johnkeycloak", true);
+            Assert.assertEquals(1, users.size());
+            UserRepresentation john = users.iterator().next();
+            Assert.assertEquals("Doe", john.getLastName());
+
+            // modify the sn of the user directly in ldap
+            testingClient.server().run(session -> {
+                LDAPTestContext ctx = LDAPTestContext.init(session);
+                LDAPObject johnLdapObject = ctx.getLdapProvider().loadLDAPUserByUsername(ctx.getRealm(), "johnkeycloak");
+                johnLdapObject.setSingleAttribute(LDAPConstants.SN, "sn-modified");
+                ctx.getLdapProvider().getLdapIdentityStore().update(johnLdapObject);
+            });
+
+            // it's cached so it should be still the initial one when read by id
+            john = testRealm().users().get(john.getId()).toRepresentation();
+            Assert.assertEquals("Doe", john.getLastName());
+
+            // no-import searches the ldap and refreshes the cache
+            users = testRealm().users().search("johnkeycloak", true);
+            Assert.assertEquals(1, users.size());
+            john = users.iterator().next();
+            Assert.assertEquals("sn-modified", john.getLastName());
+            john = testRealm().users().get(john.getId()).toRepresentation();
+            Assert.assertEquals("sn-modified", john.getLastName());
+        } finally {
+            // revert
+            testingClient.server().run(session -> {
+                LDAPTestContext ctx = LDAPTestContext.init(session);
+                LDAPObject johnLdapObject = ctx.getLdapProvider().loadLDAPUserByUsername(ctx.getRealm(), "johnkeycloak");
+                johnLdapObject.setSingleAttribute(LDAPConstants.SN, "Doe");
+                ctx.getLdapProvider().getLdapIdentityStore().update(johnLdapObject);
+            });
+        }
     }
 }

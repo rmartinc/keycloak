@@ -1,6 +1,7 @@
 package org.keycloak.models.cache.infinispan;
 
 import org.infinispan.Cache;
+import org.infinispan.context.Flag;
 import org.jboss.logging.Logger;
 import org.keycloak.cluster.ClusterProvider;
 import org.keycloak.models.cache.infinispan.events.InvalidationEvent;
@@ -60,7 +61,7 @@ public abstract class CacheManager {
     protected final UpdateCounter counter = new UpdateCounter();
 
     public CacheManager(Cache<String, Revisioned> cache, Cache<String, Long> revisions) {
-        this.cache = cache;
+        this.cache = cache.getAdvancedCache().withFlags(Flag.IGNORE_RETURN_VALUES);
         this.revisions = revisions;
     }
 
@@ -169,7 +170,7 @@ public abstract class CacheManager {
                 return;
             }
             if (rev.equals(object.getRevision())) {
-                cache.putForExternalRead(id, object);
+                put(id, object, lifespan);
                 return;
             }
             if (rev > object.getRevision()) { // revision is ahead, don't cache
@@ -178,8 +179,7 @@ public abstract class CacheManager {
             }
             // revisions cache has a lower value than the object.revision, so update revision and add it to cache
             revisions.put(id, object.getRevision());
-            if (lifespan < 0) cache.putForExternalRead(id, object);
-            else cache.putForExternalRead(id, object, lifespan, TimeUnit.MILLISECONDS);
+            put(id, object, lifespan);
         } finally {
             endRevisionBatch();
         }
@@ -195,6 +195,14 @@ public abstract class CacheManager {
         Iterator<Map.Entry<String, Revisioned>> it = getEntryIterator(predicate);
         while (it.hasNext()) {
             invalidations.add(it.next().getKey());
+        }
+    }
+
+    private void put(String id, Revisioned object, long lifespan) {
+        if (lifespan < 0) {
+            cache.put(id, object);
+        } else {
+            cache.put(id, object, lifespan, TimeUnit.MILLISECONDS);
         }
     }
 
