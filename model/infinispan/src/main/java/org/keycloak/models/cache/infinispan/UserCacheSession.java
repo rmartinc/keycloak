@@ -589,29 +589,37 @@ public class UserCacheSession implements UserCache, OnCreateComponent, OnUpdateC
         return getDelegate().getUsersCount(realm, params, groupIds);
     }
 
+    private UserModel updateCache(RealmModel realm, UserModel delegate) {
+        if (delegate instanceof UserAdapter) {
+            // just return if the entry is an already cached entry of this provider
+            return delegate;
+        }
+        return cacheUser(realm, delegate, cache.getCurrentRevision(delegate.getId()));
+    }
+
     @Override
     public Stream<UserModel> searchForUserStream(RealmModel realm, String search) {
-        return getDelegate().searchForUserStream(realm, search);
+        return getDelegate().searchForUserStream(realm, search).map(u -> updateCache(realm, u));
     }
 
     @Override
     public Stream<UserModel> searchForUserStream(RealmModel realm, String search, Integer firstResult, Integer maxResults) {
-        return getDelegate().searchForUserStream(realm, search, firstResult, maxResults);
+        return getDelegate().searchForUserStream(realm, search, firstResult, maxResults).map(u -> updateCache(realm, u));
     }
 
     @Override
     public Stream<UserModel> searchForUserStream(RealmModel realm, Map<String, String> attributes) {
-        return getDelegate().searchForUserStream(realm, attributes);
+        return getDelegate().searchForUserStream(realm, attributes).map(u -> updateCache(realm, u));
     }
 
     @Override
     public Stream<UserModel> searchForUserStream(RealmModel realm, Map<String, String> attributes, Integer firstResult, Integer maxResults) {
-        return getDelegate().searchForUserStream(realm, attributes, firstResult, maxResults);
+        return getDelegate().searchForUserStream(realm, attributes, firstResult, maxResults).map(u -> updateCache(realm, u));
     }
 
     @Override
     public Stream<UserModel> searchForUserByUserAttributeStream(RealmModel realm, String attrName, String attrValue) {
-        return getDelegate().searchForUserByUserAttributeStream(realm, attrName, attrValue);
+        return getDelegate().searchForUserByUserAttributeStream(realm, attrName, attrValue).map(u -> updateCache(realm, u));
     }
 
     @Override
