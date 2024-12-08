@@ -51,7 +51,6 @@ import org.keycloak.models.GroupModel;
 import org.keycloak.models.IdentityProviderModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.ModelException;
-import org.keycloak.models.OrganizationModel;
 import org.keycloak.models.ProtocolMapperModel;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.RoleModel;
@@ -118,7 +117,10 @@ public class UserStorageManager extends AbstractStorageManager<UserStorageProvid
             return new ReadOnlyUserModelDelegate(user, false);
         }
 
-        if (user == null || user.getFederationLink() == null) return user;
+        if (user == null || user.getFederationLink() == null || user instanceof CachedUserModel) {
+            // return the user if null, not federated or cached (no validation during the condigured cache time)
+            return user;
+        }
 
         UserStorageProviderModel model = getStorageProviderModel(realm, user.getFederationLink());
         if (model == null) {
