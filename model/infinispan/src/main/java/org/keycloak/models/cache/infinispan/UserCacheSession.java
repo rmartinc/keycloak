@@ -335,13 +335,7 @@ public class UserCacheSession implements UserCache, OnCreateComponent, OnUpdateC
             }
         }
 
-        UserAdapter adapter = new UserAdapter(cached, this, session, realm);
-        if (isReadOnlyOrganizationMember(session, adapter)) {
-            registerUserInvalidation(cached);
-            return supplier.get();
-        }
-
-        return adapter;
+        return new UserAdapter(cached, this, session, realm);
     }
 
     protected UserModel cacheUser(RealmModel realm, UserModel delegate, Long revision) {

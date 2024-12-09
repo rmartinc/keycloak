@@ -114,6 +114,9 @@ public class UserStorageManager extends AbstractStorageManager<UserStorageProvid
     protected UserModel importValidation(RealmModel realm, UserModel user) {
 
         if (isReadOnlyOrganizationMember(user)) {
+            if (user instanceof CachedUserModel cachedUserModel) {
+                cachedUserModel.invalidate();
+            }
             return new ReadOnlyUserModelDelegate(user, false);
         }
 
@@ -128,10 +131,14 @@ public class UserStorageManager extends AbstractStorageManager<UserStorageProvid
         }
 
         if (!model.isEnabled()) {
+            if (user instanceof CachedUserModel cachedUserModel) {
+                cachedUserModel.invalidate();
+            }
             return new ReadOnlyUserModelDelegate(user, false);
         }
 
         if (user instanceof CachedUserModel) {
+            // if the user is cached do not validate import for the cached configured time
             return user;
         }
 
