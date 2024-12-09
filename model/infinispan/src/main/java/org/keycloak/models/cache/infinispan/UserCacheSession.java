@@ -334,7 +334,14 @@ public class UserCacheSession implements UserCache, OnCreateComponent, OnUpdateC
                 return supplier.get();
             }
         }
-        return new UserAdapter(cached, this, session, realm);
+
+        UserAdapter adapter = new UserAdapter(cached, this, session, realm);
+        if (isReadOnlyOrganizationMember(session, adapter)) {
+            registerUserInvalidation(cached);
+            return supplier.get();
+        }
+
+        return adapter;
     }
 
     protected UserModel cacheUser(RealmModel realm, UserModel delegate, Long revision) {
@@ -591,8 +598,12 @@ public class UserCacheSession implements UserCache, OnCreateComponent, OnUpdateC
     }
 
     private UserModel returnFromCacheIfPresent(RealmModel realm, UserModel delegate) {
-        if (delegate == null || delegate instanceof UserAdapter) {
+        if (delegate == null || delegate instanceof CachedUserModel || isRegisteredForInvalidation(realm, delegate.getId())) {
             return delegate;
+        }
+
+        if (managedUsers.containsKey(delegate.getId())) {
+            return managedUsers.get(delegate.getId());
         }
 
         CachedUser cached = cache.get(delegate.getId(), CachedUser.class);

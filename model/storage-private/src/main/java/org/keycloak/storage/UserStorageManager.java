@@ -117,10 +117,7 @@ public class UserStorageManager extends AbstractStorageManager<UserStorageProvid
             return new ReadOnlyUserModelDelegate(user, false);
         }
 
-        if (user == null || user.getFederationLink() == null || user instanceof CachedUserModel) {
-            // return the user if null, not federated or cached (no validation during the condigured cache time)
-            return user;
-        }
+        if (user == null || user.getFederationLink() == null) return user;
 
         UserStorageProviderModel model = getStorageProviderModel(realm, user.getFederationLink());
         if (model == null) {
@@ -132,6 +129,10 @@ public class UserStorageManager extends AbstractStorageManager<UserStorageProvid
 
         if (!model.isEnabled()) {
             return new ReadOnlyUserModelDelegate(user, false);
+        }
+
+        if (user instanceof CachedUserModel) {
+            return user;
         }
 
         ImportedUserValidation importedUserValidation = getStorageProviderInstance(model, ImportedUserValidation.class, true);
