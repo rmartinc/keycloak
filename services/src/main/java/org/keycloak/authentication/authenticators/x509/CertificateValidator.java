@@ -278,7 +278,7 @@ public class CertificateValidator {
         }
 
         public Collection<X509CRL> getX509CRLs() throws GeneralSecurityException {
-            CertificateFactory cf = CertificateFactory.getInstance("X.509");
+            CertificateFactory cf = CertificateFactory.getInstance("X.509", CryptoIntegration.getProvider().getBouncyCastleProvider());
             Collection<X509CRL> crlColl = null;
 
             if (cRLPath != null) {
