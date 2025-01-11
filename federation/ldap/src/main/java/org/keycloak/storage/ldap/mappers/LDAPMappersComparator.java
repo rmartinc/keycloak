@@ -30,7 +30,7 @@ import java.util.Comparator;
  */
 public class LDAPMappersComparator {
 
-    private LDAPConfig ldapConfig;
+    private final LDAPConfig ldapConfig;
 
     public LDAPMappersComparator(LDAPConfig ldapConfig) {
         this.ldapConfig = ldapConfig;
@@ -107,6 +107,12 @@ public class LDAPMappersComparator {
          * This can avoid database deadlocks as the mappers will modify attributes always in the same order.
          */
         private static int compareWithStableOrdering(ComponentModel o1, ComponentModel o2) {
+            // first by provider id
+            int order = o1.getProviderId().compareTo(o2.getProviderId());
+            if (order != 0) {
+                return order;
+            }
+            // then by id
             return o1.getId().compareTo(o2.getId());
         }
 

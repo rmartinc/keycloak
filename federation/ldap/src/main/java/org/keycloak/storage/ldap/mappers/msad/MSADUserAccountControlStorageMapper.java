@@ -55,7 +55,7 @@ public class MSADUserAccountControlStorageMapper extends AbstractLDAPStorageMapp
 
     private static final Logger logger = Logger.getLogger(MSADUserAccountControlStorageMapper.class);
 
-    private static final Pattern AUTH_EXCEPTION_REGEX = Pattern.compile(".*AcceptSecurityContext error, data ([0-9a-f]*), v.*");
+    protected static final Pattern AUTH_EXCEPTION_REGEX = Pattern.compile(".*AcceptSecurityContext error, data ([0-9a-f]*), v.*");
     private static final Pattern ERROR_CODE_REGEX = Pattern.compile(".*ERROR CODE ([0-9A-F]*) - ([0-9A-F]*).*");
 
     // See https://datatracker.ietf.org/doc/html/rfc4511#appendix-A.2
