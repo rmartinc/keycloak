@@ -28,6 +28,7 @@ import org.keycloak.models.IdentityProviderModel;
 import org.keycloak.models.cache.infinispan.events.CacheKeyInvalidatedEvent;
 import org.keycloak.models.cache.infinispan.events.InvalidationEvent;
 import org.keycloak.common.constants.ServiceAccountConstants;
+import org.keycloak.common.util.Time;
 import org.keycloak.component.ComponentModel;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.FederatedIdentityModel;
@@ -317,6 +318,12 @@ public class UserCacheSession implements UserCache, OnCreateComponent, OnUpdateC
             return null;
         }
 
+        if (cached.getCacheTime() != null && Time.currentTimeMillis() >= cached.getCacheTime()) {
+            // the user entry is expired
+            registerUserInvalidation(cached);
+            return supplier.get();
+        }
+
         StorageId storageId = cached.getFederationLink() != null ?
                 new StorageId(cached.getFederationLink(), cached.getId()) : new StorageId(cached.getId());
 
@@ -347,6 +354,11 @@ public class UserCacheSession implements UserCache, OnCreateComponent, OnUpdateC
 
         CachedUser cached;
         UserAdapter adapter;
+        final long currentTime = Time.currentTimeMillis();
+        long userLifespan = delegate.getCacheTime(currentTime) - currentTime;
+        if (userLifespan <= 0) {
+            userLifespan = -1;
+        }
 
         if (delegate.getFederationLink() != null) {
             ComponentModel component = realm.getComponent(delegate.getFederationLink());
@@ -359,21 +371,24 @@ public class UserCacheSession implements UserCache, OnCreateComponent, OnUpdateC
                 return delegate;
             }
 
-            cached = new CachedUser(revision, realm, delegate, notBefore);
+            cached = new CachedUser(revision, realm, delegate, notBefore, currentTime);
             adapter = new UserAdapter(cached, this, session, realm);
             onCache(realm, adapter, delegate);
 
             long lifespan = model.getLifespan();
             if (lifespan > 0) {
+                if (userLifespan > 0) {
+                    lifespan = Math.min(userLifespan, lifespan);
+                }
                 cache.addRevisioned(cached, startupRevision, lifespan);
             } else {
-                cache.addRevisioned(cached, startupRevision);
+                cache.addRevisioned(cached, startupRevision, userLifespan);
             }
         } else {
-            cached = new CachedUser(revision, realm, delegate, notBefore);
+            cached = new CachedUser(revision, realm, delegate, notBefore, currentTime);
             adapter = new UserAdapter(cached, this, session, realm);
             onCache(realm, adapter, delegate);
-            cache.addRevisioned(cached, startupRevision);
+            cache.addRevisioned(cached, startupRevision, userLifespan);
         }
 
         return adapter;

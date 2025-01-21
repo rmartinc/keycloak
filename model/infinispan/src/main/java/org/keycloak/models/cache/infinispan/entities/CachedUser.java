@@ -47,6 +47,7 @@ public class CachedUser extends AbstractExtendableRevisioned implements InRealm 
     private final String federationLink;
     private final String serviceAccountClientLink;
     private final int notBefore;
+    private final Long cacheTime;
     private final LazyLoader<UserModel, Set<String>> requiredActions;
     private final LazyLoader<UserModel, MultivaluedHashMap<String, String>> lazyLoadedAttributes;
     private final MultivaluedHashMap<String,String> eagerLoadedAttributes;
@@ -54,7 +55,7 @@ public class CachedUser extends AbstractExtendableRevisioned implements InRealm 
     private final LazyLoader<UserModel, Set<String>> groups;
     private final LazyLoader<UserModel, List<CredentialModel>> storedCredentials;
 
-    public CachedUser(Long revision, RealmModel realm, UserModel user, int notBefore) {
+    public CachedUser(Long revision, RealmModel realm, UserModel user, int notBefore, long currentTime) {
         super(revision, user.getId());
         this.realm = realm.getId();
         this.createdTimestamp = user.getCreatedTimestamp();
@@ -73,6 +74,8 @@ public class CachedUser extends AbstractExtendableRevisioned implements InRealm 
         this.roleMappings = new DefaultLazyLoader<>(userModel -> userModel.getRoleMappingsStream().map(RoleModel::getId).collect(Collectors.toSet()), Collections::emptySet);
         this.groups = new DefaultLazyLoader<>(userModel -> userModel.getGroupsStream().map(GroupModel::getId).collect(Collectors.toCollection(LinkedHashSet::new)), LinkedHashSet::new);
         this.storedCredentials = new DefaultLazyLoader<>(userModel -> userModel.credentialManager().getStoredCredentialsStream().collect(Collectors.toCollection(LinkedList::new)), LinkedList::new);
+        final long tmpCacheTime = user.getCacheTime(currentTime);
+        this.cacheTime = tmpCacheTime > currentTime ? tmpCacheTime : null;
     }
 
     public String getRealm() {
@@ -139,4 +142,7 @@ public class CachedUser extends AbstractExtendableRevisioned implements InRealm 
         return storedCredentials.get(userModel).stream().map(CredentialModel::shallowClone).collect(Collectors.toList());
     }
 
+    public Long getCacheTime() {
+        return cacheTime;
+    }
 }

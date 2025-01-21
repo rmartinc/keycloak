@@ -227,8 +227,18 @@ public interface UserModel extends RoleMapperModel {
 
     /**
      * Instance of a user credential manager to validate and update the credentials of this user.
+     * @return The credential manager
      */
     SubjectCredentialManager credentialManager();
+
+    /**
+     * The max epoch time until this user can be cached.
+     * @param currentTime The current time
+     * @return epoch time to cache this user as maximum, less than or equal to now means no cache limit
+     */
+    default long getCacheTime(long currentTime) {
+        return -1L;
+    }
 
     enum RequiredAction {
         VERIFY_EMAIL,

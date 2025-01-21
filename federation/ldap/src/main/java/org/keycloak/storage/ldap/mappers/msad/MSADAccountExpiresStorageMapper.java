@@ -212,6 +212,18 @@ public class MSADAccountExpiresStorageMapper extends AbstractLDAPStorageMapper {
                 }
                 return super.isEnabled();
             }
+
+            @Override
+            public long getCacheTime(long currentTime) {
+                final long time1 = super.getCacheTime(currentTime);
+                final Long expireTime = getExpireTime(ldapUser, ldapAttr);
+                final long time2 = expireTime != null ? expireTime : -1L;
+                return time1 - currentTime > 0
+                        ? time2 - currentTime > 0
+                                ? Math.min(time1, time2)
+                                : time1
+                        : time2;
+            }
         };
 
         return delegate;

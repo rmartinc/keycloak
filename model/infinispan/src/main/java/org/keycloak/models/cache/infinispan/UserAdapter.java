@@ -485,6 +485,17 @@ public class UserAdapter implements CachedUserModel {
         return getId().hashCode();
     }
 
+    @Override
+    public long getCacheTime(long currentTime) {
+        final long cacheTime = cached.getCacheTime();
+        if (cacheTime > currentTime) {
+            return cacheTime; // still a valid user
+        }
+        // mark for invalidation
+        getDelegateForUpdate();
+        return -1L;
+    }
+
     private UserModel getUserModel() {
         return userProviderCache.getDelegate().getUserById(realm, cached.getId());
     }

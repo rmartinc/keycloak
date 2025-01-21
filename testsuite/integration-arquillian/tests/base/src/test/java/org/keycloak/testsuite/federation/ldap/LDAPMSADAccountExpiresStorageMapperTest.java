@@ -142,6 +142,58 @@ public class LDAPMSADAccountExpiresStorageMapperTest extends AbstractLDAPTest {
     }
 
     @Test
+    public void testReadOnlyExpiresIn10s() throws Exception {
+        final String ldapAttr = LDAPConstants.VENDOR_ACTIVE_DIRECTORY.equals(ldapRule.getConfig().get(LDAPConstants.VENDOR))
+                ? "accountExpires"
+                : "description";
+        final RealmResource realm = testRealm();
+        final ComponentRepresentation ldapComponent = getLdapComponent(realm);
+        setLdapMode(realm, ldapComponent, UserStorageProvider.EditMode.READ_ONLY);
+
+        try {
+            final String expires = Long.toString(MSADAccountExpiresStorageMapper.fromMilliSeconds(Time.currentTimeMillis() + 10_000L));
+            testingClient.server().run(session -> {
+                LDAPTestContext ctx = LDAPTestContext.init(session);
+                LDAPStorageProvider ldapProvider = ctx.getLdapProvider();
+                RealmModel ldapRealm = ctx.getRealm();
+                LDAPObject ldapUser = ldapProvider.loadLDAPUserByUsername(ldapRealm, "johnkeycloak");
+                ldapUser.setSingleAttribute(ldapAttr, expires);
+                ctx.getLdapProvider().getLdapIdentityStore().update(ldapUser);
+            });
+            // check the user is enabled and account expires is 10s
+            UserRepresentation john = ApiUtil.findUserByUsername(realm, "johnkeycloak");
+            final UserResource johnRes = realm.users().get(john.getId());
+            john = johnRes.toRepresentation();
+            Assert.assertEquals(Collections.singletonList(expires), john.getAttributes().get("accountExpires"));
+            Assert.assertTrue(john.isEnabled());
+
+            // offset of 15s and it should be expired
+            setTimeOffset(15);
+            john = johnRes.toRepresentation();
+            Assert.assertEquals(Collections.singletonList(expires), john.getAttributes().get("accountExpires"));
+            Assert.assertFalse(john.isEnabled());
+
+            // update to enable the user again
+            testingClient.server().run(session -> {
+                LDAPTestContext ctx = LDAPTestContext.init(session);
+                LDAPStorageProvider ldapProvider = ctx.getLdapProvider();
+                RealmModel ldapRealm = ctx.getRealm();
+                LDAPObject ldapUser = ldapProvider.loadLDAPUserByUsername(ldapRealm, "johnkeycloak");
+                ldapUser.setSingleAttribute(ldapAttr, "0");
+                ctx.getLdapProvider().getLdapIdentityStore().update(ldapUser);
+            });
+
+            // wait the cache time again and the user should be enabled again
+            setTimeOffset(620);
+            john = johnRes.toRepresentation();
+            Assert.assertEquals(Collections.singletonList("0"), john.getAttributes().get("accountExpires"));
+            Assert.assertTrue(john.isEnabled());
+        } finally {
+            setLdapMode(realm, ldapComponent, UserStorageProvider.EditMode.WRITABLE);
+        }
+    }
+
+    @Test
     public void testReadOnlyExpiresNoModelAttr() throws Exception {
         final String ldapAttr = LDAPConstants.VENDOR_ACTIVE_DIRECTORY.equals(ldapRule.getConfig().get(LDAPConstants.VENDOR))
                 ? "accountExpires"
@@ -207,16 +259,16 @@ public class LDAPMSADAccountExpiresStorageMapperTest extends AbstractLDAPTest {
         Assert.assertEquals(Collections.singletonList("0"), john.getAttributes().get("accountExpires"));
         Assert.assertTrue(john.isEnabled());
 
-        // modify the user with expiration in 10 min (cache time)
-        final String expires = Long.toString(MSADAccountExpiresStorageMapper.fromMilliSeconds(Time.currentTimeMillis() + 600_000L));
+        // modify the user with expiration in 10s
+        final String expires = Long.toString(MSADAccountExpiresStorageMapper.fromMilliSeconds(Time.currentTimeMillis() + 10_000L));
         john.getAttributes().put("accountExpires", Collections.singletonList(expires));
         johnRes.update(john);
         john = johnRes.toRepresentation();
         Assert.assertEquals(Collections.singletonList(expires), john.getAttributes().get("accountExpires"));
         Assert.assertTrue(john.isEnabled());
 
-        // assert it is expired after the cache time
-        setTimeOffset(605);
+        // assert it is expired after more than 10s
+        setTimeOffset(15);
         john = johnRes.toRepresentation();
         Assert.assertEquals(Collections.singletonList(expires), john.getAttributes().get("accountExpires"));
         Assert.assertFalse(john.isEnabled());
