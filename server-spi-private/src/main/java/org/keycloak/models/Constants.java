@@ -80,6 +80,7 @@ public final class Constants {
     public static final String TOKEN = "token";
     public static final String TAB_ID = "tab_id";
     public static final String CLIENT_DATA = "client_data";
+    public static final String RESTRICTED_AUDIENCE = "restricted-aud";
     public static final String REUSE_ID = "reuse_id";
     public static final String SKIP_LOGOUT = "skip_logout";
     public static final String KEY = "key";
@@ -199,7 +200,7 @@ public final class Constants {
     // Note used to store the acr values if it is matched by client policy condition
     public static final String CLIENT_POLICY_REQUESTED_ACR = "client-policy-requested-acr";
 
-    //attribute name used to set client ids from requested audience in standard token exchange
-    public static final String REQUESTED_AUDIENCE_CLIENT_IDS = "audience-client-ids";
+    //attribute name used to set clients from requested audience in standard token exchange
+    public static final String REQUESTED_AUDIENCE_CLIENTS = "audience-client-ids";
 
 }
