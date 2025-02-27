@@ -35,6 +35,8 @@ import org.keycloak.protocol.oidc.encode.AccessTokenContext;
 import org.keycloak.representations.AccessToken;
 import org.keycloak.representations.IDToken;
 import org.keycloak.representations.idm.RealmRepresentation;
+import org.keycloak.representations.idm.UserRepresentation;
+import org.keycloak.representations.oidc.TokenMetadataRepresentation;
 import org.keycloak.services.clientpolicy.ClientPolicyEvent;
 import org.keycloak.services.clientpolicy.condition.ClientScopesConditionFactory;
 import org.keycloak.services.clientpolicy.condition.GrantTypeConditionFactory;
@@ -48,7 +50,9 @@ import org.keycloak.testsuite.services.clientpolicy.executor.TestRaiseExceptionE
 import org.keycloak.testsuite.updaters.ClientAttributeUpdater;
 import org.keycloak.testsuite.util.ClientPoliciesUtil;
 import org.keycloak.testsuite.util.oauth.AccessTokenResponse;
+import org.keycloak.testsuite.util.oauth.UserInfoResponse;
 import org.keycloak.testsuite.util.oauth.TokenExchangeRequest;
+import org.keycloak.util.JsonSerialization;
 import org.keycloak.util.TokenUtil;
 
 import java.util.Collections;
@@ -60,6 +64,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.keycloak.testsuite.admin.AbstractAdminTest.loadJson;
 import static org.keycloak.testsuite.auth.page.AuthRealm.TEST;
 import static org.keycloak.testsuite.util.ClientPoliciesUtil.createClientScopesConditionConfig;
@@ -227,6 +232,40 @@ public class StandardTokenExchangeV2Test extends AbstractClientPoliciesTest {
             AccessTokenResponse response = tokenExchange(accessToken, "invalid-requester-client", "secret", null, null);
             assertEquals(403, response.getStatusCode());
         }
+    }
+
+    @Test
+    public void testTransientSessionForRequester() throws Exception {
+        UserRepresentation john = ApiUtil.findUserByUsername(adminClient.realm(TEST), "john");
+
+        oauth.realm(TEST);
+        String accessToken = resourceOwnerLogin("john", "password", "subject-client", "secret");
+
+        oauth.scope(OAuth2Constants.SCOPE_OPENID); // add openid scope for the user-info request
+        AccessTokenResponse response = tokenExchange(accessToken, "requester-client", "secret", null, null);
+        assertEquals(OAuth2Constants.ACCESS_TOKEN_TYPE, response.getIssuedTokenType());
+        String exchangedTokenString = response.getAccessToken();
+        TokenVerifier<AccessToken> verifier = TokenVerifier.create(exchangedTokenString, AccessToken.class);
+        AccessToken exchangedToken = verifier.parse().getToken();
+        assertEquals(getSessionIdFromToken(accessToken), exchangedToken.getSessionId());
+        assertEquals("requester-client", exchangedToken.getIssuedFor());
+        AccessTokenContext ctx = testingClient.testing(TEST).getTokenContext(exchangedToken.getId());
+        assertEquals(ctx.getSessionType(), AccessTokenContext.SessionType.TRANSIENT);
+        assertEquals(ctx.getTokenType(), AccessTokenContext.TokenType.REGULAR);
+        assertEquals(ctx.getGrantType(), OAuth2Constants.TOKEN_EXCHANGE_GRANT_TYPE);
+
+        // introspect
+        String tokenResponse = oauth.client("requester-client", "secret").introspectionRequest(exchangedTokenString).tokenTypeHint("access_token").send();
+        TokenMetadataRepresentation rep = JsonSerialization.readValue(tokenResponse, TokenMetadataRepresentation.class);
+        assertTrue(rep.isActive());
+        assertEquals(john.getId(), rep.getSubject());
+        assertEquals("john", rep.getUserName());
+        assertEquals("requester-client", rep.getClientId());
+
+        // user-info
+        UserInfoResponse userInfoResp = oauth.userInfoRequest(exchangedTokenString).send();
+        assertEquals(Response.Status.OK.getStatusCode(), userInfoResp.getStatusCode());
+        assertEquals(john.getId(), rep.getSubject());
     }
 
     @Test
