@@ -43,15 +43,23 @@ public class UserSessionUtil {
         }
 
         var userSessionProvider = session.sessions();
-        UserSessionModel userSession = userSessionProvider.getUserSession(realm, token.getSessionId());
-        if (AuthenticationManager.isSessionValid(realm, userSession) && userSession.getAuthenticatedClientSessionByClient(client.getId()) == null) {
-            AccessTokenContext accessTokenContext = session.getProvider(TokenContextEncoderProvider.class)
-                    .getTokenContextFromTokenId(token.getId());
-            // if the token is transient, create a transient user session based on the current online session
-            userSession = accessTokenContext.getSessionType() == AccessTokenContext.SessionType.TRANSIENT
-                    ? createTransientSessionForClient(session, userSession, client)
-                    : null;
+
+        AccessTokenContext accessTokenContext = session.getProvider(TokenContextEncoderProvider.class).getTokenContextFromTokenId(token.getId());
+        if (accessTokenContext.getSessionType() == AccessTokenContext.SessionType.TRANSIENT) {
+            UserSessionModel userSession = userSessionProvider.getUserSession(realm, token.getSessionId());
+
+            if (AuthenticationManager.isSessionValid(realm, userSession)) {
+                checkTokenIssuedAt(realm, token, userSession, event, client);
+                return createTransientSessionForClient(session, userSession, client);
+            }
+
+            logger.debug("User session not found or expired for transient token");
+            event.session(userSession);
+            event.error(userSession == null? Errors.USER_SESSION_NOT_FOUND : Errors.SESSION_EXPIRED);
+            throw error.invalidToken(userSession == null? "Session not found" : "Session expired");
         }
+
+        UserSessionModel userSession = userSessionProvider.getUserSessionIfClientExists(realm, token.getSessionId(), false, client.getId());
         if (userSession == null) {
             // also try to resolve sessions created during token exchange when the user is impersonated
             userSession = getUserSessionWithImpersonatorClient(session, realm, token.getSessionId(), false, client.getId());
