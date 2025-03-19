@@ -59,6 +59,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jakarta.persistence.LockModeType;
@@ -562,14 +563,19 @@ public class JpaUserFederatedStorageProvider implements
 
     @Override
     public void updateCredential(RealmModel realm, String userId, CredentialModel cred) {
+        updateCredential(realm, userId, cred, model -> true);
+    }
+
+    private boolean updateCredential(RealmModel realm, String userId, CredentialModel cred, Predicate<CredentialModel> predicate) {
         FederatedUserCredentialEntity entity = em.find(FederatedUserCredentialEntity.class, cred.getId());
-        if (!checkCredentialEntity(entity, userId)) return;
+        if (!checkCredentialEntity(entity, userId) || !predicate.test(toModel(entity))) return false;
         createIndex(realm, userId);
         entity.setCreatedDate(cred.getCreatedDate());
         entity.setType(cred.getType());
         entity.setCredentialData(cred.getCredentialData());
         entity.setSecretData(cred.getSecretData());
         entity.setUserLabel(cred.getUserLabel());
+        return true;
     }
 
     @Override
@@ -681,8 +687,8 @@ public class JpaUserFederatedStorageProvider implements
     }
 
     @Override
-    public void updateCredential(RealmModel realm, UserModel user, CredentialModel cred) {
-        updateCredential(realm, user.getId(), cred);
+    public boolean updateCredential(RealmModel realm, UserModel user, CredentialModel cred, Predicate<CredentialModel> predicate) {
+        return updateCredential(realm, user.getId(), cred, predicate);
     }
 
     @Override

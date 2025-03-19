@@ -35,6 +35,7 @@ import org.keycloak.tracing.TracingProvider;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 /**
@@ -101,9 +102,9 @@ public class UserCredentialManager extends AbstractStorageManager<UserStoragePro
     }
 
     @Override
-    public void updateStoredCredential(CredentialModel cred) {
+    public boolean updateStoredCredential(CredentialModel cred, Predicate<CredentialModel> predicate) {
         throwExceptionIfInvalidUser(user);
-        getStoreForUser(user).updateCredential(realm, user, cred);
+        return getStoreForUser(user).updateCredential(realm, user, cred, predicate);
     }
 
     @Override

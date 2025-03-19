@@ -1,5 +1,6 @@
 package org.keycloak.testsuite.pages;
 
+import org.keycloak.testsuite.util.UIUtils;
 import org.openqa.selenium.By;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebElement;
@@ -34,7 +35,7 @@ public class EnterRecoveryAuthnCodePage extends LanguageComboboxAwarePage {
     }
 
     public void clickSignInButton() {
-        signInButton.click();
+        UIUtils.clickLink(signInButton);
     }
 
     @Override

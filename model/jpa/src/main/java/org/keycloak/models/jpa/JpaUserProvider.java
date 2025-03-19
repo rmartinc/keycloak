@@ -845,8 +845,8 @@ public class JpaUserProvider implements UserProvider, UserCredentialStore {
     }
 
     @Override
-    public void updateCredential(RealmModel realm, UserModel user, CredentialModel cred) {
-        credentialStore.updateCredential(realm, user, cred);
+    public boolean updateCredential(RealmModel realm, UserModel user, CredentialModel cred, java.util.function.Predicate<CredentialModel> predicate) {
+        return credentialStore.updateCredential(realm, user, cred, predicate);
     }
 
     @Override

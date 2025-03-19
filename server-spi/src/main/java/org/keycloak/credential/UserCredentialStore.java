@@ -16,6 +16,7 @@
  */
 package org.keycloak.credential;
 
+import java.util.function.Predicate;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.provider.Provider;
@@ -27,7 +28,23 @@ import java.util.stream.Stream;
  * @version $Revision: 1 $
  */
 public interface UserCredentialStore extends Provider {
-    void updateCredential(RealmModel realm, UserModel user, CredentialModel cred);
+    default void updateCredential(RealmModel realm, UserModel user, CredentialModel cred) {
+        updateCredential(realm, user, cred, model -> true);
+    }
+
+    /**
+     * Updates the credential model only if the predicate returns true. This is useful
+     * when the credential should maintain some integrity on the update (for
+     * example RecoveryAuthnCodes that should use a code only once).
+     *
+     * @param realm The realm
+     * @param user The user
+     * @param cred The credential
+     * @param predicate The predicate to check before update
+     * @return true if updated, false if predicate resulted into false
+     */
+    boolean updateCredential(RealmModel realm, UserModel user, CredentialModel cred, Predicate<CredentialModel> predicate);
+
     CredentialModel createCredential(RealmModel realm, UserModel user, CredentialModel cred);
 
     /**

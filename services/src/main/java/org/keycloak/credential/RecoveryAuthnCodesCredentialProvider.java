@@ -102,14 +102,15 @@ public class RecoveryAuthnCodesCredentialProvider
         if (credential.isPresent()) {
             RecoveryAuthnCodesCredentialModel credentialModel = RecoveryAuthnCodesCredentialModel
                     .createFromCredentialModel(credential.get());
+            final int currentSize = credentialModel.size();
             if (!credentialModel.allCodesUsed()) {
                 Optional<RecoveryAuthnCodeRepresentation> nextRecoveryAuthnCode = credentialModel.getNextRecoveryAuthnCode();
                 if (nextRecoveryAuthnCode.isPresent()) {
                     String nextRecoveryCode = nextRecoveryAuthnCode.get().getEncodedHashedValue();
                     if (RecoveryAuthnCodesUtils.verifyRecoveryCodeInput(rawInputRecoveryAuthnCode, nextRecoveryCode)) {
                         credentialModel.removeRecoveryAuthnCode();
-                        user.credentialManager().updateStoredCredential(credentialModel);
-                        return true;
+                        return user.credentialManager().updateStoredCredential(credentialModel,
+                                model -> RecoveryAuthnCodesCredentialModel.createFromCredentialModel(model).size() == currentSize);
                     }
 
                 }

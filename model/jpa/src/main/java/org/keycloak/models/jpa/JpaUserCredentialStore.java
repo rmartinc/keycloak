@@ -34,6 +34,7 @@ import java.util.List;
 import jakarta.persistence.LockModeType;
 
 import java.util.Objects;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -59,14 +60,15 @@ public class JpaUserCredentialStore implements UserCredentialStore {
     }
 
     @Override
-    public void updateCredential(RealmModel realm, UserModel user, CredentialModel cred) {
-        CredentialEntity entity = em.find(CredentialEntity.class, cred.getId());
-        if (!checkCredentialEntity(entity, user)) return;
+    public boolean updateCredential(RealmModel realm, UserModel user, CredentialModel cred, Predicate<CredentialModel> predicate) {
+        CredentialEntity entity = em.find(CredentialEntity.class, cred.getId(), LockModeType.PESSIMISTIC_WRITE);
+        if (!checkCredentialEntity(entity, user) || !predicate.test(toModel(entity))) return false;
         entity.setCreatedDate(cred.getCreatedDate());
         entity.setUserLabel(cred.getUserLabel());
         entity.setType(cred.getType());
         entity.setSecretData(cred.getSecretData());
         entity.setCredentialData(cred.getCredentialData());
+        return true;
     }
 
     @Override

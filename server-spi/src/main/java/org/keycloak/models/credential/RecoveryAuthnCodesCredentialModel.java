@@ -44,6 +44,10 @@ public class RecoveryAuthnCodesCredentialModel extends CredentialModel {
         return this.secretData.getCodes().isEmpty();
     }
 
+    public int size() {
+        return secretData.getCodes().size();
+    }
+
     public void removeRecoveryAuthnCode() {
         try {
             this.secretData.removeNextBackupCode();

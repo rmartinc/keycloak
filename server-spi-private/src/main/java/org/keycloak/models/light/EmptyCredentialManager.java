@@ -20,6 +20,7 @@ import org.keycloak.credential.CredentialInput;
 import org.keycloak.credential.CredentialModel;
 import org.keycloak.models.SubjectCredentialManager;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 /**
@@ -42,8 +43,8 @@ class EmptyCredentialManager implements SubjectCredentialManager {
     }
 
     @Override
-    public void updateStoredCredential(CredentialModel cred) {
-        // no-op
+    public boolean updateStoredCredential(CredentialModel cred, Predicate<CredentialModel> predicate) {
+        return false;
     }
 
     @Override

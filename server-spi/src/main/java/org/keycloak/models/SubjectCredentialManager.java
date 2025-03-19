@@ -22,6 +22,7 @@ import org.keycloak.credential.CredentialModel;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 /**
@@ -55,7 +56,19 @@ public interface SubjectCredentialManager {
      * Updates a credential of the entity with an updated {@link CredentialModel}.
      * Usually called by a {@link org.keycloak.credential.CredentialProvider}.
      */
-    void updateStoredCredential(CredentialModel cred);
+    default void updateStoredCredential(CredentialModel cred) {
+        updateStoredCredential(cred, model -> true);
+    }
+
+    /**
+     * Updates a credential of the entity with an updated {@link CredentialModel} but
+     * checking consistency of the current model.
+     *
+     * @param cred The credential to update
+     * @param predicate The predicate to check credential is OK
+     * @return true if updated, false if not
+     */
+    boolean updateStoredCredential(CredentialModel cred, Predicate<CredentialModel> predicate);
 
     /**
      * Updates a credential of the entity with an updated {@link CredentialModel}.

@@ -17,6 +17,7 @@
 
 package org.keycloak.models.cache.infinispan;
 
+import java.util.function.Predicate;
 import org.keycloak.credential.CredentialInput;
 import org.keycloak.credential.CredentialModel;
 import org.keycloak.credential.UserCredentialManager;
@@ -42,9 +43,9 @@ public abstract class SubjectCredentialManagerCacheAdapter extends UserCredentia
     }
 
     @Override
-    public void updateStoredCredential(CredentialModel cred) {
+    public boolean updateStoredCredential(CredentialModel cred, Predicate<CredentialModel> predicate) {
         invalidateCacheForEntity();
-        super.updateStoredCredential(cred);
+        return super.updateStoredCredential(cred, predicate);
     }
 
     @Override

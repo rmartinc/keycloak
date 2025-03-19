@@ -9,6 +9,7 @@ import org.junit.FixMethodOrder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
+import org.keycloak.admin.client.resource.AuthenticationManagementResource;
 import org.keycloak.admin.client.resource.UserResource;
 import org.keycloak.authentication.AuthenticationFlow;
 import org.keycloak.authentication.authenticators.browser.RecoveryAuthnCodesFormAuthenticatorFactory;
@@ -77,7 +78,15 @@ public class RecoveryAuthnCodesAuthenticatorTest extends AbstractTestRealmKeyclo
     protected LoginUsernameOnlyPage loginUsernameOnlyPage;
 
     @Page
+    @SecondBrowser
+    protected LoginUsernameOnlyPage loginUsernameOnlyPageSecondBrowser;
+
+    @Page
     protected EnterRecoveryAuthnCodePage enterRecoveryAuthnCodePage;
+
+    @Page
+    @SecondBrowser
+    protected EnterRecoveryAuthnCodePage enterRecoveryAuthnCodePageSecondBrowser;
 
     @Page
     protected SetupRecoveryAuthnCodesPage setupRecoveryAuthnCodesPage;
@@ -86,7 +95,15 @@ public class RecoveryAuthnCodesAuthenticatorTest extends AbstractTestRealmKeyclo
     protected SelectAuthenticatorPage selectAuthenticatorPage;
 
     @Page
+    @SecondBrowser
+    protected SelectAuthenticatorPage selectAuthenticatorPageSecondBrowser;
+
+    @Page
     protected PasswordPage passwordPage;
+
+    @Page
+    @SecondBrowser
+    protected PasswordPage passwordPageSecondBrowser;
 
     @Page
     protected AppPage appPage;
@@ -250,44 +267,111 @@ public class RecoveryAuthnCodesAuthenticatorTest extends AbstractTestRealmKeyclo
                 .assertEvent();
     }
 
+    private void loginUsername(LoginUsernameOnlyPage loginUsernameOnlyPage, WebDriver driver) {
+        loginUsernameOnlyPage.setDriver(driver);
+        oauth.openLoginForm();
+        loginUsernameOnlyPage.assertCurrent();
+        loginUsernameOnlyPage.assertAttemptedUsernameAvailability(false);
+        loginUsernameOnlyPage.login("test-user@localhost");
+    }
+
+    private void tryAnotherWay(PasswordPage passwordPage, WebDriver driver) {
+        passwordPage.setDriver(driver);
+        passwordPage.assertCurrent();
+        passwordPage.assertAttemptedUsernameAvailability(true);
+        // On the password page, username should be shown as we know the user
+        Assert.assertEquals("test-user@localhost", passwordPage.getAttemptedUsername());
+        passwordPage.assertTryAnotherWayLinkAvailability(true);
+        passwordPage.clickTryAnotherWayLink();
+    }
+
+    private void selectRecoveryAuthnCodes(SelectAuthenticatorPage selectAuthenticatorPage, WebDriver driver) {
+        selectAuthenticatorPage.setDriver(driver);
+        selectAuthenticatorPage.assertCurrent();
+        Assert.assertEquals(Arrays.asList(SelectAuthenticatorPage.PASSWORD, SelectAuthenticatorPage.RECOVERY_AUTHN_CODES), selectAuthenticatorPage.getAvailableLoginMethods());
+        selectAuthenticatorPage.selectLoginMethod(SelectAuthenticatorPage.RECOVERY_AUTHN_CODES);
+    }
+
+    private void enterRecoveryCodes(EnterRecoveryAuthnCodePage enterRecoveryAuthnCodePage, WebDriver driver,
+            int expectedCode, boolean expectSuccess, List<String> generatedRecoveryAuthnCodes) {
+        enterRecoveryAuthnCodePage.setDriver(driver);
+        enterRecoveryAuthnCodePage.assertCurrent();
+        int requestedCode = enterRecoveryAuthnCodePage.getRecoveryAuthnCodeToEnterNumber();
+        Assert.assertEquals("Incorrect code presented to login", expectedCode, requestedCode);
+        enterRecoveryAuthnCodePage.enterRecoveryAuthnCode(generatedRecoveryAuthnCodes.get(requestedCode));
+        enterRecoveryAuthnCodePage.clickSignInButton();
+        if (expectSuccess) {
+            enterRecoveryAuthnCodePage.assertAccountLinkAvailability(true);
+        } else {
+            enterRecoveryAuthnCodePage.assertCurrent();
+        }
+    }
+
+    private void removeRequiredActionIfPresent() {
+        AuthenticationManagementResource authMgt = testRealm().flows();
+        authMgt.getRequiredActions().stream()
+                .filter(action -> UserModel.RequiredAction.CONFIGURE_RECOVERY_AUTHN_CODES.name().equals(action.getAlias()))
+                .findAny()
+                .ifPresent(action -> authMgt.removeRequiredAction(action.getAlias()));
+    }
+
+    private List<String> createRecoveryAuthnCodesForUser() {
+        List<String> generatedRecoveryAuthnCodes = RecoveryAuthnCodesUtils.generateRawCodes();
+        testingClient.server().run(session -> {
+            RealmModel realm = session.realms().getRealmByName("test");
+            UserModel user = session.users().getUserByUsername(realm, "test-user@localhost");
+            CredentialModel recoveryAuthnCodesCred = RecoveryAuthnCodesCredentialModel.createFromValues(
+                    generatedRecoveryAuthnCodes,
+                    System.currentTimeMillis(),
+                    null);
+            user.credentialManager().createStoredCredential(recoveryAuthnCodesCred);
+        });
+        return generatedRecoveryAuthnCodes;
+    }
+
     // In a sub-flow with alternative credential executors, test whether Recovery Authentication Codes are working
     @Test
-    public void test05AuthenticateRecoveryAuthnCodes() {
+    public void test05AuthenticateRecoveryAuthnCodes() throws Exception {
         try {
             configureBrowserFlowWithRecoveryAuthnCodes(testingClient);
-            testRealm().flows().removeRequiredAction(UserModel.RequiredAction.CONFIGURE_RECOVERY_AUTHN_CODES.name());
-            loginUsernameOnlyPage.open();
-            loginUsernameOnlyPage.assertAttemptedUsernameAvailability(false);
-            loginUsernameOnlyPage.login("test-user@localhost");
-            // On the password page, username should be shown as we know the user
-            passwordPage.assertCurrent();
-            passwordPage.assertAttemptedUsernameAvailability(true);
-            Assert.assertEquals("test-user@localhost", passwordPage.getAttemptedUsername());
-            passwordPage.assertTryAnotherWayLinkAvailability(true);
-            List<String> generatedRecoveryAuthnCodes = RecoveryAuthnCodesUtils.generateRawCodes();
-            testingClient.server().run(session -> {
-                RealmModel realm = session.realms().getRealmByName("test");
-                UserModel user = session.users().getUserByUsername(realm, "test-user@localhost");
-                CredentialModel recoveryAuthnCodesCred = RecoveryAuthnCodesCredentialModel.createFromValues(
-                        generatedRecoveryAuthnCodes,
-                        System.currentTimeMillis(),
-                        null);
-                user.credentialManager().createStoredCredential(recoveryAuthnCodesCred);
-            });
-            passwordPage.clickTryAnotherWayLink();
-            selectAuthenticatorPage.assertCurrent();
-            Assert.assertEquals(Arrays.asList(SelectAuthenticatorPage.PASSWORD, SelectAuthenticatorPage.RECOVERY_AUTHN_CODES), selectAuthenticatorPage.getAvailableLoginMethods());
-            selectAuthenticatorPage.selectLoginMethod(SelectAuthenticatorPage.RECOVERY_AUTHN_CODES);
-            enterRecoveryAuthnCodePage.assertCurrent();
-            enterRecoveryAuthnCodePage.enterRecoveryAuthnCode(generatedRecoveryAuthnCodes.get(enterRecoveryAuthnCodePage.getRecoveryAuthnCodeToEnterNumber()));
-            enterRecoveryAuthnCodePage.clickSignInButton();
-            enterRecoveryAuthnCodePage.assertAccountLinkAvailability(true);
+            removeRequiredActionIfPresent();
+            List<String> generatedRecoveryAuthnCodes = createRecoveryAuthnCodesForUser();
+
+            // perform the login username
+            loginUsername(loginUsernameOnlyPage, driver);
+            // click try another way
+            tryAnotherWay(passwordPage, driver);
+            // select recovery codes to authenticate
+            selectRecoveryAuthnCodes(selectAuthenticatorPage, driver);
+            // enter recovery codes
+            enterRecoveryCodes(enterRecoveryAuthnCodePage, driver, 0, true, generatedRecoveryAuthnCodes);
         } finally {
-            // Remove saved Recovery Authentication Codes to keep a clean slate after this test
-            enterRecoveryAuthnCodePage.assertAccountLinkAvailability(true);
-            enterRecoveryAuthnCodePage.clickAccountLink();
-            assertThat(driver.getTitle(), containsString("Account Management"));
             // Revert copy of browser flow to original to keep clean slate after this test
+            BrowserFlowTest.revertFlows(testRealm(), BROWSER_FLOW_WITH_RECOVERY_AUTHN_CODES);
+        }
+    }
+
+    @Test
+    public void test06AuthenticateRecoveryAuthnCodesSimultaneous() throws Exception {
+        try {
+            configureBrowserFlowWithRecoveryAuthnCodes(testingClient);
+            removeRequiredActionIfPresent();
+            List<String> generatedRecoveryAuthnCodes = createRecoveryAuthnCodesForUser();
+
+            // perform the login username
+            loginUsername(loginUsernameOnlyPage, driver);
+            loginUsername(loginUsernameOnlyPageSecondBrowser, driver2);
+            // click try another way
+            tryAnotherWay(passwordPage, driver);
+            tryAnotherWay(passwordPageSecondBrowser, driver2);
+            // select recivery codes to authenticate
+            selectRecoveryAuthnCodes(selectAuthenticatorPage, driver);
+            selectRecoveryAuthnCodes(selectAuthenticatorPageSecondBrowser, driver2);
+            // enter recovery codes, the first login should work but the second one should fail as the code was used by the successful attempt
+            enterRecoveryCodes(enterRecoveryAuthnCodePage, driver, 0, true, generatedRecoveryAuthnCodes);
+            enterRecoveryCodes(enterRecoveryAuthnCodePageSecondBrowser, driver2, 0, false, generatedRecoveryAuthnCodes);
+        } finally {
+           // Revert copy of browser flow to original to keep clean slate after this test
             BrowserFlowTest.revertFlows(testRealm(), BROWSER_FLOW_WITH_RECOVERY_AUTHN_CODES);
         }
     }
@@ -296,7 +380,7 @@ public class RecoveryAuthnCodesAuthenticatorTest extends AbstractTestRealmKeyclo
     @Test
     @IgnoreBrowserDriver(FirefoxDriver.class)
     @IgnoreBrowserDriver(ChromeDriver.class)
-    public void test06SetupRecoveryAuthnCodes() {
+    public void test07SetupRecoveryAuthnCodes() {
         try {
             configureBrowserFlowWithRecoveryAuthnCodes(testingClient);
             RequiredActionProviderSimpleRepresentation simpleRepresentation = new RequiredActionProviderSimpleRepresentation();
@@ -327,7 +411,7 @@ public class RecoveryAuthnCodesAuthenticatorTest extends AbstractTestRealmKeyclo
     @Test
     @IgnoreBrowserDriver(FirefoxDriver.class) // TODO: https://github.com/keycloak/keycloak/issues/13543
     @IgnoreBrowserDriver(ChromeDriver.class)
-    public void test07BruteforceProtectionRecoveryAuthnCodes() {
+    public void test08BruteforceProtectionRecoveryAuthnCodes() {
         try {
             configureBrowserFlowWithRecoveryAuthnCodes(testingClient);
             RealmRepresentation rep = testRealm().toRepresentation();
