@@ -70,6 +70,7 @@ import org.keycloak.testsuite.util.MailUtils;
 import org.keycloak.testsuite.util.OAuthClient;
 import org.keycloak.testsuite.util.RealmBuilder;
 import org.keycloak.testsuite.util.SecondBrowser;
+import org.keycloak.testsuite.util.UIUtils;
 import org.keycloak.testsuite.util.UserActionTokenBuilder;
 import org.keycloak.testsuite.util.UserBuilder;
 import org.keycloak.testsuite.util.WaitUtils;
@@ -1449,7 +1450,7 @@ public class ResetPasswordTest extends AbstractTestRealmKeycloakTest {
         confirmPassword.sendKeys("resetPassword");
         final WebElement submit = driver.findElement(By.cssSelector("button[type=\"submit\"]"));
 
-        submit.click();
+        UIUtils.clickLink(submit);
     }
 
     private void resetPasswordInNewTab(UserRepresentation user, String clientId, String redirectUri) throws IOException {
