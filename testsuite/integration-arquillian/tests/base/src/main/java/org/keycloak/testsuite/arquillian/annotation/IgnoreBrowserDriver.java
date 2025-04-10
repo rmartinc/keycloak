@@ -40,13 +40,15 @@ public @interface IgnoreBrowserDriver {
 
     /**
      * Define for which WebDriver the test method/class should be ignored
+     * @return
      */
-    Class<? extends WebDriver> value();
+    Class<? extends WebDriver>[] value();
 
     /**
      * Define whether the value should be negated
      *
      * Usable in cases when we want to execute test method/class with all WebDrivers except the one specified in value()
+     * @return
      */
     boolean negate() default false;
 

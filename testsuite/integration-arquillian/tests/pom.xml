@@ -226,7 +226,7 @@
         <firefoxUserPreferences/>
         <firefoxArguments>-headless</firefoxArguments>
         <chromeBinary/>
-        <chromeArguments>--headless --window-size=1920,1080 --remote-allow-origins=* --ignore-ssl-errors=yes --ignore-certificate-errors</chromeArguments>
+        <chromeArguments>--headless --incognito --window-size=1920,1080 --remote-allow-origins=* --ignore-ssl-errors=yes --ignore-certificate-errors</chromeArguments>
         <chromeDriverVersion/>
 
         <frontend.console.output>true</frontend.console.output>
