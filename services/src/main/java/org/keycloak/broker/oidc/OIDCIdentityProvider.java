@@ -1034,7 +1034,7 @@ public class OIDCIdentityProvider extends AbstractOAuth2IdentityProvider<OIDCIde
         user.setEmailVerified(emailVerified);
     }
 
-    private Boolean getEmailVerifiedClaim(JsonWebToken token) {
+    protected Boolean getEmailVerifiedClaim(JsonWebToken token) {
         if (token == null) {
             return null;
         }

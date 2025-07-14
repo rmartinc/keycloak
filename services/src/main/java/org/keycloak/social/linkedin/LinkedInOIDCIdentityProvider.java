@@ -25,6 +25,8 @@ import org.keycloak.keys.PublicKeyLoader;
 import org.keycloak.keys.PublicKeyStorageProvider;
 import org.keycloak.keys.PublicKeyStorageUtils;
 import org.keycloak.models.KeycloakSession;
+import org.keycloak.representations.IDToken;
+import org.keycloak.representations.JsonWebToken;
 
 /**
  * <p>Specific OIDC LinkedIn provider for <b>Sign In with LinkedIn using OpenID Connect</b>
@@ -52,5 +54,18 @@ public class LinkedInOIDCIdentityProvider extends OIDCIdentityProvider implement
         PublicKeyStorageProvider keyStorage = session.getProvider(PublicKeyStorageProvider.class);
         String modelKey = PublicKeyStorageUtils.getIdpModelCacheKey(session.getContext().getRealm().getId(), getConfig().getInternalId());
         return keyStorage.getPublicKey(modelKey, jws.getHeader().getKeyId(), jws.getHeader().getRawAlgorithm(), loader);
+    }
+
+    @Override
+    protected Boolean getEmailVerifiedClaim(JsonWebToken token) {
+        if (token == null) {
+            return null;
+        }
+
+        // in LinkedIn the email_verified claim is a string although spec says it is boolean
+        final Object emailVerified = token.getOtherClaims().get(IDToken.EMAIL_VERIFIED);
+        return emailVerified instanceof Boolean
+                ? (Boolean) emailVerified
+                : Boolean.valueOf(emailVerified.toString());
     }
 }

@@ -49,6 +49,8 @@ public class LinkedInOIDCIdentityProviderFactory extends AbstractIdentityProvide
 
     public static final String PROVIDER_ID = "linkedin-openid-connect";
     public static final String WELL_KNOWN_URL = "https://www.linkedin.com/oauth/.well-known/openid-configuration";
+    // intrspect URL as specified in https://learn.microsoft.com/en-us/linkedin/shared/authentication/token-introspection
+    public static final String INTROSPECT_TOKEN_URL = "https://www.linkedin.com/oauth/v2/introspectToken";
 
     // well known oidc metadata is cached as static property
     private static OIDCConfigurationRepresentation metadata;
@@ -80,6 +82,7 @@ public class LinkedInOIDCIdentityProviderFactory extends AbstractIdentityProvide
         if (local.getUserinfoEndpoint() != null) {
             config.setUserInfoUrl(local.getUserinfoEndpoint());
         }
+        config.setTokenIntrospectionUrl(INTROSPECT_TOKEN_URL);
         config.setUseJwksUrl(true);
         config.setJwksUrl(local.getJwksUri());
         config.setValidateSignature(true);

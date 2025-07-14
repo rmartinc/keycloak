@@ -54,6 +54,7 @@ import org.keycloak.testsuite.util.oauth.OAuthClient;
 import org.keycloak.testsuite.util.RealmBuilder;
 import org.keycloak.testsuite.util.URLUtils;
 import org.keycloak.testsuite.util.WaitUtils;
+import org.keycloak.testsuite.util.userprofile.UserProfileUtil;
 import org.keycloak.util.BasicAuthHelper;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
@@ -178,6 +179,7 @@ public class SocialLoginTest extends AbstractKeycloakTest {
     public void beforeSocialLoginTest() {
         oauth.realm(REALM);
         createAppClientInRealm(REALM);
+        UserProfileUtil.enableUnmanagedAttributes(adminClient.realm(REALM).users().userProfile());
     }
 
     @After
