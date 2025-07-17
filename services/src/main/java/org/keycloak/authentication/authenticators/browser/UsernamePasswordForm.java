@@ -82,6 +82,12 @@ public class UsernamePasswordForm extends AbstractUsernameFormAuthenticator impl
                 authSession.getAuthNote(AuthenticationProcessor.LAST_AUTHN_CREDENTIAL));
     }
 
+    protected void fillContextFormWebAuthn(AuthenticationFlowContext context) {
+        if (webauthnAuth != null && webauthnAuth.isPasskeysEnabled()) {
+            webauthnAuth.fillContextForm(context);
+        }
+    }
+
     @Override
     public void authenticate(AuthenticationFlowContext context) {
         MultivaluedMap<String, String> formData = new MultivaluedHashMap<>();
@@ -110,11 +116,11 @@ public class UsernamePasswordForm extends AbstractUsernameFormAuthenticator impl
                     formData.add("rememberMe", "on");
                 }
             }
-            // setup webauthn data when the user is not already selected
-            if (webauthnAuth != null && webauthnAuth.isPasskeysEnabled()) {
-                webauthnAuth.fillContextForm(context);
-            }
         }
+
+        // setup webauthn data if needed
+        fillContextFormWebAuthn(context);
+
         Response challengeResponse = challenge(context, formData);
         context.challenge(challengeResponse);
     }
@@ -134,10 +140,7 @@ public class UsernamePasswordForm extends AbstractUsernameFormAuthenticator impl
 
     @Override
     protected Response challenge(AuthenticationFlowContext context, String error, String field) {
-        if (context.getUser() == null && webauthnAuth != null && webauthnAuth.isPasskeysEnabled()) {
-            // setup webauthn data when the user is not already selected
-            webauthnAuth.fillContextForm(context);
-        }
+        fillContextFormWebAuthn(context);
         return super.challenge(context, error, field);
     }
 

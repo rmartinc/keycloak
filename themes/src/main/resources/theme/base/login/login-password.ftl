@@ -1,4 +1,5 @@
 <#import "template.ftl" as layout>
+<#import "passkeys.ftl" as passkeys>
 <@layout.registrationLayout displayMessage=!messagesPerField.existsError('password'); section>
     <#if section = "header">
         ${msg("doLogIn")}
@@ -46,6 +47,7 @@
                 </form>
             </div>
         </div>
+        <@passkeys.conditionalUIData />
         <script type="module" src="${url.resourcesPath}/js/passwordVisibility.js"></script>
     </#if>
 

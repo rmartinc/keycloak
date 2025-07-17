@@ -39,8 +39,12 @@ public class WebAuthnConditionalUIAuthenticator extends WebAuthnPasswordlessAuth
 
     @Override
     public LoginFormsProvider fillContextForm(AuthenticationFlowContext context) {
-        context.form().setAttribute(WebAuthnConstants.ENABLE_WEBAUTHN_CONDITIONAL_UI, Boolean.TRUE);
-        return super.fillContextForm(context);
+        LoginFormsProvider form = super.fillContextForm(context);
+        if (form != null) {
+            // if form is not null, passwordless/passkeys login is allowed
+            form.setAttribute(WebAuthnConstants.ENABLE_WEBAUTHN_CONDITIONAL_UI, Boolean.TRUE);
+        }
+        return form;
     }
 
     @Override

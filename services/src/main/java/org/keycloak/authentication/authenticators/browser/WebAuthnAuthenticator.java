@@ -85,16 +85,6 @@ public class WebAuthnAuthenticator implements Authenticator, CredentialValidator
     public LoginFormsProvider fillContextForm(AuthenticationFlowContext context) {
         LoginFormsProvider form = context.form();
  
-        Challenge challenge = new DefaultChallenge();
-        String challengeValue = Base64Url.encode(challenge.getValue());
-        context.getAuthenticationSession().setAuthNote(WebAuthnConstants.AUTH_CHALLENGE_NOTE, challengeValue);
-        form.setAttribute(WebAuthnConstants.CHALLENGE, challengeValue);
-
-        WebAuthnPolicy policy = getWebAuthnPolicy(context);
-        String rpId = getRpID(context);
-        form.setAttribute(WebAuthnConstants.RP_ID, rpId);
-        form.setAttribute(WebAuthnConstants.CREATE_TIMEOUT, policy.getCreateTimeout());
-
         UserModel user = context.getUser();
         boolean isUserIdentified = false;
         if (user != null) {
@@ -111,6 +101,16 @@ public class WebAuthnAuthenticator implements Authenticator, CredentialValidator
             // NOP
         }
         form.setAttribute(WebAuthnConstants.IS_USER_IDENTIFIED, Boolean.toString(isUserIdentified));
+
+        Challenge challenge = new DefaultChallenge();
+        String challengeValue = Base64Url.encode(challenge.getValue());
+        context.getAuthenticationSession().setAuthNote(WebAuthnConstants.AUTH_CHALLENGE_NOTE, challengeValue);
+        form.setAttribute(WebAuthnConstants.CHALLENGE, challengeValue);
+
+        WebAuthnPolicy policy = getWebAuthnPolicy(context);
+        String rpId = getRpID(context);
+        form.setAttribute(WebAuthnConstants.RP_ID, rpId);
+        form.setAttribute(WebAuthnConstants.CREATE_TIMEOUT, policy.getCreateTimeout());
 
         // read options from policy
         String userVerificationRequirement = policy.getUserVerificationRequirement();

@@ -32,6 +32,8 @@ import org.keycloak.events.Errors;
 import org.keycloak.events.EventType;
 import org.keycloak.models.Constants;
 import org.keycloak.models.credential.WebAuthnCredentialModel;
+import org.keycloak.protocol.oidc.OIDCLoginProtocol;
+import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.keycloak.testsuite.admin.AbstractAdminTest;
@@ -105,6 +107,20 @@ public class PasskeysUsernamePasswordFormTest extends AbstractWebAuthnVirtualTes
                     .detail(WebAuthnConstants.USER_VERIFICATION_CHECKED, "true")
                     .assertEvent();
 
+            // go to login again but forcing re-authentication
+            oauth.loginForm().prompt(OIDCLoginProtocol.PROMPT_VALUE_LOGIN).open();
+            WaitUtils.waitForPageToLoad();
+            loginPage.assertCurrent();
+            MatcherAssert.assertThat(loginPage.getAttemptedUsername(), Matchers.is("userwebauthn"));
+            webAuthnLoginPage.clickAuthenticate();
+            appPage.assertCurrent();
+            events.expectLogin()
+                    .user(user.getId())
+                    .detail(Details.USERNAME, user.getUsername())
+                    .detail(Details.CREDENTIAL_TYPE, WebAuthnCredentialModel.TYPE_PASSWORDLESS)
+                    .detail(WebAuthnConstants.USER_VERIFICATION_CHECKED, "true")
+                    .assertEvent();
+
             logout();
         }
     }
@@ -155,6 +171,28 @@ public class PasskeysUsernamePasswordFormTest extends AbstractWebAuthnVirtualTes
                     .detail(Details.USERNAME, USERNAME)
                     .detail(Details.CREDENTIAL_TYPE, Matchers.nullValue())
                     .assertEvent();
+
+            // remove the passkey in the user to check login with passkey is not displayed on re-auth
+            userResource().credentials().stream().filter(cred -> getCredentialType().equals(cred.getType()))
+                    .map(CredentialRepresentation::getId)
+                    .forEach(id -> userResource().removeCredential(id));
+
+            // go to login again but forcing re-authentication
+            oauth.loginForm().prompt(OIDCLoginProtocol.PROMPT_VALUE_LOGIN).open();
+            WaitUtils.waitForPageToLoad();
+            loginPage.assertCurrent();
+            MatcherAssert.assertThat(loginPage.getAttemptedUsername(), Matchers.is("userwebauthn"));
+            // webauthn link is not present because the user has no keys
+            MatcherAssert.assertThat(webAuthnLoginPage.isCurrent(), Matchers.is(false));
+
+            // login with password again
+            loginPage.login(getPassword(USERNAME));
+            appPage.assertCurrent();
+            events.expectLogin()
+                    .user(user.getId())
+                    .detail(Details.USERNAME, Matchers.equalToIgnoringCase(USERNAME))
+                    .detail(Details.CREDENTIAL_TYPE, Matchers.nullValue())
+                    .assertEvent();
         }
     }
 
@@ -199,6 +237,21 @@ public class PasskeysUsernamePasswordFormTest extends AbstractWebAuthnVirtualTes
                     .detail(Details.CREDENTIAL_TYPE, WebAuthnCredentialModel.TYPE_PASSWORDLESS)
                     .detail(WebAuthnConstants.USER_VERIFICATION_CHECKED, "true")
                     .assertEvent();
+
+            // go to login again but forcing re-authentication
+            oauth.loginForm().prompt(OIDCLoginProtocol.PROMPT_VALUE_LOGIN).open();
+            WaitUtils.waitForPageToLoad();
+            loginPage.assertCurrent();
+            MatcherAssert.assertThat(loginPage.getAttemptedUsername(), Matchers.is("userwebauthn"));
+            webAuthnLoginPage.clickAuthenticate();
+            appPage.assertCurrent();
+            events.expectLogin()
+                    .user(user.getId())
+                    .detail(Details.USERNAME, user.getUsername())
+                    .detail(Details.CREDENTIAL_TYPE, WebAuthnCredentialModel.TYPE_PASSWORDLESS)
+                    .detail(WebAuthnConstants.USER_VERIFICATION_CHECKED, "true")
+                    .assertEvent();
+
             logout();
         }
     }
