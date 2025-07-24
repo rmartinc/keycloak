@@ -42,6 +42,7 @@ import org.keycloak.representations.adapters.action.GlobalRequestResult;
 import org.keycloak.representations.adapters.action.PushNotBeforeAction;
 import org.keycloak.representations.adapters.action.TestAvailabilityAction;
 import org.keycloak.representations.idm.ClientRepresentation;
+import org.keycloak.representations.idm.ClientScopeRepresentation;
 import org.keycloak.representations.idm.OAuth2ErrorRepresentation;
 import org.keycloak.representations.idm.ProtocolMapperRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
@@ -80,6 +81,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
 import static org.hamcrest.CoreMatchers.is;
@@ -945,6 +947,49 @@ public class ClientTest {
 
         ClientRepresentation storedClient = managedRealm.admin().clients().get(client.getId()).toRepresentation();
         assertClient(client, storedClient);
+    }
+
+    @Test
+    public void createClientCreationWithClientScopes() {
+        ClientRepresentation rep = new ClientRepresentation();
+        rep.setClientId("my-app");
+        rep.setDescription("my-app description");
+        rep.setEnabled(true);
+        rep.setPublicClient(true);
+        rep.setProtocol("openid-connect");
+
+        final List<String> defaultClientScopes = managedRealm.admin().getDefaultDefaultClientScopes()
+                .stream()
+                .filter(cs -> "openid-connect".equals(cs.getProtocol()))
+                .map(ClientScopeRepresentation::getName)
+                .collect(Collectors.toList());
+        final List<String> optionalClientScopes = managedRealm.admin().getDefaultOptionalClientScopes()
+                .stream()
+                .filter(cs -> "openid-connect".equals(cs.getProtocol()))
+                .map(ClientScopeRepresentation::getName)
+                .collect(Collectors.toList());
+
+        // initially set an invalid client scope
+        rep.setDefaultClientScopes(defaultClientScopes);
+        rep.setOptionalClientScopes(Stream.concat(optionalClientScopes.stream(), Stream.of("invalid-scope")).collect(Collectors.toList()));
+
+        try (Response response = managedRealm.admin().clients().create(rep)) {
+            MatcherAssert.assertThat(response.getStatus(), is(Response.Status.BAD_REQUEST.getStatusCode()));
+            MatcherAssert.assertThat(response.readEntity(String.class), Matchers.containsString("No available client scope invalid-scope"));
+        }
+
+        // now create with all the valid scopes
+        rep.setDefaultClientScopes(defaultClientScopes);
+        rep.setOptionalClientScopes(optionalClientScopes);
+
+        try (Response response = managedRealm.admin().clients().create(rep)) {
+            String id = ApiUtil.getCreatedId(response);
+            managedRealm.cleanup().add(r -> r.clients().get(id).remove());
+            ClientRepresentation client = managedRealm.admin().clients().get(id).toRepresentation();
+
+            MatcherAssert.assertThat(client.getDefaultClientScopes(), Matchers.containsInAnyOrder(defaultClientScopes.toArray()));
+            MatcherAssert.assertThat(client.getOptionalClientScopes(), Matchers.containsInAnyOrder(optionalClientScopes.toArray()));
+        }
     }
 
     public static void assertClient(ClientRepresentation client, ClientRepresentation storedClient) {

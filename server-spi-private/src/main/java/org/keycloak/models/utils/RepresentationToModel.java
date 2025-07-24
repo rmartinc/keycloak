@@ -83,6 +83,7 @@ import org.keycloak.models.IdentityProviderMapperModel;
 import org.keycloak.models.IdentityProviderModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.ModelException;
+import org.keycloak.models.ModelValidationException;
 import org.keycloak.models.OrganizationDomainModel;
 import org.keycloak.models.OrganizationModel;
 import org.keycloak.models.ProtocolMapperModel;
@@ -404,11 +405,10 @@ public class RepresentationToModel {
 
     private static void addClientScopeToClient(RealmModel realm, ClientModel client, String clientScopeName, boolean defaultScope) {
         ClientScopeModel clientScope = KeycloakModelUtils.getClientScopeByName(realm, clientScopeName);
-        if (clientScope != null) {
-            client.addClientScope(clientScope, defaultScope);
-        } else {
-            logger.warnf("Referenced client scope '%s' doesn't exist. Ignoring", clientScopeName);
+        if (clientScope == null) {
+            throw new ModelValidationException("No available client scope " + clientScopeName);
         }
+        client.addClientScope(clientScope, defaultScope);
     }
 
     public static void updateClient(ClientRepresentation rep, ClientModel resource, KeycloakSession session) {
