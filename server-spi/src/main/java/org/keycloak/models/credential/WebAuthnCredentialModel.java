@@ -40,6 +40,9 @@ public class WebAuthnCredentialModel extends CredentialModel {
     // Credential type used for WebAuthn passwordless credentials
     public static final String TYPE_PASSWORDLESS = "webauthn-passwordless";
 
+    // message to include in the account console
+    public static final String WEBAUTHN_INFO_MESSAGE = "webauthn-info";
+
     // Either
     private final WebAuthnCredentialData credentialData;
     private final WebAuthnSecretData secretData;

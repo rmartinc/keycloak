@@ -44,6 +44,7 @@ import org.keycloak.models.UserModel;
 import org.keycloak.models.WebAuthnPolicy;
 import org.keycloak.models.credential.WebAuthnCredentialModel;
 import org.keycloak.models.credential.dto.WebAuthnCredentialData;
+import org.keycloak.util.JsonSerialization;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -298,6 +299,20 @@ public class WebAuthnCredentialProvider implements CredentialProvider<WebAuthnCr
                 .createAction(WebAuthnRegisterFactory.PROVIDER_ID)
                 .removeable(true)
                 .build(session);
+    }
+
+    @Override
+    public CredentialMetadata getCredentialMetadata(WebAuthnCredentialModel credentialModel, CredentialTypeMetadata credentialTypeMetadata) {
+        CredentialMetadata credentialMetadata = CredentialProvider.super.getCredentialMetadata(credentialModel, credentialTypeMetadata);
+        try {
+            WebAuthnCredentialData credentialData = JsonSerialization.readValue(credentialModel.getCredentialData(), WebAuthnCredentialData.class);
+            if (credentialData.getTransports() != null && !credentialData.getTransports().isEmpty()) {
+                credentialMetadata.setInfoMessage(WebAuthnCredentialModel.WEBAUTHN_INFO_MESSAGE, String.join(", ", credentialData.getTransports()));
+            }
+        } catch (IOException e) {
+            logger.warn("unable to deserialize model information, skipping messages", e);
+        }
+        return credentialMetadata;
     }
 
     protected KeycloakSession getKeycloakSession() {
