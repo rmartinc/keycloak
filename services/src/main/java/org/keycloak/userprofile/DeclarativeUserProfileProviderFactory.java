@@ -78,6 +78,7 @@ import static org.keycloak.userprofile.UserProfileContext.REGISTRATION;
 import static org.keycloak.userprofile.UserProfileContext.UPDATE_EMAIL;
 import static org.keycloak.userprofile.UserProfileContext.UPDATE_PROFILE;
 import static org.keycloak.userprofile.UserProfileContext.USER_API;
+import org.keycloak.userprofile.validator.NonAsciiEmailValidator;
 
 public class DeclarativeUserProfileProviderFactory implements UserProfileProviderFactory, AmphibianProviderFactory<UserProfileProvider> {
 
@@ -436,7 +437,8 @@ public class DeclarativeUserProfileProviderFactory implements UserProfileProvide
                         new AttributeValidatorMetadata(BlankAttributeValidator.ID, BlankAttributeValidator.createConfig(Messages.MISSING_EMAIL, false)),
                         new AttributeValidatorMetadata(DuplicateEmailValidator.ID),
                         new AttributeValidatorMetadata(EmailExistsAsUsernameValidator.ID),
-                        new AttributeValidatorMetadata(EmailValidator.ID, ValidatorConfig.builder().config(EmailValidator.IGNORE_EMPTY_VALUE, true).build()))
+                        new AttributeValidatorMetadata(EmailValidator.ID, ValidatorConfig.builder().config(EmailValidator.IGNORE_EMPTY_VALUE, true).build()),
+                        new AttributeValidatorMetadata(NonAsciiEmailValidator.ID))
                 .setAttributeDisplayName("${email}")
                 .setAnnotationDecorator(DeclarativeUserProfileProviderFactory::getEmailAnnotationDecorator);
 
@@ -465,7 +467,8 @@ public class DeclarativeUserProfileProviderFactory implements UserProfileProvide
         metadata.addAttribute(UserModel.EMAIL, -1,
                         new AttributeValidatorMetadata(DuplicateEmailValidator.ID),
                         new AttributeValidatorMetadata(EmailExistsAsUsernameValidator.ID),
-                        new AttributeValidatorMetadata(EmailValidator.ID, ValidatorConfig.builder().config(EmailValidator.IGNORE_EMPTY_VALUE, true).build()))
+                        new AttributeValidatorMetadata(EmailValidator.ID, ValidatorConfig.builder().config(EmailValidator.IGNORE_EMPTY_VALUE, true).build()),
+                        new AttributeValidatorMetadata(NonAsciiEmailValidator.ID))
                 .addWriteCondition(DeclarativeUserProfileProviderFactory::editEmailCondition);
 
         List<AttributeValidatorMetadata> readonlyValidators = new ArrayList<>();

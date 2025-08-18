@@ -34,6 +34,7 @@ import static org.keycloak.userprofile.config.UPConfigUtils.ROLE_USER;
 import static org.keycloak.userprofile.config.UPConfigUtils.parseSystemDefaultConfig;
 
 import jakarta.ws.rs.core.Response;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -49,6 +50,7 @@ import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Test;
 import org.keycloak.admin.client.resource.RealmResource;
+import org.keycloak.common.VerificationException;
 import org.keycloak.common.util.MultivaluedHashMap;
 import org.keycloak.component.ComponentModel;
 import org.keycloak.component.ComponentValidationException;
@@ -74,6 +76,7 @@ import org.keycloak.representations.userprofile.config.UPAttributeRequired;
 import org.keycloak.representations.userprofile.config.UPAttributeSelector;
 import org.keycloak.representations.userprofile.config.UPConfig;
 import org.keycloak.testsuite.admin.ApiUtil;
+import org.keycloak.testsuite.updaters.RealmAttributeUpdater;
 import org.keycloak.testsuite.util.ClientScopeBuilder;
 import org.keycloak.testsuite.util.KeycloakModelUtils;
 import org.keycloak.userprofile.Attributes;
@@ -85,6 +88,7 @@ import org.keycloak.userprofile.UserProfileUtil;
 import org.keycloak.userprofile.ValidationException;
 import org.keycloak.userprofile.config.UPConfigUtils;
 import org.keycloak.userprofile.validator.MultiValueValidator;
+import org.keycloak.userprofile.validator.NonAsciiEmailValidator;
 import org.keycloak.userprofile.validator.PersonNameProhibitedCharactersValidator;
 import org.keycloak.userprofile.validator.UsernameIDNHomographValidator;
 import org.keycloak.validate.ValidationError;
@@ -320,10 +324,15 @@ public class UserProfileTest extends AbstractUserProfileTest {
     }
 
     @Test
-    public void testValidation() {
+    public void testValidation() throws IOException {
         getTestingClient().server(TEST_REALM_NAME).run((RunOnServer) UserProfileTest::failValidationWhenEmptyAttributes);
         getTestingClient().server(TEST_REALM_NAME).run((RunOnServer) UserProfileTest::testAttributeValidation);
         getTestingClient().server(TEST_REALM_NAME).run((RunOnServer) UserProfileTest::testEmailAsUsernameValidation);
+        getTestingClient().server(TEST_REALM_NAME).run((KeycloakSession session) -> testNonAsciiEmailValidator(session, false));
+        try (RealmAttributeUpdater updater = new RealmAttributeUpdater(testRealm())
+                .setSmtpServer("allowutf8", Boolean.TRUE.toString()).update()) {
+            getTestingClient().server(TEST_REALM_NAME).run((KeycloakSession session) -> testNonAsciiEmailValidator(session, true));
+        }
     }
 
     private static void failValidationWhenEmptyAttributes(KeycloakSession session) {
@@ -422,6 +431,21 @@ public class UserProfileTest extends AbstractUserProfileTest {
             Assert.fail("Should be OK email as username");
         } finally {
             realm.setRegistrationEmailAsUsername(false);
+        }
+    }
+
+    private static void testNonAsciiEmailValidator(KeycloakSession session, boolean success) {
+        Map<String, Object> attributes = new HashMap<>();
+        UserProfileProvider provider = session.getProvider(UserProfileProvider.class);
+        List<ValidationError> errors = new ArrayList<>();
+        attributes.put(UserModel.USERNAME, "diego");
+        attributes.put(UserModel.EMAIL, "diegø@foo.com");
+        UserProfile profile = provider.create(UserProfileContext.UPDATE_PROFILE, attributes);
+        if (success) {
+            assertTrue(profile.getAttributes().validate(UserModel.EMAIL, errors::add));
+        } else {
+            assertFalse(profile.getAttributes().validate(UserModel.EMAIL, errors::add));
+            assertTrue(containsErrorMessage(errors, NonAsciiEmailValidator.MESSAGE_NON_ASCII_LOCAL_PART_EMAIL));
         }
     }
 
