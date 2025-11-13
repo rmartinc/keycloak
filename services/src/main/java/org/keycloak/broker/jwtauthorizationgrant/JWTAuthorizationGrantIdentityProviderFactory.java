@@ -20,7 +20,7 @@ public class JWTAuthorizationGrantIdentityProviderFactory extends AbstractIdenti
 
     @Override
     public JWTAuthorizationGrantIdentityProvider create(KeycloakSession session, IdentityProviderModel model) {
-        return new JWTAuthorizationGrantIdentityProvider(session, new JWTAuthorizationGrantIdentityProviderConfig(model));
+        return new JWTAuthorizationGrantIdentityProvider(session, new JWTAuthorizationGrantConfig(model));
     }
 
     @Override
@@ -30,7 +30,7 @@ public class JWTAuthorizationGrantIdentityProviderFactory extends AbstractIdenti
 
     @Override
     public IdentityProviderModel createConfig() {
-        return new JWTAuthorizationGrantIdentityProviderConfig();
+        return new JWTAuthorizationGrantConfig();
     }
 
     @Override

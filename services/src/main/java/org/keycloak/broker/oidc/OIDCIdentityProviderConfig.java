@@ -19,7 +19,6 @@ package org.keycloak.broker.oidc;
 import static org.keycloak.common.util.UriUtils.checkUrl;
 
 import org.keycloak.broker.jwtauthorizationgrant.JWTAuthorizationGrantConfig;
-import org.keycloak.broker.jwtauthorizationgrant.JWTAuthorizationGrantIdentityProviderConfig;
 import org.keycloak.common.enums.SslRequired;
 import org.keycloak.models.IdentityProviderModel;
 import org.keycloak.models.RealmModel;
@@ -27,7 +26,7 @@ import org.keycloak.models.RealmModel;
 /**
  * @author Pedro Igor
  */
-public class OIDCIdentityProviderConfig extends OAuth2IdentityProviderConfig implements JWTAuthorizationGrantConfig {
+public class OIDCIdentityProviderConfig extends OAuth2IdentityProviderConfig {
 
     public static final String JWKS_URL = "jwksUrl";
 
@@ -48,6 +47,7 @@ public class OIDCIdentityProviderConfig extends OAuth2IdentityProviderConfig imp
     public String getPrompt() {
         return getConfig().get("prompt");
     }
+
     public void setPrompt(String prompt) {
         getConfig().put("prompt", prompt);
     }
@@ -55,12 +55,15 @@ public class OIDCIdentityProviderConfig extends OAuth2IdentityProviderConfig imp
     public String getIssuer() {
         return getConfig().get(ISSUER);
     }
+
     public void setIssuer(String issuer) {
         getConfig().put(ISSUER, issuer);
     }
+
     public String getLogoutUrl() {
         return getConfig().get("logoutUrl");
     }
+
     public void setLogoutUrl(String url) {
         getConfig().put("logoutUrl", url);
     }
@@ -191,29 +194,24 @@ public class OIDCIdentityProviderConfig extends OAuth2IdentityProviderConfig imp
         return Boolean.parseBoolean(getConfig().get(SUPPORTS_CLIENT_ASSERTION_REUSE));
     }
 
-    @Override
     public boolean getJWTAuthorizationGrantEnabled() {
-        return new JWTAuthorizationGrantIdentityProviderConfig(getConfig()).getJWTAuthorizationGrantEnabled();
+        return new JWTAuthorizationGrantConfig(getConfig()).getJWTAuthorizationGrantEnabled();
     }
 
-    @Override
     public boolean getJWTAuthorizationGrantAssertionReuseAllowed() {
-        return new JWTAuthorizationGrantIdentityProviderConfig(getConfig()).getJWTAuthorizationGrantAssertionReuseAllowed();
+        return new JWTAuthorizationGrantConfig(getConfig()).getJWTAuthorizationGrantAssertionReuseAllowed();
     }
 
-    @Override
     public int getJWTAuthorizationGrantMaxAllowedAssertionExpiration() {
-        return new JWTAuthorizationGrantIdentityProviderConfig(getConfig()).getJWTAuthorizationGrantMaxAllowedAssertionExpiration();
+        return new JWTAuthorizationGrantConfig(getConfig()).getJWTAuthorizationGrantMaxAllowedAssertionExpiration();
     }
 
-    @Override
     public String getJWTAuthorizationGrantAssertionSignatureAlg() {
-        return new JWTAuthorizationGrantIdentityProviderConfig(getConfig()).getJWTAuthorizationGrantAssertionSignatureAlg();
+        return new JWTAuthorizationGrantConfig(getConfig()).getJWTAuthorizationGrantAssertionSignatureAlg();
     }
 
-    @Override
-    public int getJWTAuthorizationGrantAllowedClockSkewAllowedClockSkew() {
-        return new JWTAuthorizationGrantIdentityProviderConfig(getConfig()).getJWTAuthorizationGrantAllowedClockSkewAllowedClockSkew();
+    public int getJWTAuthorizationGrantAllowedClockSkew() {
+        return new JWTAuthorizationGrantConfig(getConfig()).getJWTAuthorizationGrantAllowedClockSkew();
     }
 
     @Override

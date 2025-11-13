@@ -14,17 +14,25 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.protocol.oidc.JWTAuthorizationGrantValidationContext;
 import org.keycloak.services.Urls;
-import org.keycloak.utils.StringUtil;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-public class JWTAuthorizationGrantIdentityProvider implements JWTAuthorizationGrantProvider<JWTAuthorizationGrantIdentityProviderConfig> {
+public class JWTAuthorizationGrantIdentityProvider implements JWTAuthorizationGrantProvider<JWTAuthorizationGrantConfig> {
     private static final Logger LOGGER = Logger.getLogger(JWTAuthorizationGrantIdentityProvider.class);
 
     private final KeycloakSession session;
     private final JWTAuthorizationGrantConfig config;
+
+    public static List<String> getAudienceFromIssuerAndTokenEndpoint(KeycloakSession session) {
+        RealmModel realm = session.getContext().getRealm();
+
+        URI baseUri = session.getContext().getUri().getBaseUri();
+        String issuer = Urls.realmIssuer(baseUri, realm.getName());
+        String tokenEndpoint = Urls.tokenEndpoint(baseUri, realm.getName()).toString();
+        return List.of(issuer, tokenEndpoint);
+    }
 
     public JWTAuthorizationGrantIdentityProvider(KeycloakSession session, JWTAuthorizationGrantConfig config) {
         this.session = session;
@@ -45,7 +53,7 @@ public class JWTAuthorizationGrantIdentityProvider implements JWTAuthorizationGr
 
     @Override
     public int getAllowedClockSkew() {
-        return config.getJWTAuthorizationGrantAllowedClockSkewAllowedClockSkew();
+        return config.getJWTAuthorizationGrantAllowedClockSkew();
     }
 
     @Override
@@ -55,12 +63,7 @@ public class JWTAuthorizationGrantIdentityProvider implements JWTAuthorizationGr
 
     @Override
     public List<String> getAllowedAudienceForJWTGrant() {
-        RealmModel realm = session.getContext().getRealm();
-
-        URI baseUri = session.getContext().getUri().getBaseUri();
-        String issuer = Urls.realmIssuer(baseUri, realm.getName());
-        String tokenEndpoint = Urls.tokenEndpoint(baseUri, realm.getName()).toString();
-        return List.of(issuer, tokenEndpoint);
+        return getAudienceFromIssuerAndTokenEndpoint(session);
     }
 
     @Override
@@ -70,13 +73,12 @@ public class JWTAuthorizationGrantIdentityProvider implements JWTAuthorizationGr
 
     @Override
     public String getAssertionSignatureAlg() {
-        String alg = config.getJWTAuthorizationGrantAssertionSignatureAlg();
-        return StringUtil.isBlank(alg) ? null : alg;
+        return config.getJWTAuthorizationGrantAssertionSignatureAlg();
     }
 
     @Override
-    public JWTAuthorizationGrantIdentityProviderConfig getConfig() {
-        return this.config instanceof  JWTAuthorizationGrantIdentityProviderConfig ? (JWTAuthorizationGrantIdentityProviderConfig)this.config : null;
+    public JWTAuthorizationGrantConfig getConfig() {
+        return this.config;
     }
 
     private boolean verifySignature(JWSInput jws) {

@@ -5,6 +5,7 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.keycloak.OAuth2Constants;
+import org.keycloak.broker.jwtauthorizationgrant.JWTAuthorizationGrantConfig;
 import org.keycloak.broker.jwtauthorizationgrant.JWTAuthorizationGrantIdentityProviderFactory;
 import org.keycloak.broker.oidc.OIDCIdentityProviderConfig;
 import org.keycloak.broker.oidc.OIDCIdentityProviderFactory;
@@ -94,7 +95,7 @@ public class JWTAuthorizationGrantTest  {
     @Test
     public void testNotAllowedIdentityProvider() {
         realm.updateIdentityProviderWithCleanup(OIDC_IDP_ALIAS, rep -> {
-            rep.getConfig().put(OIDCIdentityProviderConfig.JWT_AUTHORIZATION_GRANT_ENABLED, "false");
+            rep.getConfig().put(JWTAuthorizationGrantConfig.JWT_AUTHORIZATION_GRANT_ENABLED, "false");
         });
 
         String jwt = getIdentityProvider().encodeToken(createAuthorizationGrantToken("basic-user-id", oAuthClient.getEndpoints().getIssuer(), OIDC_IDP_ISSUER));
@@ -140,7 +141,7 @@ public class JWTAuthorizationGrantTest  {
 
         //reduce max expiration to 10 seconds
         realm.updateIdentityProviderWithCleanup(AUTHORIZATION_GRANT_IDP_ALIAS, rep -> {
-            rep.getConfig().put(OIDCIdentityProviderConfig.JWT_AUTHORIZATION_GRANT_MAX_ALLOWED_ASSERTION_EXPIRATION, "10");
+            rep.getConfig().put(JWTAuthorizationGrantConfig.JWT_AUTHORIZATION_GRANT_MAX_ALLOWED_ASSERTION_EXPIRATION, "10");
         });
 
         jwt = getIdentityProvider().encodeToken(createAuthorizationGrantToken("basic-user-id", oAuthClient.getEndpoints().getIssuer(), AUTHORIZATION_GRANT_IDP_ISSUER, Time.currentTime() + 11L));
@@ -234,7 +235,7 @@ public class JWTAuthorizationGrantTest  {
         assertFailure("Token reuse detected", response, events.poll());
 
         realm.updateIdentityProviderWithCleanup(AUTHORIZATION_GRANT_IDP_ALIAS, rep -> {
-            rep.getConfig().put(OIDCIdentityProviderConfig.JWT_AUTHORIZATION_GRANT_ASSERTION_REUSE_ALLOWED, "true");
+            rep.getConfig().put(JWTAuthorizationGrantConfig.JWT_AUTHORIZATION_GRANT_ASSERTION_REUSE_ALLOWED, "true");
         });
 
         jwt = getIdentityProvider().encodeToken(createDefaultAuthorizationGrantToken());
@@ -248,14 +249,14 @@ public class JWTAuthorizationGrantTest  {
     @Test
     public void testSignatureAlg() {
         realm.updateIdentityProviderWithCleanup(AUTHORIZATION_GRANT_IDP_ALIAS, rep -> {
-            rep.getConfig().put(OIDCIdentityProviderConfig.JWT_AUTHORIZATION_GRANT_ASSERTION_SIGNATURE_ALG, Algorithm.ES256);
+            rep.getConfig().put(JWTAuthorizationGrantConfig.JWT_AUTHORIZATION_GRANT_ASSERTION_SIGNATURE_ALG, Algorithm.ES256);
         });
         String jwt = getIdentityProvider().encodeToken(createDefaultAuthorizationGrantToken());
         AccessTokenResponse response = oAuthClient.jwtAuthorizationGrantRequest(jwt).send();
         assertSuccess("test-app", "basic-user", response);
 
         realm.updateIdentityProviderWithCleanup(AUTHORIZATION_GRANT_IDP_ALIAS, rep -> {
-            rep.getConfig().put(OIDCIdentityProviderConfig.JWT_AUTHORIZATION_GRANT_ASSERTION_SIGNATURE_ALG, Algorithm.ES512);
+            rep.getConfig().put(JWTAuthorizationGrantConfig.JWT_AUTHORIZATION_GRANT_ASSERTION_SIGNATURE_ALG, Algorithm.ES512);
         });
         jwt = getIdentityProvider().encodeToken(createDefaultAuthorizationGrantToken());
         response = oAuthClient.jwtAuthorizationGrantRequest(jwt).send();
@@ -365,7 +366,7 @@ public class JWTAuthorizationGrantTest  {
                             .setAttribute(OIDCIdentityProviderConfig.VALIDATE_SIGNATURE, Boolean.TRUE.toString())
                             .setAttribute(OIDCIdentityProviderConfig.JWKS_URL, "http://127.0.0.1:8500/idp/jwks")
                             .setAttribute(OIDCIdentityProviderConfig.USE_JWKS_URL, Boolean.TRUE.toString())
-                            .setAttribute(OIDCIdentityProviderConfig.JWT_AUTHORIZATION_GRANT_ENABLED, Boolean.TRUE.toString())
+                            .setAttribute(JWTAuthorizationGrantConfig.JWT_AUTHORIZATION_GRANT_ENABLED, Boolean.TRUE.toString())
                             .build());
             realm.identityProvider(
                     IdentityProviderBuilder.create()
@@ -375,7 +376,7 @@ public class JWTAuthorizationGrantTest  {
                             .setAttribute(OIDCIdentityProviderConfig.VALIDATE_SIGNATURE, Boolean.TRUE.toString())
                             .setAttribute(OIDCIdentityProviderConfig.JWKS_URL, "http://127.0.0.1:8500/idp/jwks")
                             .setAttribute(OIDCIdentityProviderConfig.USE_JWKS_URL, Boolean.TRUE.toString())
-                            .setAttribute(OIDCIdentityProviderConfig.JWT_AUTHORIZATION_GRANT_ENABLED, Boolean.TRUE.toString())
+                            .setAttribute(JWTAuthorizationGrantConfig.JWT_AUTHORIZATION_GRANT_ENABLED, Boolean.TRUE.toString())
                             .build());
             return realm;
         }

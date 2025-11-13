@@ -1093,21 +1093,21 @@ public class OIDCIdentityProvider extends AbstractOAuth2IdentityProvider<OIDCIde
 
     @Override
     public boolean isAssertionReuseAllowed() {
-        return new JWTAuthorizationGrantIdentityProvider(session, getConfig()).isAssertionReuseAllowed();
+        return getConfig().getJWTAuthorizationGrantAssertionReuseAllowed();
     }
 
     @Override
     public List<String> getAllowedAudienceForJWTGrant() {
-        return new JWTAuthorizationGrantIdentityProvider(session, getConfig()).getAllowedAudienceForJWTGrant();
+        return JWTAuthorizationGrantIdentityProvider.getAudienceFromIssuerAndTokenEndpoint(session);
     }
 
     @Override
     public int getMaxAllowedExpiration() {
-        return new JWTAuthorizationGrantIdentityProvider(session, getConfig()).getMaxAllowedExpiration();
+        return getConfig().getJWTAuthorizationGrantMaxAllowedAssertionExpiration();
     }
 
     @Override
     public String getAssertionSignatureAlg() {
-        return new JWTAuthorizationGrantIdentityProvider(session, getConfig()).getAssertionSignatureAlg();
+        return getConfig().getJWTAuthorizationGrantAssertionSignatureAlg();
     }
 }
