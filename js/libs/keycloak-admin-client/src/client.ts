@@ -62,7 +62,9 @@ export class KeycloakAdminClient {
   #tokenProvider?: TokenProvider;
 
   constructor(connectionConfig?: ConnectionConfig) {
-    this.baseUrl = connectionConfig?.baseUrl || defaultBaseUrl;
+    this.baseUrl = this.#checkBaseUrl(
+      connectionConfig?.baseUrl || defaultBaseUrl,
+    );
     this.realmName = connectionConfig?.realmName || defaultRealm;
     this.#requestOptions = connectionConfig?.requestOptions;
     this.#globalRequestArgOptions = connectionConfig?.requestArgOptions;
@@ -134,7 +136,7 @@ export class KeycloakAdminClient {
       typeof connectionConfig.baseUrl === "string" &&
       connectionConfig.baseUrl
     ) {
-      this.baseUrl = connectionConfig.baseUrl;
+      this.baseUrl = this.#checkBaseUrl(connectionConfig.baseUrl);
     }
 
     if (
@@ -144,5 +146,10 @@ export class KeycloakAdminClient {
       this.realmName = connectionConfig.realmName;
     }
     this.#requestOptions = connectionConfig.requestOptions;
+  }
+
+  #checkBaseUrl(baseUrl: string) {
+    const url = new URL(baseUrl).toString();
+    return url.endsWith("/") ? url.slice(0, -1) : url;
   }
 }
