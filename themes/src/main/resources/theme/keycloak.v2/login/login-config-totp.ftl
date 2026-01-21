@@ -1,6 +1,7 @@
 <#import "template.ftl" as layout>
 <#import "field.ftl" as field>
 <#import "password-commons.ftl" as passwordCommons>
+<#import "buttons.ftl" as buttons>
 <@layout.registrationLayout displayRequiredFields=false displayMessage=!messagesPerField.existsError('totp','userLabel'); section>
 <!-- template: login-config-totp.ftl -->
 
@@ -100,25 +101,14 @@
                 <@passwordCommons.logoutOtherSessions/>
             </div>
 
-            <div class="pf-v5-c-form__group pf-m-action">
-                <div class="pf-v5-c-form__actions">
-                    <#if isAppInitiatedAction??>
-                        <input type="submit"
-                            class="${properties.kcButtonClass!} ${properties.kcButtonPrimaryClass!} ${properties.kcButtonLargeClass!}"
-                            id="saveTOTPBtn" value="${msg("doSubmit")}"
-                        />
-                        <button type="submit"
-                                class="${properties.kcButtonClass!} ${properties.kcButtonDefaultClass!} ${properties.kcButtonLargeClass!} ${properties.kcButtonLargeClass!}"
-                                id="cancelTOTPBtn" name="cancel-aia" value="true">${msg("doCancel")}
-                        </button>
-                    <#else>
-                        <input type="submit"
-                            class="${properties.kcButtonClass!} ${properties.kcButtonPrimaryClass!} ${properties.kcButtonBlockClass!} ${properties.kcButtonLargeClass!}"
-                            id="saveTOTPBtn" value="${msg("doSubmit")}"
-                        />
-                    </#if>
-                </div>
-            </div>
+            <@buttons.actionGroup horizontal=true>
+                <#if isAppInitiatedAction??>
+                    <@buttons.button id="saveTOTPBtn" label="doSubmit" class=["kcButtonPrimaryClass"]/>
+                    <@buttons.button id="cancelTOTPBtn" label="doCancel" name="cancel-aia" class=["kcButtonSecondaryClass"]/>
+                <#else>
+                    <@buttons.button id="saveTOTPBtn" label="doSubmit" class=["kcButtonPrimaryClass", "kcButtonBlockClass"]/>
+                </#if>
+            </@buttons.actionGroup>
         </form>
     </#if>
 </@layout.registrationLayout>
