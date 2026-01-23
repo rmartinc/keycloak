@@ -41,6 +41,7 @@ const SecretInput = ({
   const form = useFormContext<ClientRepresentation>();
   const { hasAccess } = useAccess();
   const isManager = hasAccess("manage-clients") || client.access?.configure;
+  const [secretReadOnly, setSecretReadOnly] = useState<boolean>(true);
 
   return (
     <Split hasGutter>
@@ -51,7 +52,14 @@ const SecretInput = ({
               name="secret"
               control={form.control}
               render={({ field }) => (
-                <PasswordInput id={id} {...field} readOnly={!isManager} />
+                <PasswordInput
+                  id={id}
+                  {...field}
+                  readOnly={secretReadOnly}
+                  onToggle={(reveal) =>
+                    setSecretReadOnly(!reveal || !isManager)
+                  }
+                />
               )}
             />
           </InputGroupItem>

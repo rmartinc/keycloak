@@ -11,10 +11,12 @@ import { useTranslation } from "react-i18next";
 
 export type PasswordInputProps = TextInputProps & {
   hasReveal?: boolean;
+  onToggle?: (reveal: boolean) => void;
 };
 
 const PasswordInputBase = ({
   hasReveal = true,
+  onToggle,
   innerRef,
   ...rest
 }: PasswordInputProps) => {
@@ -33,7 +35,10 @@ const PasswordInputBase = ({
         <Button
           variant="control"
           aria-label={t("showPassword")}
-          onClick={() => setHidePassword(!hidePassword)}
+          onClick={() => {
+            setHidePassword(!hidePassword);
+            onToggle?.(hidePassword);
+          }}
         >
           {hidePassword ? <EyeIcon /> : <EyeSlashIcon />}
         </Button>
