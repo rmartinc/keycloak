@@ -56,6 +56,8 @@ import org.keycloak.dom.saml.v2.assertion.AttributeType;
 import org.keycloak.dom.saml.v2.assertion.AuthnStatementType;
 import org.keycloak.dom.saml.v2.assertion.NameIDType;
 import org.keycloak.dom.saml.v2.assertion.StatementAbstractType;
+import org.keycloak.dom.saml.v2.assertion.SubjectConfirmationDataType;
+import org.keycloak.dom.saml.v2.assertion.SubjectConfirmationType;
 import org.keycloak.dom.saml.v2.assertion.SubjectType;
 import org.keycloak.dom.saml.v2.protocol.ExtensionsType;
 import org.keycloak.dom.saml.v2.protocol.LogoutRequestType;
@@ -84,6 +86,8 @@ import org.keycloak.saml.processing.core.util.XMLEncryptionUtil;
 import org.keycloak.saml.processing.web.util.PostBindingUtil;
 import org.keycloak.saml.validators.ConditionsValidator;
 import org.keycloak.saml.validators.DestinationValidator;
+import org.keycloak.saml.validators.SubjectConfirmationDataValidator;
+
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -372,17 +376,21 @@ public abstract class AbstractSamlAuthenticationHandler implements SamlAuthentic
         try {
             assertion = AssertionUtil.getAssertion(responseHolder, responseType, deployment.getDecryptionKey());
             ConditionsValidator.Builder cvb = new ConditionsValidator.Builder(assertion.getID(), assertion.getConditions(), destinationValidator);
+            SubjectConfirmationDataValidator.Builder scdvb = new SubjectConfirmationDataValidator.Builder(assertion.getID(), getSubjectConfirmationData(assertion), destinationValidator)
+                    .clockSkewInMillis(deployment.getIDP().getAllowedClockSkew());
             try {
                 cvb.clockSkewInMillis(deployment.getIDP().getAllowedClockSkew());
                 cvb.addAllowedAudience(URI.create(deployment.getEntityID()));
                 if (responseType.getDestination() != null) {
                   // getDestination has been validated to match request URL already so it matches SAML endpoint
                   cvb.addAllowedAudience(URI.create(responseType.getDestination()));
+                  scdvb.allowedRecipient(responseType.getDestination());
                 }
+
             } catch (IllegalArgumentException ex) {
                 // warning has been already emitted in DeploymentBuilder
             }
-            if (! cvb.build().isValid()) {
+            if (!cvb.build().isValid() || !scdvb.build().isValid()) {
                 // initiate the login but do not save the request cos it's /saml
                 return initiateLogin(false);
             }
@@ -519,6 +527,19 @@ public abstract class AbstractSamlAuthenticationHandler implements SamlAuthentic
      */
     private AuthOutcome failedTerminal() {
         return failed(null);
+    }
+
+    private SubjectConfirmationDataType getSubjectConfirmationData(AssertionType assertion) {
+        if (assertion != null
+                && assertion.getSubject() != null
+                && assertion.getSubject().getConfirmation() != null) {
+            return assertion.getSubject().getConfirmation().stream()
+                    .filter(c -> JBossSAMLURIConstants.SUBJECT_CONFIRMATION_BEARER.get().equals(c.getMethod()))
+                    .findFirst()
+                    .map(SubjectConfirmationType::getSubjectConfirmationData)
+                    .orElse(null);
+        }
+        return null;
     }
 
     private boolean isSuccessfulSamlResponse(ResponseType responseType) {
