@@ -43,6 +43,7 @@ import org.keycloak.representations.idm.EventRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.keycloak.services.managers.BruteForceProtector;
+import org.keycloak.services.managers.DefaultBruteForceProtector;
 import org.keycloak.testsuite.AbstractChangeImportedUserPasswordsTest;
 import org.keycloak.testsuite.AssertEvents;
 import org.keycloak.testsuite.AssertEvents.ExpectedEvent;
@@ -397,6 +398,39 @@ public class BruteForceTest extends AbstractChangeImportedUserPasswordsTest {
     }
 
     @Test
+    public void testGrantPermamentOtpAbsolut() {
+        { // successful login
+            String totpSecret = totp.generateTOTP("totpSecret");
+            AccessTokenResponse response = getTestToken(getPassword("test-user@localhost"), totpSecret);
+            Assert.assertNotNull(response.getAccessToken());
+            Assert.assertNull(response.getError());
+            events.clear();
+        }
+        for (int i = 0; i < DefaultBruteForceProtector.MAX_OTP_FAILURES; i++) {
+            {
+                AccessTokenResponse response = getTestToken(getPassword("test-user@localhost"), null);
+                Assert.assertNull(response.getAccessToken());
+                Assert.assertEquals(response.getError(), "invalid_grant");
+                Assert.assertEquals(response.getErrorDescription(), "Invalid user credentials");
+                events.clear();
+            }
+        }
+        {
+            String totpSecret = totp.generateTOTP("totpSecret");
+            AccessTokenResponse response = getTestToken(getPassword("test-user@localhost"), totpSecret);
+            assertTokenNull(response);
+            Assert.assertNotNull(response.getError());
+            Assert.assertEquals(response.getError(), "invalid_grant");
+            Assert.assertEquals("Invalid user credentials", response.getErrorDescription());
+            assertUserDisabledEvent(Errors.USER_TEMPORARILY_DISABLED);
+            events.clear();
+        }
+
+
+    }
+
+
+    @Test
     public void testNumberOfFailuresForDisabledUsersWithPasswordGrantType() {
         try {
             UserRepresentation user = adminClient.realm("test").users().search("test-user@localhost", 0, 1).get(0);
@@ -724,6 +758,15 @@ public class BruteForceTest extends AbstractChangeImportedUserPasswordsTest {
         loginSuccess();
         loginInvalidPassword();
         loginWithTotpFailure();
+        continueLoginWithCorrectTotpExpectFailure();
+    }
+
+    @Test
+    public void testBrowserInvalidTotpAbsolut() {
+        loginWithTotpFailure();
+        for (int i = 0; i < DefaultBruteForceProtector.MAX_OTP_FAILURES; i++ ) {
+            continueLoginWithInvalidTotp();
+        }
         continueLoginWithCorrectTotpExpectFailure();
     }
 

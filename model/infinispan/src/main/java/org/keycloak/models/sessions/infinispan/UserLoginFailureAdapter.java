@@ -160,4 +160,38 @@ public class UserLoginFailureAdapter implements UserLoginFailureModel {
         return key.toString();
     }
 
+    @Override
+    public int getNumOtpFailures() {
+        return entity.getNumOtpFailures();
+    }
+
+    @Override
+    public void incrementOtpFailures() {
+        LoginFailuresUpdateTask task = new LoginFailuresUpdateTask() {
+
+            @Override
+            public void runUpdate(LoginFailureEntity entity) {
+                entity.setOtpNumFailures(entity.getNumOtpFailures() + 1);
+            }
+
+        };
+
+        update(task);
+
+    }
+
+    @Override
+    public void clearOtpFailures() {
+        LoginFailuresUpdateTask task = new LoginFailuresUpdateTask() {
+
+            @Override
+            public void runUpdate(LoginFailureEntity entity) {
+                entity.clearOtpFailures();
+            }
+
+        };
+
+        update(task);
+
+    }
 }

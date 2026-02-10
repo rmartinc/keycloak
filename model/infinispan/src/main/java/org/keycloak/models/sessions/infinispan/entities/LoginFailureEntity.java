@@ -41,13 +41,15 @@ public class LoginFailureEntity extends SessionEntity {
     private long lastFailure;
     private String lastIPFailure;
 
+    private int numOtpFailures;
+
     public LoginFailureEntity(String realmId, String userId) {
         super(Objects.requireNonNull(realmId));
         this.userId = Objects.requireNonNull(userId);
     }
 
     @ProtoFactory
-    LoginFailureEntity(String realmId, String userId, int failedLoginNotBefore, int numFailures, int numTemporaryLockouts, long lastFailure, String lastIPFailure) {
+    LoginFailureEntity(String realmId, String userId, int failedLoginNotBefore, int numFailures, int numTemporaryLockouts, long lastFailure, String lastIPFailure, int numOtpFailures) {
         super(realmId);
         this.userId = userId;
         this.failedLoginNotBefore = failedLoginNotBefore;
@@ -55,6 +57,7 @@ public class LoginFailureEntity extends SessionEntity {
         this.numTemporaryLockouts = numTemporaryLockouts;
         this.lastFailure = lastFailure;
         this.lastIPFailure = lastIPFailure;
+        this.numOtpFailures = numOtpFailures;
     }
 
     @ProtoField(2)
@@ -107,6 +110,15 @@ public class LoginFailureEntity extends SessionEntity {
         return lastIPFailure;
     }
 
+    @ProtoField(8)
+    public int getNumOtpFailures() {
+        return numOtpFailures;
+    }
+
+    public void setOtpNumFailures(int numOtpFailures) {
+        this.numOtpFailures = numOtpFailures;
+    }
+
     public void setLastIPFailure(String lastIPFailure) {
         this.lastIPFailure = lastIPFailure;
     }
@@ -117,6 +129,10 @@ public class LoginFailureEntity extends SessionEntity {
         this.numTemporaryLockouts = 0;
         this.lastFailure = 0;
         this.lastIPFailure = null;
+    }
+
+    public void clearOtpFailures() {
+        this.numOtpFailures = 0;
     }
 
     @Override
@@ -136,7 +152,7 @@ public class LoginFailureEntity extends SessionEntity {
 
     @Override
     public String toString() {
-        return String.format("LoginFailureEntity [ userId=%s, realm=%s, numFailures=%d ]", userId, getRealmId(), numFailures);
+        return String.format("LoginFailureEntity [ userId=%s, realm=%s, numFailures=%d numOtpFailures=%s]", userId, getRealmId(), numFailures, numOtpFailures);
     }
 
 }

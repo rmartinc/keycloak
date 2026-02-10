@@ -73,6 +73,12 @@ Enabling an user account resets the `count`.
 .Lockout temporarily
 image:images/brute-force-temporarily.png[]
 
+[NOTE]
+====
+OTP type authenticators will cause permanent user account lockout even in case of temporary lockout brute force mode is set. This will mitigate probabilistic attack. The OTP oauthenticator type threshold is hardcoded to 100. This counter is incremented only in case of using OTP type authenticator.
+====
+
+
 *Temporary Lockout Parameters*
 
 |===

@@ -36,6 +36,7 @@ public interface UserLoginFailureModel {
    void setLastFailure(long lastFailure);
    String getLastIPFailure();
    void setLastIPFailure(String ip);
-
-
+   int getNumOtpFailures();
+   void incrementOtpFailures();
+   void clearOtpFailures();
 }

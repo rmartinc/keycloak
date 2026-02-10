@@ -150,6 +150,22 @@ public class LoginFailuresUpdater extends BaseUpdater<LoginFailureKey, LoginFail
     }
 
     @Override
+    public int getNumOtpFailures() {
+        return getValue().getNumOtpFailures();
+    }
+
+    @Override
+    public void incrementOtpFailures() {
+        addAndApplyChange(INCREMENT_OTP_FAILURES);
+    }
+
+    @Override
+    public void clearOtpFailures() {
+        changes.clear();
+        addAndApplyChange(CLEAR_OTP_FAILURES);
+    }
+
+    @Override
     protected boolean isUnchanged() {
         return changes.isEmpty();
     }
@@ -160,6 +176,8 @@ public class LoginFailuresUpdater extends BaseUpdater<LoginFailureKey, LoginFail
     }
 
     private static final Consumer<LoginFailureEntity> CLEAR = LoginFailureEntity::clearFailures;
+    private static final Consumer<LoginFailureEntity> CLEAR_OTP_FAILURES = LoginFailureEntity::clearOtpFailures;
     private static final Consumer<LoginFailureEntity> INCREMENT_FAILURES = e -> e.setNumFailures(e.getNumFailures() + 1);
+    private static final Consumer<LoginFailureEntity> INCREMENT_OTP_FAILURES = e -> e.setOtpNumFailures(e.getNumOtpFailures() + 1);
     private static final Consumer<LoginFailureEntity> INCREMENT_LOCK_OUTS = e -> e.setNumTemporaryLockouts(e.getNumTemporaryLockouts() + 1);
 }

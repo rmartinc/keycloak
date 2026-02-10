@@ -47,6 +47,8 @@ import org.keycloak.TokenVerifier;
 import org.keycloak.TokenVerifier.TokenTypeCheck;
 import org.keycloak.authentication.AuthenticationFlowException;
 import org.keycloak.authentication.AuthenticationProcessor;
+import org.keycloak.authentication.Authenticator;
+import org.keycloak.authentication.AuthenticatorFactory;
 import org.keycloak.authentication.AuthenticatorUtil;
 import org.keycloak.authentication.InitiatedActionSupport;
 import org.keycloak.authentication.RequiredActionContext;
@@ -74,6 +76,7 @@ import org.keycloak.forms.login.LoginFormsProvider;
 import org.keycloak.http.HttpRequest;
 import org.keycloak.jose.jws.crypto.HashUtils;
 import org.keycloak.models.AuthenticatedClientSessionModel;
+import org.keycloak.models.AuthenticationExecutionModel;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.ClientScopeModel;
 import org.keycloak.models.ClientSessionContext;
@@ -83,6 +86,7 @@ import org.keycloak.models.KeycloakContext;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.RequiredActionProviderModel;
+import org.keycloak.models.RequiredCredentialModel;
 import org.keycloak.models.SingleUseObjectKeyModel;
 import org.keycloak.models.SingleUseObjectProvider;
 import org.keycloak.models.UserConsentModel;
@@ -1723,7 +1727,32 @@ public class AuthenticationManager {
             UserModel user = lookupUserForBruteForceLog(session, realm, authSession);
             if (user != null) {
                 BruteForceProtector bruteForceProtector = session.getProvider(BruteForceProtector.class);
-                bruteForceProtector.successfulLogin(realm, user, session.getContext().getConnection(), session.getContext().getHttpRequest().getUri());
+                bruteForceProtector.successfulLogin(realm, user, session.getContext().getConnection(), session.getContext().getHttpRequest().getUri(), AuthenticationManager.getAuthenticationCategory(session, authSession, false));
+            }
+        }
+    }
+
+    public static String getAuthenticationCategory(KeycloakSession session, AuthenticationSessionModel authSession, boolean currentExecution) {
+        RealmModel realm = authSession.getRealm();
+        AuthenticationExecutionModel execution = realm.getAuthenticationExecutionById(
+                authSession.getAuthNote(
+                        currentExecution
+                                ? AuthenticationProcessor.CURRENT_AUTHENTICATION_EXECUTION
+                                : AuthenticationProcessor.LAST_PROCESSED_EXECUTION
+                )
+        );
+        if (execution == null) return null;
+        AuthenticatorFactory factory = (AuthenticatorFactory) session.getKeycloakSessionFactory()
+                .getProviderFactory(Authenticator.class, execution.getAuthenticator());
+        if (factory != null) {
+            return factory.getReferenceCategory();
+        } else {
+            if (realm.getRequiredCredentialsStream().anyMatch(r -> Objects.equals(r.getType(), RequiredCredentialModel.PASSWORD.getType()))) {
+                return RequiredCredentialModel.PASSWORD.getType();
+            } else if (realm.getRequiredCredentialsStream().anyMatch(r -> Objects.equals(r.getType(), RequiredCredentialModel.TOTP.getType()))) {
+                return RequiredCredentialModel.TOTP.getType();
+            } else {
+                return null;
             }
         }
     }
