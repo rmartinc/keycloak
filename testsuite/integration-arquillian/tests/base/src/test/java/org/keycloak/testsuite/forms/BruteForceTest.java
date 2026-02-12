@@ -398,35 +398,42 @@ public class BruteForceTest extends AbstractChangeImportedUserPasswordsTest {
     }
 
     @Test
-    public void testGrantPermamentOtpAbsolut() {
-        { // successful login
-            String totpSecret = totp.generateTOTP("totpSecret");
-            AccessTokenResponse response = getTestToken(getPassword("test-user@localhost"), totpSecret);
-            Assert.assertNotNull(response.getAccessToken());
-            Assert.assertNull(response.getError());
-            events.clear();
-        }
-        for (int i = 0; i < DefaultBruteForceProtector.MAX_OTP_FAILURES; i++) {
-            {
-                AccessTokenResponse response = getTestToken(getPassword("test-user@localhost"), null);
-                Assert.assertNull(response.getAccessToken());
-                Assert.assertEquals(response.getError(), "invalid_grant");
-                Assert.assertEquals(response.getErrorDescription(), "Invalid user credentials");
+    public void testGrantPermamentOtpAbsolut() throws Exception {
+        try (RealmAttributeUpdater updater = new RealmAttributeUpdater(testRealm())
+                .setFailureFactor(120) // more than 100
+                .setQuickLoginCheckMilliSeconds(0L) // allow fail OTP
+                .update()) {
+            { // successful login
+                String totpSecret = totp.generateTOTP("totpSecret");
+                AccessTokenResponse response = getTestToken(getPassword("test-user@localhost"), totpSecret);
+                Assert.assertNotNull(response.getAccessToken());
+                Assert.assertNull(response.getError());
                 events.clear();
             }
+            for (int i = 0; i <= DefaultBruteForceProtector.MAX_OTP_FAILURES; i++) {
+                AccessTokenResponse response = getTestToken(getPassword("test-user@localhost"), null);
+                Assert.assertNull(response.getAccessToken());
+                Assert.assertEquals("invalid_grant", response.getError());
+                Assert.assertEquals("Invalid user credentials", response.getErrorDescription());
+                events.clear();
+            }
+            {
+                String totpSecret = totp.generateTOTP("totpSecret");
+                AccessTokenResponse response = getTestToken(getPassword("test-user@localhost"), totpSecret);
+                assertTokenNull(response);
+                Assert.assertNotNull(response.getError());
+                Assert.assertEquals("invalid_grant", response.getError());
+                Assert.assertEquals("Invalid user credentials", response.getErrorDescription());
+                events.expect(EventType.USER_DISABLED_BY_PERMANENT_LOCKOUT).client((String) null)
+                        .detail(Details.REASON, "brute_force_attack detected").assertEvent();
+                events.clear();
+                assertUserDisabledReason(BruteForceProtector.DISABLED_BY_PERMANENT_LOCKOUT);
+            }
+        } finally {
+            UserRepresentation user = adminClient.realm("test").users().search("test-user@localhost", 0, 1).get(0);
+            user.setEnabled(true);
+            updateUser(user);
         }
-        {
-            String totpSecret = totp.generateTOTP("totpSecret");
-            AccessTokenResponse response = getTestToken(getPassword("test-user@localhost"), totpSecret);
-            assertTokenNull(response);
-            Assert.assertNotNull(response.getError());
-            Assert.assertEquals(response.getError(), "invalid_grant");
-            Assert.assertEquals("Invalid user credentials", response.getErrorDescription());
-            assertUserDisabledEvent(Errors.USER_TEMPORARILY_DISABLED);
-            events.clear();
-        }
-
-
     }
 
 
