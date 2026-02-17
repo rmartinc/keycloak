@@ -10,3 +10,20 @@ Now {project_name}, when acting as a SAML Service Provider (SP) in identity brok
 To prepare for the upgrade, verify that the Identity Provider or adapter configurations allow for a sufficient clock skew for the time attributes.
 
 If you see any issue after the upgrade related to this element, please configure the external IdP to set the correct values for the subject confirmation element.
+
+== Notable changes
+
+Notable changes may include internal behavior changes that prevent common misconfigurations, bugs that are fixed, or changes to simplify running {project_name}.
+It also lists significant changes to internal APIs.
+
+=== Maximum inflating size for the SAML redirect binding
+
+Since this release, the {project_name} SAML implementation limits the data that can be inflated through the `REDIRECT` binding. The default maximum size is 128KB, the decompression stops when that value is exceeded and returns an error. The option `spi-login-protocol--saml--max-inflating-size` can be used to increase the default limit.
+
+.Increasing limit to 512KB
+[source,bash]
+----
+bin/kc.[sh|bat] --spi-login-protocol--saml--max-inflating-size=524288
+----
+
+The same restriction is applied for the link:{saml_galleon_layers_link}[{project_name} SAML Galleon feature pack]. Although, in this case, you need to add a system property to the Wildfly/EAP server to change the default maximum size: `-Dorg.keycloak.adapters.saml.maxInflatingSize=524288`.
