@@ -503,6 +503,9 @@ In order to maintain backwards compatibility, {project_name} does not return an 
 * The new feature `step-up-authentication-saml` is not enabled in {project_name}.
 * The SAML client does not define any mapping between context URI and LoA. Use the client mapping instead of the general realm mapping when you just need to apply the step-up for some specific SAML clients.
 * The `AuthnContextClassRef mapper` is not executed. This mapper is provided by a new default client scope `AuthnContextClassRef` which is now added to SAML clients by default. It is in charge of adding the resulting `<AuthnContextClassRef>` to the response.
++
+NOTE: For new realms created with the `step-up-authentication-saml` feature enabled, the mapper and the client scope `AuthnContextClassRef` are automatically created and assigned to SAML clients. But, for exiting realms, if you want to use this preview feature, the client scope and the mapper should be created and assigned to the client manually. When the feature is promoted to supported, the migration will also create the client scope for existing realms if the feature is not disabled at startup.
++
 * The LoA calculated at request time is not achieved by the authentication flow. For example, if the authentication flow used for authentication is not a step-up flow, or there is a misconfiguration between the URI/LoA mapping and the final level reached in the step-up authentication flow.
 
 [[_registration-rc-client-flows]]

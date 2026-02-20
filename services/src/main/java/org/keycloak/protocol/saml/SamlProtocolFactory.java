@@ -140,14 +140,6 @@ public class SamlProtocolFactory extends AbstractLoginProtocolFactory {
         roleListScope.addProtocolMapper(builtins.get("role list"));
         newRealm.addDefaultClientScope(roleListScope, true);
 
-        if (Profile.isFeatureEnabled(Profile.Feature.STEP_UP_AUTHENTICATION_SAML)) {
-            ClientScopeModel authnContextClassRefScope = newRealm.addClientScope(SCOPE_AUTHN_CONTEXT_CLASS_REF);
-            authnContextClassRefScope.setDescription("AuthnContextClassRef Level of Authentiation");
-            authnContextClassRefScope.setProtocol(getId());
-            authnContextClassRefScope.addProtocolMapper(builtins.get(SCOPE_AUTHN_CONTEXT_CLASS_REF));
-            newRealm.addDefaultClientScope(authnContextClassRefScope, true);
-        }
-
         if (Profile.isFeatureEnabled(Feature.ORGANIZATION)) {
             ClientScopeModel organizationScope = newRealm.addClientScope("saml_organization");
             organizationScope.setDescription("Organization Membership");
@@ -156,6 +148,8 @@ public class SamlProtocolFactory extends AbstractLoginProtocolFactory {
             organizationScope.addProtocolMapper(builtins.get("organization"));
             newRealm.addDefaultClientScope(organizationScope, true);
         }
+
+        addSamlAuthnContextClassRefClientScope(newRealm);
     }
 
     @Override
@@ -242,5 +236,20 @@ public class SamlProtocolFactory extends AbstractLoginProtocolFactory {
                 .defaultValue(DeflateUtil.DEFAULT_MAX_INFLATING_SIZE)
                 .add()
                 .build();
+    }
+
+    public ClientScopeModel addSamlAuthnContextClassRefClientScope(RealmModel newRealm) {
+        if (Profile.isFeatureEnabled(Profile.Feature.STEP_UP_AUTHENTICATION_SAML)) {
+            ClientScopeModel authnContextClassRefScope = KeycloakModelUtils.getClientScopeByName(newRealm, SCOPE_AUTHN_CONTEXT_CLASS_REF);
+            if (authnContextClassRefScope == null) {
+                authnContextClassRefScope = newRealm.addClientScope(SCOPE_AUTHN_CONTEXT_CLASS_REF);
+                authnContextClassRefScope.setDescription("AuthnContextClassRef Level of Authentiation");
+                authnContextClassRefScope.setProtocol(getId());
+                authnContextClassRefScope.addProtocolMapper(builtins.get(SCOPE_AUTHN_CONTEXT_CLASS_REF));
+                newRealm.addDefaultClientScope(authnContextClassRefScope, true);
+            }
+            return authnContextClassRefScope;
+        }
+        return null;
     }
 }
