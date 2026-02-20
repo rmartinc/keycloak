@@ -138,13 +138,12 @@ public class DockerAuthV2Protocol implements LoginProtocol {
                         .setIssued_at(expiresInIso8601String);
                 return new ResponseBuilderImpl().status(Response.Status.OK).header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON).entity(responseEntity).build();
             } else {
-                event.detail(Details.REASON, String.format("Unable to handle request for event type %s. Currently only LOGIN event types are supported by docker protocol.",
-                        event.getEvent() == null ? "null" : event.getEvent().getType()));
+                event.detail(Details.REASON, "Unable to handle request. Currently only LOGIN event types are supported by docker protocol.");
                 event.error(Errors.INVALID_REQUEST);
                 throw new ErrorResponseException("invalid_request", "Event type not supported", Response.Status.BAD_REQUEST);
             }
         } catch (final InstantiationException e) {
-            logger.errorv("Error attempting to create Key ID for Docker JOSE header: ", e.getMessage());
+            event.detail(Details.REASON, "Error attempting to create Key ID for Docker JOSE header: " + e.getMessage());
             event.error(Errors.GENERIC_AUTHENTICATION_ERROR);
             throw new ErrorResponseException("token_error", "Unable to construct JOSE header for JWT", Response.Status.INTERNAL_SERVER_ERROR);
         }
