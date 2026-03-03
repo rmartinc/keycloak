@@ -182,11 +182,7 @@ public class OIDCAttributeMapperHelper {
         }
 
         String type = mappingModel.getConfig().get(JSON_TYPE);
-        Object converted = convertToType(type, attributeValue);
-        if (converted == null && isNumericType(type) && attributeValue instanceof String) {
-            return null;
-        }
-        return converted != null ? converted : attributeValue;
+        return convertToType(type, attributeValue);
     }
 
     private static <X, T> List<T> transform(List<X> attributeValue, Function<X, T> mapper) {
@@ -205,7 +201,7 @@ public class OIDCAttributeMapperHelper {
                 if (attributeValue instanceof List) {
                     return transform((List<?>) attributeValue, OIDCAttributeMapperHelper::getBoolean);
                 }
-                throw new RuntimeException("cannot map type for token claim");
+                return null;
             case "String":
                 if (attributeValue instanceof String) return attributeValue;
                 if (attributeValue instanceof List) {
@@ -215,28 +211,26 @@ public class OIDCAttributeMapperHelper {
             case "long":
                 Long longObject = getLong(attributeValue);
                 if (longObject != null) return longObject;
-                if (attributeValue instanceof String) return null;
                 if (attributeValue instanceof List) {
                     return transform((List<?>) attributeValue, OIDCAttributeMapperHelper::getLong);
                 }
-                throw new RuntimeException("cannot map type for token claim");
+                return null;
             case "int":
                 Integer intObject = getInteger(attributeValue);
                 if (intObject != null) return intObject;
-                if (attributeValue instanceof String) return null;
                 if (attributeValue instanceof List) {
                     return transform((List<?>) attributeValue, OIDCAttributeMapperHelper::getInteger);
                 }
-                throw new RuntimeException("cannot map type for token claim");
+                return null;
             case "JSON":
                 JsonNode jsonNodeObject = getJsonNode(attributeValue);
                 if (jsonNodeObject != null) return jsonNodeObject;
                 if (attributeValue instanceof List) {
                     return transform((List<?>) attributeValue, OIDCAttributeMapperHelper::getJsonNode);
                 }
-                throw new RuntimeException("cannot map type for token claim");
-            default:
                 return null;
+            default:
+                return attributeValue;
         }
     }
 
