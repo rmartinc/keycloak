@@ -50,7 +50,9 @@ import org.keycloak.models.UserModel;
 import org.keycloak.policy.MaxAuthAgePasswordPolicyProviderFactory;
 import org.keycloak.protocol.AuthorizationEndpointBase;
 import org.keycloak.provider.ProviderConfigProperty;
+import org.keycloak.services.ErrorPageException;
 import org.keycloak.services.Urls;
+import org.keycloak.services.managers.AuthenticationSessionManager;
 import org.keycloak.services.messages.Messages;
 import org.keycloak.services.validation.Validation;
 import org.keycloak.sessions.AuthenticationSessionCompoundId;
@@ -77,6 +79,7 @@ public class VerifyEmail implements RequiredActionProvider, RequiredActionFactor
                 logger.debug("Skipping VERIFY_EMAIL because UPDATE_EMAIL is already present");
             }
         }
+        checkVerifyEmailKeyIsNotPresent(context);
     }
 
     @Override
@@ -93,8 +96,8 @@ public class VerifyEmail implements RequiredActionProvider, RequiredActionFactor
         AuthenticationSessionModel authSession = context.getAuthenticationSession();
 
         if (context.getUser().isEmailVerified()) {
+            checkVerifyEmailKeyIsNotPresent(context);
             context.success();
-            authSession.removeAuthNote(Constants.VERIFY_EMAIL_KEY);
             return;
         }
 
@@ -110,12 +113,17 @@ public class VerifyEmail implements RequiredActionProvider, RequiredActionFactor
         authSession.setClientNote(AuthorizationEndpointBase.APP_INITIATED_FLOW, null);
 
         // Do not allow resending e-mail by simple page refresh, i.e. when e-mail sent, it should be resent properly via email-verification endpoint
+        Long remaining = EmailCooldownManager.retrieveCooldownEntry(context, EMAIL_RESEND_COOLDOWN_KEY_PREFIX);
         if (!Objects.equals(authSession.getAuthNote(Constants.VERIFY_EMAIL_KEY), email) && !(isCurrentActionTriggeredFromAIA(context) && isChallenge)) {
             // Adding the cooldown entry first to prevent concurrent operations
             EmailCooldownManager.addCooldownEntry(context, EMAIL_RESEND_COOLDOWN_KEY_PREFIX);
             authSession.setAuthNote(Constants.VERIFY_EMAIL_KEY, email);
             EventBuilder event = context.getEvent().clone().event(EventType.SEND_VERIFY_EMAIL).detail(Details.EMAIL, email);
             challenge = sendVerifyEmail(context, event);
+        } else if (remaining != null) {
+            challenge = context.form()
+                    .setError(Messages.COOLDOWN_VERIFICATION_EMAIL, remaining)
+                    .createResponse(UserModel.RequiredAction.VERIFY_EMAIL); // re-render same verify email page
         } else {
             challenge = loginFormsProvider.createResponse(UserModel.RequiredAction.VERIFY_EMAIL);
         }
@@ -129,21 +137,6 @@ public class VerifyEmail implements RequiredActionProvider, RequiredActionFactor
 
     @Override
     public void processAction(RequiredActionContext context) {
-        logger.debugf("Re-sending email requested for user: %s", context.getUser().getUsername());
-
-        Long remaining = EmailCooldownManager.retrieveCooldownEntry(context, EMAIL_RESEND_COOLDOWN_KEY_PREFIX);
-        if (remaining != null) {
-            Response retryPage = context.form()
-                    .setError(Messages.COOLDOWN_VERIFICATION_EMAIL, remaining)
-                    .createResponse(UserModel.RequiredAction.VERIFY_EMAIL); // re-render same verify email page
-
-            context.challenge(retryPage);
-            return;
-        }
-
-        // This will allow user to re-send email again
-        context.getAuthenticationSession().removeAuthNote(Constants.VERIFY_EMAIL_KEY);
-
         process(context, false);
 
     }
@@ -236,4 +229,16 @@ public class VerifyEmail implements RequiredActionProvider, RequiredActionFactor
         }
     }
 
+    private void checkVerifyEmailKeyIsNotPresent(RequiredActionContext context) {
+        // if the user is email verified and the auth session is waiting for verification
+        // the email was verified in another auth session or browser, return error and remove the auth session
+        AuthenticationSessionModel authSession = context.getAuthenticationSession();
+        if (context.getUser().isEmailVerified() && authSession.getAuthNote(Constants.VERIFY_EMAIL_KEY) != null) {
+            // remove current session and return error because the verify email was processed in another window
+            AuthenticationSessionManager asm = new AuthenticationSessionManager(context.getSession());
+            asm.removeAuthenticationSession(context.getRealm(), context.getAuthenticationSession(), true);
+            context.getEvent().error(Errors.EXPIRED_CODE);
+            throw new ErrorPageException(context.getSession(), null, Response.Status.BAD_REQUEST, Messages.LOGIN_TIMEOUT);
+        }
+    }
 }

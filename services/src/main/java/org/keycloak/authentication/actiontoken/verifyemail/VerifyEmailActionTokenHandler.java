@@ -120,6 +120,7 @@ public class VerifyEmailActionTokenHandler extends AbstractActionTokenHandler<Ve
         user.setEmailVerified(true);
         user.removeRequiredAction(RequiredAction.VERIFY_EMAIL);
         authSession.removeRequiredAction(RequiredAction.VERIFY_EMAIL);
+        authSession.removeAuthNote(Constants.VERIFY_EMAIL_KEY);
 
         String redirectUri = RedirectUtils.verifyRedirectUri(tokenContext.getSession(), token.getRedirectUri(), authSession.getClient());
         if (redirectUri != null) {
@@ -130,6 +131,7 @@ public class VerifyEmailActionTokenHandler extends AbstractActionTokenHandler<Ve
 
         event.success();
 
+        System.err.println("RIIIICKY: VerifyEmailActionTokenHadler.process " + token.getCompoundOriginalAuthenticationSessionId());
         if (token.getCompoundOriginalAuthenticationSessionId() != null) {
             AuthenticationSessionManager asm = new AuthenticationSessionManager(session);
             asm.removeAuthenticationSession(tokenContext.getRealm(), authSession, true);
