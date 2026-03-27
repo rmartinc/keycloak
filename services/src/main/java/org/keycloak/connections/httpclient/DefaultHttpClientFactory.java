@@ -93,9 +93,12 @@ public class DefaultHttpClientFactory implements HttpClientFactory {
         lazyInit(session);
 
         return new HttpClientProvider() {
+
+            private final CloseableHttpClient keycloakHttpClient = new KeycloakCloseableHttpClient(httpClient, session);
+
             @Override
             public CloseableHttpClient getHttpClient() {
-                return httpClient;
+                return keycloakHttpClient;
             }
 
             @Override
@@ -107,7 +110,7 @@ public class DefaultHttpClientFactory implements HttpClientFactory {
             public int postText(String uri, String text) throws IOException {
                 HttpPost request = new HttpPost(uri);
                 request.setEntity(EntityBuilder.create().setText(text).setContentType(ContentType.TEXT_PLAIN).build());
-                try (CloseableHttpResponse response = httpClient.execute(request)) {
+                try (CloseableHttpResponse response = keycloakHttpClient.execute(request)) {
                     try {
                         return response.getStatusLine().getStatusCode();
                     } finally {
@@ -122,7 +125,7 @@ public class DefaultHttpClientFactory implements HttpClientFactory {
             @Override
             public String getString(String uri) throws IOException {
                 HttpGet request = new HttpGet(uri);
-                HttpResponse response = httpClient.execute(request);
+                HttpResponse response = keycloakHttpClient.execute(request);
                 String body = stringResponseHandler.handleResponse(response);
                 if (body == null) {
                     throw new IOException("No content returned from HTTP call");
@@ -133,7 +136,7 @@ public class DefaultHttpClientFactory implements HttpClientFactory {
             @Override
             public InputStream getInputStream(String uri) throws IOException {
                 HttpGet request = new HttpGet(uri);
-                HttpResponse response = httpClient.execute(request);
+                HttpResponse response = keycloakHttpClient.execute(request);
                 InputStream body = inputStreamResponseHandler.handleResponse(response);
                 if (body == null) {
                     throw new IOException("No content returned from HTTP call");

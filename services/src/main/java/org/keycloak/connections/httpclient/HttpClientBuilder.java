@@ -32,7 +32,12 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
 import org.keycloak.common.enums.HostnameVerificationPolicy;
+import org.keycloak.models.KeycloakSession;
+import org.keycloak.models.RealmModel;
 
+import org.apache.http.HttpException;
+import org.apache.http.HttpHost;
+import org.apache.http.HttpRequest;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.conn.ssl.BrowserCompatHostnameVerifier;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
@@ -43,6 +48,8 @@ import org.apache.http.conn.util.PublicSuffixMatcherLoader;
 import org.apache.http.impl.NoConnectionReuseStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.protocol.HttpContext;
+import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.ssl.SSLContexts;
 
 /**
@@ -75,6 +82,7 @@ public class HttpClientBuilder {
     }
 
     public static long DEFAULT_CONNECTION_REQUEST_TIMEOUT_MILLIS = 5000L;
+    protected static final String KEYCLOAK_SESSION_CONTEXT_ATTR = "keycloak.session";
 
     protected KeyStore truststore;
     protected KeyStore clientKeyStore;
@@ -298,6 +306,19 @@ public class HttpClientBuilder {
             }
 
             if (disableCookies) builder.disableCookieManagement();
+
+            builder.addInterceptorFirst((HttpRequest request, HttpContext context) -> {
+                final HttpCoreContext coreContext = HttpCoreContext.adapt(context);
+                HttpHost targetHost = coreContext.getTargetHost();
+                KeycloakSession session = (KeycloakSession) context.getAttribute(KEYCLOAK_SESSION_CONTEXT_ATTR);
+                RealmModel realm = session.getContext().getRealm();
+                System.err.println("RIIIICKY: request to " + targetHost + request.getRequestLine().getUri() +
+                        " session=" + session + " realm=" + realm.getName());
+                if (!targetHost.getHostName().equals("localhost")) {
+                    // test to not allow any other hostname but localhost
+                    throw new HttpException("Only connections to localhost are allowed!");
+                }
+            });
 
             return builder.build();
         } catch (Exception e) {
