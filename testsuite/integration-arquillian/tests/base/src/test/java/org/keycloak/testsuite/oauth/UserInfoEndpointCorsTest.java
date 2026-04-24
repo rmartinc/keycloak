@@ -15,6 +15,7 @@ import org.keycloak.testsuite.util.UserInfoClientUtil;
 import org.keycloak.testsuite.util.oauth.AccessTokenResponse;
 
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.keycloak.testsuite.AbstractAdminTest.loadJson;
@@ -34,6 +35,11 @@ public class UserInfoEndpointCorsTest extends AbstractKeycloakTest {
         RealmRepresentation realm = loadJson(getClass().getResourceAsStream("/testrealm.json"), RealmRepresentation.class);
         realm.getClients().add(ClientBuilder.create().redirectUris(VALID_CORS_URL + "/realms/master/app").webOrigins(VALID_CORS_URL).clientId("test-app2").publicClient().directAccessGrantsEnabled().build());
         testRealms.add(realm);
+    }
+
+    @Before
+    public void resetOrigin() {
+        oauth.origin(null);
     }
 
     @Test
@@ -108,7 +114,7 @@ public class UserInfoEndpointCorsTest extends AbstractKeycloakTest {
                     .header("Origin", INVALID_CORS_URL) // manually trigger CORS handling
                     .get();
 
-            UserInfoClientUtil.testSuccessfulUserInfoResponse(userInfoResponse, "test-user@localhost", "test-user@localhost");
+            assertEquals(Response.Status.FORBIDDEN.getStatusCode(), userInfoResponse.getStatus());
 
             assertNotCors(userInfoResponse);
         } finally {

@@ -18,6 +18,7 @@ import org.keycloak.testsuite.util.oauth.OAuthClient;
 import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpOptions;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -48,6 +49,11 @@ public class TokenEndpointCorsTest extends AbstractKeycloakTest {
         RealmRepresentation realm = loadJson(getClass().getResourceAsStream("/testrealm.json"), RealmRepresentation.class);
         realm.getClients().add(ClientBuilder.create().redirectUris(VALID_CORS_URL + "/realms/master/app").webOrigins(VALID_CORS_URL).clientId("test-app2").publicClient().directAccessGrantsEnabled().build());
         testRealms.add(realm);
+    }
+
+    @Before
+    public void resetOrigin() {
+        oauth.origin(null);
     }
 
     @Test
@@ -83,9 +89,9 @@ public class TokenEndpointCorsTest extends AbstractKeycloakTest {
 
         // Invalid origin
         oauth.origin(INVALID_CORS_URL);
-        response = oauth.doRefreshTokenRequest(response.getRefreshToken());
-        assertEquals(200, response.getStatusCode());
-        assertNotCors(response);
+        AccessTokenResponse invalidOriginResponse = oauth.doRefreshTokenRequest(response.getRefreshToken());
+        assertEquals(403, invalidOriginResponse.getStatusCode());
+        assertNotCors(invalidOriginResponse);
         oauth.origin(VALID_CORS_URL);
 
         // No session
@@ -139,7 +145,7 @@ public class TokenEndpointCorsTest extends AbstractKeycloakTest {
         // Successful token request with bad origin - cors should NOT work
         oauth.origin(INVALID_CORS_URL);
         response = oauth.doPasswordGrantRequest("test-user@localhost", "password");
-        assertEquals(200, response.getStatusCode());
+        assertEquals(403, response.getStatusCode());
         assertNotCors(response);
     }
 
