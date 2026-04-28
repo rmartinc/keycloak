@@ -15,7 +15,6 @@ import org.keycloak.testsuite.util.UserInfoClientUtil;
 import org.keycloak.testsuite.util.oauth.AccessTokenResponse;
 
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.keycloak.testsuite.AbstractAdminTest.loadJson;
@@ -37,10 +36,10 @@ public class UserInfoEndpointCorsTest extends AbstractKeycloakTest {
         testRealms.add(realm);
     }
 
-    @Before
+    /*@Before
     public void resetOrigin() {
         oauth.origin(null);
-    }
+    }*/
 
     @Test
     public void userInfoCorsValidRequestWithValidUrl() throws Exception {

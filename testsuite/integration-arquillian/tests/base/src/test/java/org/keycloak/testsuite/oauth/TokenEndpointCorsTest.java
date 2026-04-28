@@ -18,7 +18,6 @@ import org.keycloak.testsuite.util.oauth.OAuthClient;
 import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpOptions;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -49,11 +48,6 @@ public class TokenEndpointCorsTest extends AbstractKeycloakTest {
         RealmRepresentation realm = loadJson(getClass().getResourceAsStream("/testrealm.json"), RealmRepresentation.class);
         realm.getClients().add(ClientBuilder.create().redirectUris(VALID_CORS_URL + "/realms/master/app").webOrigins(VALID_CORS_URL).clientId("test-app2").publicClient().directAccessGrantsEnabled().build());
         testRealms.add(realm);
-    }
-
-    @Before
-    public void resetOrigin() {
-        oauth.origin(null);
     }
 
     @Test

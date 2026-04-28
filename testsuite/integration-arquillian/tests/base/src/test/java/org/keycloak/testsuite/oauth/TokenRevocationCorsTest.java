@@ -29,7 +29,6 @@ import org.keycloak.testsuite.AbstractKeycloakTest;
 import org.keycloak.testsuite.util.oauth.AccessTokenResponse;
 import org.keycloak.testsuite.util.oauth.TokenRevocationResponse;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.keycloak.testsuite.AbstractAdminTest.loadJson;
@@ -53,11 +52,6 @@ public class TokenRevocationCorsTest extends AbstractKeycloakTest {
         realm.getClients().add(ClientBuilder.create().redirectUris(VALID_CORS_URL + "/realms/master/app")
             .webOrigins(VALID_CORS_URL).clientId("test-app2").secret("password").directAccessGrantsEnabled().build());
         testRealms.add(realm);
-    }
-
-    @Before
-    public void resetOrigin() {
-        oauth.origin(null);
     }
 
     @Test
