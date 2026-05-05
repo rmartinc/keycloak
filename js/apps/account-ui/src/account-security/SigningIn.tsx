@@ -38,6 +38,7 @@ import type { TFuncKey } from "../i18n-type";
 import { formatDate } from "../utils/formatDate";
 import { usePromise } from "../utils/usePromise";
 import { AccountEnvironment } from "..";
+import { joinPath } from "../utils/joinPath";
 
 type MobileLinkProps = {
   title: string;
@@ -118,12 +119,12 @@ export const SigningIn = () => {
               <picture>
                 {credMetadata.iconDark && (
                   <source
-                    srcSet={credMetadata.iconDark}
+                    srcSet={joinPath(context.environment.resourceUrl, credMetadata.iconDark)}
                     media="(prefers-color-scheme: dark)"
                   />
                 )}
                 <img
-                  src={icon}
+                  src={joinPath(context.environment.resourceUrl, icon)}
                   alt=""
                   width="40"
                   height="40"

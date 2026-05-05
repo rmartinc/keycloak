@@ -33,8 +33,6 @@ public class WebAuthnMetadataServiceTest {
        assertThat(google, notNullValue());
        assertThat(google.name(), is("Google Password Manager"));
        assertThat(google.iconLight(), notNullValue());
-       assertThat(google.iconLight(), startsWith("data:image/"));
        assertThat(google.iconDark(), notNullValue());
-       assertThat(google.iconDark(), startsWith("data:image/"));
     }
 }

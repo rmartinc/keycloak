@@ -39,9 +39,9 @@
                                             <#if authenticator.iconLight?? || authenticator.iconDark??>
                                                 <picture>
                                                     <#if authenticator.iconDark??>
-                                                        <source srcset="${authenticator.iconDark}" media="(prefers-color-scheme: dark)">
+                                                        <source srcset="${url.resourcesPath}/img/${authenticator.iconDark}" media="(prefers-color-scheme: dark)">
                                                     </#if>
-                                                    <img src="${authenticator.iconLight!authenticator.iconDark!''}" alt="" width="40" height="40">
+                                                    <img src="${url.resourcesPath}/img/${authenticator.iconLight!authenticator.iconDark!''}" alt="" width="40" height="40">
                                                 </picture>
                                             <#else>
                                                 <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
