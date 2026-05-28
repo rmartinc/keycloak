@@ -204,7 +204,8 @@ public class DefaultClientValidationProvider implements ClientValidationProvider
         validateDefaultAcrValues(context);
         validateMinimumAcrValue(context);
         validateClientSessionTimeout(context);
-        validateX509Credentials(context);
+        // TODO: remove strict validation check until keycloak 27
+        //validateX509Credentials(context);
 
         return context.toResult();
     }
