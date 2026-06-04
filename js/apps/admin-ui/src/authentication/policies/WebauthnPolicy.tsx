@@ -58,6 +58,13 @@ const AUTHENTICATOR_ATTACHMENT = [
 
 const RESIDENT_KEY_OPTIONS = ["not specified", "Yes", "No"] as const;
 
+const RESIDENT_KEY_REQUIREMENT = [
+  "not specified",
+  "required",
+  "preferred",
+  "discouraged",
+] as const;
+
 const USER_VERIFY = [
   "not specified",
   "required",
@@ -219,6 +226,13 @@ export const WebauthnPolicy = ({
             labelIcon={t("webAuthnPolicyAuthenticatorAttachmentHelp")}
             options={AUTHENTICATOR_ATTACHMENT}
             labelPrefix="authenticatorAttachment"
+          />
+          <WebauthnSelect
+            name={`${namePrefix}ResidentKey`}
+            label={t("webAuthnPolicyResidentKey")}
+            labelIcon={t("webAuthnPolicyResidentKeyHelp")}
+            options={RESIDENT_KEY_REQUIREMENT}
+            labelPrefix="residentKeyRequirement"
           />
           <WebauthnSelect
             name={`${namePrefix}RequireResidentKey`}

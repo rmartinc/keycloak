@@ -37,6 +37,7 @@ public class WebAuthnPolicy implements Serializable {
     protected String attestationConveyancePreference;
     protected String authenticatorAttachment;
     protected String requireResidentKey;
+    protected String residentKey;
     protected String userVerificationRequirement;
     protected int createTimeout = 0; // not specified as option
     protected boolean avoidSameAuthenticatorRegister = false;
@@ -95,12 +96,28 @@ public class WebAuthnPolicy implements Serializable {
         this.authenticatorAttachment = authenticatorAttachment;
     }
 
+    /**
+     * @deprecated Use {@link #getResidentKey()} instead. Kept for backwards compatibility
+     */
+    @Deprecated
     public String getRequireResidentKey() {
         return requireResidentKey;
     }
 
+    /**
+     * @deprecated Use {@link #setResidentKey(String)} instead. Kept for backwards compatibility.
+     */
+    @Deprecated
     public void setRequireResidentKey(String requireResidentKey) {
         this.requireResidentKey = requireResidentKey;
+    }
+
+    public String getResidentKey() {
+        return residentKey;
+    }
+
+    public void setResidentKey(String residentKey) {
+        this.residentKey = residentKey;
     }
 
     public String getUserVerificationRequirement() {

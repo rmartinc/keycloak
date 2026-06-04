@@ -45,6 +45,8 @@ public abstract class AbstractWebAuthnRealmUpdater<T extends AbstractWebAuthnRea
 
     public abstract T setWebAuthnPolicyRequireResidentKey(String webAuthnPolicyRequireResidentKey);
 
+    public abstract T setWebAuthnPolicyResidentKey(String webAuthnPolicyResidentKey);
+
     public abstract T setWebAuthnPolicyRpId(String webAuthnPolicyRpId);
 
     public abstract T setWebAuthnPolicyUserVerificationRequirement(String webAuthnPolicyUserVerificationRequirement);

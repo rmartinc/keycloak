@@ -72,6 +72,12 @@ public class WebAuthnRealmAttributeUpdater extends AbstractWebAuthnRealmUpdater<
     }
 
     @Override
+    public WebAuthnRealmAttributeUpdater setWebAuthnPolicyResidentKey(String webAuthnPolicyResidentKey) {
+        rep.setWebAuthnPolicyResidentKey(webAuthnPolicyResidentKey);
+        return this;
+    }
+
+    @Override
     public WebAuthnRealmAttributeUpdater setWebAuthnPolicyRpId(String webAuthnPolicyRpId) {
         rep.setWebAuthnPolicyRpId(webAuthnPolicyRpId);
         return this;

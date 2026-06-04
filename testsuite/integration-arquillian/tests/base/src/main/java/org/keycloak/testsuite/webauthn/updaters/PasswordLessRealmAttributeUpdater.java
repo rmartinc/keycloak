@@ -72,6 +72,12 @@ public class PasswordLessRealmAttributeUpdater extends AbstractWebAuthnRealmUpda
     }
 
     @Override
+    public PasswordLessRealmAttributeUpdater setWebAuthnPolicyResidentKey(String webAuthnPolicyResidentKey) {
+        rep.setWebAuthnPolicyPasswordlessResidentKey(webAuthnPolicyResidentKey);
+        return this;
+    }
+
+    @Override
     public PasswordLessRealmAttributeUpdater setWebAuthnPolicyRpId(String webAuthnPolicyRpId) {
         rep.setWebAuthnPolicyPasswordlessRpId(webAuthnPolicyRpId);
         return this;

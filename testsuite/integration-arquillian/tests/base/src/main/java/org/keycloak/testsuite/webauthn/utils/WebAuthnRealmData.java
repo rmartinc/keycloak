@@ -65,6 +65,10 @@ public class WebAuthnRealmData {
         return isPasswordless ? realm.getWebAuthnPolicyPasswordlessRequireResidentKey() : realm.getWebAuthnPolicyRequireResidentKey();
     }
 
+    public String getResidentKey() {
+        return isPasswordless ? realm.getWebAuthnPolicyPasswordlessResidentKey() : realm.getWebAuthnPolicyResidentKey();
+    }
+
     public String getUserVerificationRequirement() {
         return isPasswordless ? realm.getWebAuthnPolicyPasswordlessUserVerificationRequirement() : realm.getWebAuthnPolicyUserVerificationRequirement();
     }
@@ -125,6 +129,11 @@ public class WebAuthnRealmData {
 
         public Builder requireResidentKey(String requirement) {
             setProperty(requirement, realm::setWebAuthnPolicyRequireResidentKey, realm::setWebAuthnPolicyPasswordlessRequireResidentKey);
+            return this;
+        }
+
+        public Builder residentKey(String requirement) {
+            setProperty(requirement, realm::setWebAuthnPolicyResidentKey, realm::setWebAuthnPolicyPasswordlessResidentKey);
             return this;
         }
 
