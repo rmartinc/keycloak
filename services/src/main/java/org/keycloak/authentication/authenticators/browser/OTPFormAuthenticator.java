@@ -29,6 +29,7 @@ import org.keycloak.authentication.Authenticator;
 import org.keycloak.authentication.CredentialValidator;
 import org.keycloak.authentication.RequiredActionFactory;
 import org.keycloak.authentication.RequiredActionProvider;
+import org.keycloak.authentication.authenticators.util.AuthenticatorUtils;
 import org.keycloak.authentication.requiredactions.UpdateTotp;
 import org.keycloak.credential.CredentialProvider;
 import org.keycloak.credential.OTPCredentialProvider;
@@ -117,6 +118,8 @@ public class OTPFormAuthenticator extends AbstractUsernameFormAuthenticator impl
             context.failureChallenge(AuthenticationFlowError.INVALID_CREDENTIALS, challengeResponse);
             return;
         }
+
+        AuthenticatorUtils.processTrustDevice(context, inputData);
         context.success(OTPCredentialModel.TYPE);
     }
 

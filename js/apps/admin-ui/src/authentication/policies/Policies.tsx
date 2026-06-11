@@ -6,6 +6,7 @@ import { CibaPolicy } from "./CibaPolicy";
 import { OtpPolicy } from "./OtpPolicy";
 import { PasswordPolicy } from "./PasswordPolicy";
 import { WebauthnPolicy } from "./WebauthnPolicy";
+import { TrustedDevicePolicy } from "./TrustedDevicePolicy";
 
 export const Policies = () => {
   const { t } = useTranslation();
@@ -57,6 +58,14 @@ export const Policies = () => {
         title={<TabTitleText>{t("cibaPolicy")}</TabTitleText>}
       >
         <CibaPolicy realm={realm} realmUpdated={refresh} />
+      </Tab>
+      <Tab
+        id="trustedDevicePolicy"
+        data-testid="trustedDevicePolicy"
+        eventKey={6}
+        title={<TabTitleText>{t("trustedDevicePolicy")}</TabTitleText>}
+      >
+        <TrustedDevicePolicy realm={realm} realmUpdated={refresh} />
       </Tab>
     </Tabs>
   );

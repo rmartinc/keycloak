@@ -42,6 +42,7 @@ import org.keycloak.authentication.AuthenticationProcessor;
 import org.keycloak.authentication.authenticators.browser.AbstractUsernameFormAuthenticator;
 import org.keycloak.authentication.authenticators.browser.OTPFormAuthenticator;
 import org.keycloak.authentication.authenticators.browser.RecoveryAuthnCodesFormAuthenticator;
+import org.keycloak.authentication.authenticators.browser.TrustedDeviceAuthenticatorFactory;
 import org.keycloak.authentication.forms.RegistrationPage;
 import org.keycloak.authentication.requiredactions.util.UpdateProfileContext;
 import org.keycloak.authentication.requiredactions.util.UserUpdateProfileContext;
@@ -604,6 +605,11 @@ public class FreeMarkerLoginFormsProvider implements LoginFormsProvider {
         if (authenticationSession != null && authenticationSession.getClientNote(Constants.KC_ACTION_EXECUTING) != null
                 && !Boolean.TRUE.toString().equals(authenticationSession.getClientNote(Constants.KC_ACTION_ENFORCED))) {
             attributes.put("isAppInitiatedAction", true);
+        }
+
+        if (authenticationSession != null && TrustedDeviceAuthenticatorFactory.TRUST_DEVICE_SHOW.equals(
+                authenticationSession.getAuthNote(TrustedDeviceAuthenticatorFactory.TRUST_DEVICE_AUTH_NOTE))) {
+            attributes.put("showTrustDevice", "true");
         }
 
         attributes.put("lang", lang);

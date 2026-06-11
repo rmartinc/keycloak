@@ -1,5 +1,6 @@
 <#import "template.ftl" as layout>
 <#import "buttons.ftl" as buttons>
+<#import "field.ftl" as field>
 <@layout.registrationLayout displayInfo=(realm.registrationAllowed && !registrationDisabled??); section>
 <!-- template: webauthn-authenticate.ftl -->
 
@@ -9,15 +10,6 @@
         ${msg("webauthn-login-title")}
     <#elseif section = "form">
         <div id="kc-form-webauthn" class="${properties.kcFormClass!}" >
-            <form id="webauth" action="${url.loginAction}" method="post" hidden="hidden">
-                <input type="hidden" id="clientDataJSON" name="clientDataJSON"/>
-                <input type="hidden" id="authenticatorData" name="authenticatorData"/>
-                <input type="hidden" id="signature" name="signature"/>
-                <input type="hidden" id="credentialId" name="credentialId"/>
-                <input type="hidden" id="userHandle" name="userHandle"/>
-                <input type="hidden" id="error" name="error"/>
-            </form>
-
                 <#if authenticators??>
                     <form id="authn_select" class="${properties.kcFormClass!}" hidden="hidden">
                         <#list authenticators.authenticators as authenticator>
@@ -115,6 +107,20 @@
                         </ul>
                     </#if>
                 </#if>
+
+            <form id="webauth" action="${url.loginAction}" method="post">
+                <input type="hidden" id="clientDataJSON" name="clientDataJSON"/>
+                <input type="hidden" id="authenticatorData" name="authenticatorData"/>
+                <input type="hidden" id="signature" name="signature"/>
+                <input type="hidden" id="credentialId" name="credentialId"/>
+                <input type="hidden" id="userHandle" name="userHandle"/>
+                <input type="hidden" id="error" name="error"/>
+                <#if showTrustDevice?has_content>
+                    <div class="${properties.kcFormGroupClass!}">
+                        <@field.checkbox name="trustDevice" label=msg("trustDevice") description=msg("trusted-device-help-text") />
+                    </div>
+                </#if>
+            </form>
 
             <@buttons.actionGroup>
                 <@buttons.button id="authenticateWebAuthnButton" label="webauthn-doAuthenticate" autofocus="autofocus"/>
