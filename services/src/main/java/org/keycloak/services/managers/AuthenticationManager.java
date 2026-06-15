@@ -90,7 +90,6 @@ import org.keycloak.models.SingleUseObjectKeyModel;
 import org.keycloak.models.UserConsentModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.UserSessionModel;
-import org.keycloak.models.credential.OTPCredentialModel;
 import org.keycloak.models.utils.DefaultRequiredActions;
 import org.keycloak.models.utils.KeycloakModelUtils;
 import org.keycloak.models.utils.SessionExpirationUtils;
@@ -984,10 +983,10 @@ public class AuthenticationManager {
             int authTime = Optional.ofNullable(authSession.getClientNote(AUTH_TIME_BROKER)).map(Integer::parseInt).orElse(Time.currentTime());
             userSession.setNote(AUTH_TIME, String.valueOf(authTime));
             clientSession.removeNote(SSO_AUTH);
-
-            // The user has successfully logged in and we can clear his/her previous login failure attempts.
-            logSuccess(session, authSession);
         }
+
+        // The user has successfully logged in and we can clear his/her previous login failure attempts.
+        logSuccess(session, authSession);
 
         return protocol.authenticated(authSession, userSession, clientSessionCtx);
     }
@@ -1741,7 +1740,7 @@ public class AuthenticationManager {
                         user,
                         session.getContext().getConnection(),
                         session.getContext().getHttpRequest().getUri(),
-                        AuthenticatorUtil.getAuthnCredentials(authSession).contains(OTPCredentialModel.TYPE) ? OTPCredentialModel.TYPE : null
+                        new HashSet<>(AuthenticatorUtil.getAuthnCredentials(authSession))
                 );
             }
         }

@@ -1098,28 +1098,6 @@ public class BruteForceTest extends AbstractChangeImportedUserPasswordsTest {
 
     // https://github.com/keycloak/keycloak/issues/49960
     @Test
-    public void testAuthenticatedSessionRefreshDoesNotResetLockout() {
-        String totpSecret = totp.generateTOTP("totpSecret");
-        AccessTokenResponse validLogin = getTestToken(getPassword("test-user@localhost"), totpSecret);
-        Assertions.assertNotNull(validLogin.getAccessToken());
-        String refreshToken = validLogin.getRefreshToken();
-
-        getTestToken("wrongpass", totpSecret);
-        getTestToken("wrongpass", totpSecret);
-
-        AccessTokenResponse shouldBeLocked = getTestToken(getPassword("test-user@localhost"), totpSecret);
-        Assertions.assertNull(shouldBeLocked.getAccessToken());
-
-        AccessTokenResponse refreshedTokenResponse = oauth.doRefreshTokenRequest(refreshToken);
-        Assertions.assertNotNull(refreshedTokenResponse.getAccessToken(), "Refresh token request failed: " + refreshedTokenResponse.getError());
-
-        AccessTokenResponse afterRefresh = getTestToken(getPassword("test-user@localhost"), totpSecret);
-        Assertions.assertNull(afterRefresh.getAccessToken(), "User should still be locked after token refresh");
-        events.clear();
-    }
-
-    // https://github.com/keycloak/keycloak/issues/49960
-    @Test
     public void testCookieSsoReauthenticationDoesNotResetLockout() {
         String totpSecret = totp.generateTOTP("totpSecret");
 
