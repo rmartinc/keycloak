@@ -81,9 +81,6 @@ public class DefaultBruteForceProtector implements BruteForceProtector {
     }
 
     protected void failure(KeycloakSession session, RealmModel realm, String userId, String remoteAddr, long failureTime, Set<String> categories) {
-        logger.debugf("failure (category=%s)", categories);
-        if (categories != null && Collections.disjoint(ALLOWED_AUTHENTICATION_CATEGORIES, categories)) return;
-
         UserLoginFailureModel userLoginFailure = getUserFailureModel(session, realm, userId);
         if (userLoginFailure == null) {
             userLoginFailure = session.loginFailures().addUserLoginFailure(realm, userId);
@@ -239,7 +236,7 @@ public class DefaultBruteForceProtector implements BruteForceProtector {
 
     @Override
     public void successfulLogin(RealmModel realm, UserModel user, ClientConnection clientConnection, UriInfo uriInfo, Set<String> authenticationCategories) {
-        if (authenticationCategories != null && Collections.disjoint(ALLOWED_AUTHENTICATION_CATEGORIES, authenticationCategories)) {
+        if (authenticationCategories == null || Collections.disjoint(ALLOWED_AUTHENTICATION_CATEGORIES, authenticationCategories)) {
             logger.debugf("'%s' authentication category not allowed for brute force", authenticationCategories);
             return;
         }

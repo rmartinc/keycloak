@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import jakarta.ws.rs.core.MultivaluedHashMap;
@@ -769,7 +770,9 @@ public class AuthenticationProcessor {
         if (realm.isBruteForceProtected()) {
             UserModel user = AuthenticationManager.lookupUserForBruteForceLog(session, realm, authenticationSession);
             if (user != null) {
-                getBruteForceProtector().failedLogin(realm, user, connection, session.getContext().getHttpRequest().getUri(), Collections.singleton(AuthenticationManager.getAuthenticationCategory(session, executionId)));
+                getBruteForceProtector().failedLogin(realm, user, connection, session.getContext().getHttpRequest().getUri(),
+                        Optional.ofNullable(AuthenticationManager.getAuthenticationCategory(session, executionId))
+                                .map(Collections::singleton).orElse(null));
             }
         }
     }

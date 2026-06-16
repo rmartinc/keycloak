@@ -17,6 +17,8 @@
 
 package org.keycloak.services.managers;
 
+import java.util.Set;
+
 import jakarta.ws.rs.core.UriInfo;
 
 import org.keycloak.common.ClientConnection;
@@ -24,8 +26,6 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.provider.Provider;
-
-import java.util.Set;
 
 /**
  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
