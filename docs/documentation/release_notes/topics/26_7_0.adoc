@@ -36,6 +36,10 @@ https://github.com/pulsastrix[Hugo Hakim Damer], https://github.com/rameshkumark
 https://github.com/Vitalisn4[Palpable] for the contributions!
 endif::[]
 
+== Step-up authentication for SAML (supported)
+
+The feature `step-up-authentication-saml` extends the step-up authentication to include the SAML protocol and clients. This feature is now promoted to supported. For more information, see the link:{adminguide_link}#_step-up-authentication-saml[{adminguide_name}].
+
 = Administration
 
 == Client Admin API v2 (experimental)
