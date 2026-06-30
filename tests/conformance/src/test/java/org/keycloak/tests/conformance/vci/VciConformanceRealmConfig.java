@@ -52,6 +52,7 @@ import org.keycloak.testframework.realm.RealmConfig;
 import org.keycloak.testframework.realm.UserBuilder;
 import org.keycloak.testframework.server.KeycloakServerConfig;
 import org.keycloak.testframework.server.KeycloakServerConfigBuilder;
+import org.keycloak.tests.conformance.ConformanceSigningKey;
 import org.keycloak.tests.conformance.containers.OpenIdConformanceSuite;
 import org.keycloak.util.JsonSerialization;
 
@@ -230,6 +231,7 @@ public class VciConformanceRealmConfig implements RealmConfig {
         @Override
         public KeycloakServerConfigBuilder configure(KeycloakServerConfigBuilder config) {
             return config.features(Profile.Feature.OID4VC_VCI, Profile.Feature.CLIENT_AUTH_ABCA)
+                    .option("spi-keys--java-keystore--keystores-path", ConformanceSigningKey.TMP_PATH.toString())
                     .option("hostname", OpenIdConformanceSuite.KEYCLOAK_BASE_URI.toString());
         }
     }

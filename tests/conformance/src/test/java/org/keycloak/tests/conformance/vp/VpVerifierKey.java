@@ -24,7 +24,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 final class VpVerifierKey {
 
     private static final ConformanceSigningKey KEY =
-            ConformanceSigningKey.generate("vp_verifier_key", "OID4VP Conformance Verifier");
+            ConformanceSigningKey.generate(VpConformanceRealmConfig.REALM, "vp_verifier_key", "OID4VP Conformance Verifier");
 
     private VpVerifierKey() {
     }

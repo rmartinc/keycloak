@@ -17,9 +17,11 @@
 
 package org.keycloak.tests.conformance;
 
+import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
@@ -55,22 +57,33 @@ import com.fasterxml.jackson.databind.JsonNode;
 public final class ConformanceSigningKey {
 
     public static final String KEYSTORE_PASSWORD = "password";
+    public static final Path TMP_PATH = Paths.get(System.getProperty("java.io.tmpdir")).normalize();
 
+    private final String realmName;
     private final String kid;
     private final KeyPair keyPair;
     private final X509Certificate certificate;
     private final X509Certificate caCertificate;
     private String keyStorePath;
 
-    private ConformanceSigningKey(String kid, KeyPair keyPair, X509Certificate certificate,
+    private ConformanceSigningKey(String realmName, String kid, KeyPair keyPair, X509Certificate certificate,
             X509Certificate caCertificate) {
+        this.realmName = realmName;
         this.kid = kid;
         this.keyPair = keyPair;
         this.certificate = certificate;
         this.caCertificate = caCertificate;
     }
 
-    public static ConformanceSigningKey generate(String kid, String name) {
+    public static Path getRealmKeystoreFolder(String realmName) throws IOException {
+        Path realmFolder = TMP_PATH.resolve(realmName);
+        if (!Files.exists(realmFolder)) {
+            Files.createDirectory(realmFolder);
+        }
+        return realmFolder;
+    }
+
+    public static ConformanceSigningKey generate(String realmName, String kid, String name) {
         try {
             if (!CryptoIntegration.isInitialised()) {
                 CryptoIntegration.setProvider(new DefaultCryptoProvider());
@@ -84,7 +97,7 @@ public final class ConformanceSigningKey {
                     CertificateUtils.generateV1SelfSignedCertificate(caKeyPair, name + " CA");
             X509Certificate certificate =
                     CertificateUtils.generateV3Certificate(keyPair, caKeyPair.getPrivate(), caCertificate, name);
-            return new ConformanceSigningKey(kid, keyPair, certificate, caCertificate);
+            return new ConformanceSigningKey(realmName, kid, keyPair, certificate, caCertificate);
         } catch (Exception e) {
             throw new RuntimeException("Failed to create conformance signing key " + kid, e);
         }
@@ -126,7 +139,7 @@ public final class ConformanceSigningKey {
                 keyStore.load(null, null);
                 keyStore.setKeyEntry(kid, keyPair.getPrivate(), KEYSTORE_PASSWORD.toCharArray(),
                         new Certificate[] {certificate, caCertificate});
-                Path path = Files.createTempFile("keycloak-conformance-" + kid, ".p12");
+                Path path = Files.createTempFile(getRealmKeystoreFolder(realmName), "keycloak-conformance-" + kid, ".p12");
                 try (OutputStream output = Files.newOutputStream(path)) {
                     keyStore.store(output, KEYSTORE_PASSWORD.toCharArray());
                 }

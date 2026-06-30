@@ -31,7 +31,8 @@ final class VciAttesterKey {
 
     static final String KID = "ct_client_attester_key";
 
-    private static final ConformanceSigningKey KEY = ConformanceSigningKey.generate(KID, "OID4VCI Conformance Attester");
+    private static final ConformanceSigningKey KEY = ConformanceSigningKey.generate(
+            VciConformanceRealmConfig.REALM, KID, "OID4VCI Conformance Attester");
 
     private VciAttesterKey() {
     }
