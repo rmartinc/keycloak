@@ -230,6 +230,7 @@ public class VciConformanceRealmConfig implements RealmConfig {
         @Override
         public KeycloakServerConfigBuilder configure(KeycloakServerConfigBuilder config) {
             return config.features(Profile.Feature.OID4VC_VCI, Profile.Feature.CLIENT_AUTH_ABCA)
+                    .option("spi-keys--java-keystore--keystores-path", System.getProperty("java.io.tmpdir"))
                     .option("hostname", OpenIdConformanceSuite.KEYCLOAK_BASE_URI.toString());
         }
     }

@@ -111,6 +111,7 @@ public class VpConformanceRealmConfig implements RealmConfig {
         @Override
         public KeycloakServerConfigBuilder configure(KeycloakServerConfigBuilder config) {
             return config.features(Profile.Feature.OID4VC_VP)
+                    .option("spi-keys--java-keystore--keystores-path", System.getProperty("java.io.tmpdir"))
                     .option("hostname", OpenIdConformanceSuite.KEYCLOAK_BASE_URI.toString());
         }
     }

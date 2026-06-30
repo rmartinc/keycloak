@@ -21,6 +21,7 @@ import java.io.OutputStream;
 import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
@@ -77,7 +78,12 @@ final class VciTestSigningKey {
             keyStore.setKeyEntry(KEY_ALIAS, leafKeyPair.getPrivate(), PASSWORD.toCharArray(),
                     new Certificate[] { leafCertificate, caCertificate });
 
-            Path keyStorePath = Files.createTempFile("keycloak-oid4vci-conformance-signing", ".p12");
+            String tmpdir = System.getProperty("java.io.tmpdir");
+            Path realmFolder = Paths.get(tmpdir).resolve(VciConformanceRealmConfig.REALM);
+            if (!Files.exists(realmFolder)) {
+                Files.createDirectory(realmFolder);
+            }
+            Path keyStorePath = Files.createTempFile(realmFolder, "keycloak-oid4vci-conformance-signing", ".p12");
             try (OutputStream output = Files.newOutputStream(keyStorePath)) {
                 keyStore.store(output, PASSWORD.toCharArray());
             }
