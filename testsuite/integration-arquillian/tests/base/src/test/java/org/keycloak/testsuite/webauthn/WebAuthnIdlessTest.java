@@ -146,7 +146,6 @@ public class WebAuthnIdlessTest extends AbstractWebAuthnVirtualTest {
 
         setUpIDLessOnlyFlow("idless-only-flow");
         idlessAuthentication(username, credentialId, false, false);
-
     }
 
     // Authenticate IDLess with no webauthn-passwordless credential registered: should fail
@@ -398,7 +397,7 @@ public class WebAuthnIdlessTest extends AbstractWebAuthnVirtualTest {
         }
         else {
             loginPage.assertCurrent();
-            assertThat(loginPage.getError(), containsString("Failed to authenticate by the Passkey."));
+            assertThat(loginPage.getError(), containsString("The Passkey operation was not allowed or timed out."));
         }
     }
 

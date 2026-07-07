@@ -85,7 +85,7 @@ public class AuthAttachmentRegisterTest extends AbstractWebAuthnVirtualTest {
 
             // it timeouts after create timeout
             WaitUtils.waitUntilPageIsCurrent(webAuthnErrorPage);
-            assertThat(webAuthnErrorPage.getError(), containsString("The operation either timed out or was not allowed."));
+            assertThat(webAuthnErrorPage.getError(), containsString("The Passkey operation was not allowed or timed out."));
         }
     }
 
@@ -105,9 +105,12 @@ public class AuthAttachmentRegisterTest extends AbstractWebAuthnVirtualTest {
 
             registerDefaultUser(shouldSuccess);
 
-            displayErrorMessageIfPresent();
+            String errorMessage = displayErrorMessageIfPresent();
 
             assertThat(webAuthnErrorPage.isCurrent(), is(!shouldSuccess));
+            if (!shouldSuccess) {
+                assertThat(errorMessage, containsString("Your organization requires a different type of security key. Please use the correct type."));
+            }
         } catch (IOException e) {
             throw new RuntimeException(e.getCause());
         }
