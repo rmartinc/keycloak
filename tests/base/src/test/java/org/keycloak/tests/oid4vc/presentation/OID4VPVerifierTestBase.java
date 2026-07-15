@@ -18,7 +18,6 @@
 package org.keycloak.tests.oid4vc.presentation;
 
 import java.io.IOException;
-import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
@@ -46,17 +45,14 @@ import org.keycloak.representations.idm.KeysMetadataRepresentation;
 import org.keycloak.testframework.annotations.InjectHttpClient;
 import org.keycloak.tests.oid4vc.OID4VCIssuerTestBase;
 import org.keycloak.tests.oid4vc.OID4VCTestContext;
-import org.keycloak.util.JsonSerialization;
+import org.keycloak.testsuite.util.oauth.AbstractHttpResponse;
+import org.keycloak.testsuite.util.oauth.oid4vc.Oid4vpRequestObjectResponse;
 import org.keycloak.util.KeyWrapperUtil;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.apache.http.Header;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -101,19 +97,15 @@ public abstract class OID4VPVerifierTestBase extends OID4VCIssuerTestBase {
         setCredentialScopeAttributes(sdJwtTypeCredentialScope, Map.of(VC_SIGNING_ALG, Algorithm.ES256));
     }
 
-    protected record IssuedCredential(String sdJwtVc, KeyWrapper holderKey) {
-    }
-
-    protected IssuedCredential issueCredential() {
+    protected OID4VCTestContext issueCredential() {
         OID4VCTestContext ctx = new OID4VCTestContext(client, sdJwtTypeCredentialScope);
         wallet.fetchCredentialByScope(ctx, ctx.getScope());
-        String sdJwtVc = (String) ctx.getCredentialResponse().getCredentials().get(0).getCredential();
-        Assertions.assertNotNull(sdJwtVc, "No SD-JWT VC issued");
-        IssuedCredential credential = new IssuedCredential(sdJwtVc, wallet.getECKeyPair(ctx));
+        Assertions.assertNotNull(ctx.getCredentialResponse().getCredentials().get(0).getCredential(),
+                "No SD-JWT VC issued");
         wallet.logout();
         driver.cookies().deleteAll();
         driver.open("about:blank");
-        return credential;
+        return ctx;
     }
 
     protected void createVerifierIdp(Map<String, String> config) {
@@ -128,6 +120,26 @@ public abstract class OID4VPVerifierTestBase extends OID4VCIssuerTestBase {
         testRealm.cleanup().add(r -> r.identityProviders().get(IDP_ALIAS).remove());
     }
 
+    protected static String dcqlQuery() {
+        return """
+                {
+                  "credentials": [
+                    {
+                      "id": "identity",
+                      "format": "dc+sd-jwt",
+                      "meta": { "vct_values": ["%s"] },
+                      "claims": [{ "path": ["email"] }, { "path": ["lastName"] }]
+                    }
+                  ]
+                }""".formatted(sdJwtTypeCredentialVct);
+    }
+
+    protected void assertLoginContinued() {
+        // TODO assert the presented claims (email, given and family name) were mapped to the user
+        Assertions.assertTrue(driver.driver().getCurrentUrl().contains("login-actions"),
+                "Expected to continue into the login flow, was: " + driver.driver().getCurrentUrl());
+    }
+
     protected String realmSigningJwks() {
         try (CloseableHttpResponse response = httpClient.execute(
                 new HttpGet(testRealm.getBaseUrl() + "/protocol/openid-connect/certs"))) {
@@ -138,33 +150,18 @@ public abstract class OID4VPVerifierTestBase extends OID4VCIssuerTestBase {
         }
     }
 
-    // Wallet exchange -------------------------------------------------------------------------------------------------
-
-    protected JsonNode requestObject() throws Exception {
-        return requestObjectClaims(requestUri(openWalletPage()));
+    protected JsonNode requestObject() {
+        Oid4vpRequestObjectResponse response = wallet.fetchRequestObject(wallet.requestUri(openWalletPage()));
+        assertNotCacheable(response);
+        return response.getClaims();
     }
 
-    protected String present(IssuedCredential credential, JsonNode request) {
-        return present(credential, request, request.path("nonce").asText());
-    }
-
-    protected String present(IssuedCredential credential, JsonNode request, String nonce) {
-        return wallet.present(credential.sdJwtVc(), credential.holderKey(),
-                request.path("client_id").asText(), nonce);
-    }
-
-    protected JsonNode directPost(JsonNode request, String vpToken, int expectedStatus) throws IOException {
-        HttpPost post = new HttpPost(request.path("response_uri").asText());
-        post.setEntity(new UrlEncodedFormEntity(List.of(
-                new BasicNameValuePair("vp_token", vpToken),
-                new BasicNameValuePair("state", request.path("state").asText()))));
-        try (CloseableHttpResponse response = httpClient.execute(post)) {
-            int status = response.getStatusLine().getStatusCode();
-            JsonNode body = JsonSerialization.readValue(EntityUtils.toByteArray(response.getEntity()), JsonNode.class);
-            Assertions.assertEquals(expectedStatus, status, "Unexpected direct_post status, body: " + body);
-            assertNotCacheable(response);
-            return body;
-        }
+    // Wallet facing responses carry login correlating secrets and must not be cacheable.
+    protected static void assertNotCacheable(AbstractHttpResponse response) {
+        String cacheControl = response.getHeader("Cache-Control");
+        Assertions.assertNotNull(cacheControl, "Wallet facing responses must send Cache-Control");
+        Assertions.assertTrue(cacheControl.contains("no-store"),
+                "Wallet facing responses must not be cacheable, was: " + cacheControl);
     }
 
     protected static boolean verifyEs256(JWSInput jws, X509Certificate certificate) throws Exception {
@@ -247,29 +244,4 @@ public abstract class OID4VPVerifierTestBase extends OID4VCIssuerTestBase {
                 .orElseThrow(() -> new IllegalStateException("Verifier signing key not found in the realm keys"));
     }
 
-    protected static String requestUri(String walletUrl) {
-        Matcher matcher = Pattern.compile("request_uri=([^&]+)").matcher(walletUrl);
-        Assertions.assertTrue(matcher.find(), "Wallet link is missing request_uri: " + walletUrl);
-        return URLDecoder.decode(matcher.group(1), StandardCharsets.UTF_8);
-    }
-
-    protected JsonNode requestObjectClaims(String requestUri) throws Exception {
-        return JsonSerialization.readValue(new JWSInput(fetchRequestObject(requestUri)).getContent(), JsonNode.class);
-    }
-
-    protected String fetchRequestObject(String requestUri) throws IOException {
-        try (CloseableHttpResponse response = httpClient.execute(new HttpGet(requestUri))) {
-            Assertions.assertEquals(200, response.getStatusLine().getStatusCode());
-            assertNotCacheable(response);
-            return EntityUtils.toString(response.getEntity());
-        }
-    }
-
-    // Wallet facing responses carry login correlating secrets and must not be cacheable.
-    protected static void assertNotCacheable(CloseableHttpResponse response) {
-        Header cacheControl = response.getFirstHeader("Cache-Control");
-        Assertions.assertNotNull(cacheControl, "Wallet facing responses must send Cache-Control");
-        Assertions.assertTrue(cacheControl.getValue().contains("no-store"),
-                "Wallet facing responses must not be cacheable, was: " + cacheControl.getValue());
-    }
 }

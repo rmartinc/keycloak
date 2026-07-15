@@ -21,6 +21,7 @@ import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -74,10 +75,13 @@ public class OID4VPIdentityProvider extends AbstractIdentityProvider<OID4VPIdent
 
     private static final Logger logger = Logger.getLogger(OID4VPIdentityProvider.class);
 
-    // The flow object is written when the login page is rendered and read while serving the request
-    // object and the presentation. It holds the root authentication session id and tab id needed to
-    // recover that session, and the nonce the wallet must echo in the key binding JWT.
-    public static final String FLOW_PREFIX = "oid4vp.flow.";
+    // TODO the accepted presentation signature algorithms are hardcoded to match the advertised client
+    // metadata. Derive both from configuration or the available verification key material.
+    public static final List<String> ACCEPTED_ALGORITHMS = List.of(Algorithm.ES256);
+
+    // The request context is written when the login page is rendered and read while serving the request
+    // object and the presentation.
+    public static final String CONTEXT_PREFIX = "oid4vp.context.";
     // The deferred object is written once the presentation is verified and read when the browser
     // returns to complete-auth. It marks that a verified identity, serialized under IDENTITY_NOTE in
     // the authentication session, is waiting to finish the broker login.
@@ -85,7 +89,9 @@ public class OID4VPIdentityProvider extends AbstractIdentityProvider<OID4VPIdent
     public static final String IDENTITY_NOTE = "OID4VP_IDENTITY";
     public static final String KEY_ROOT_SESSION_ID = "rootSessionId";
     public static final String KEY_TAB_ID = "tabId";
-    public static final String KEY_NONCE = "nonce";
+    // Reverse index from ephemeral key id to the request context state. The encrypted response carries
+    // the state only inside the ciphertext, so the private key must be found by the cleartext JWE kid.
+    public static final String ENC_KID_PREFIX = "oid4vp.enckid.";
 
     public OID4VPIdentityProvider(KeycloakSession session, OID4VPIdentityProviderConfig config) {
         super(session, config);
@@ -103,13 +109,19 @@ public class OID4VPIdentityProvider extends AbstractIdentityProvider<OID4VPIdent
                     ? authSession.getParentSession().getId()
                     : null;
 
-            session.singleUseObjects().put(
-                    FLOW_PREFIX + state,
-                    loginTimeoutSeconds(),
-                    Map.of(
-                            KEY_ROOT_SESSION_ID, rootSessionId != null ? rootSessionId : "",
-                            KEY_TAB_ID, authSession.getTabId() != null ? authSession.getTabId() : "",
-                            KEY_NONCE, nonce));
+            EphemeralKey encryptionKey = null;
+            if (getConfig().isEncryptedResponse()) {
+                // A fresh encryption key per authorization request, as HAIP requires.
+                encryptionKey = EphemeralKey.generate();
+                session.singleUseObjects().put(ENC_KID_PREFIX + encryptionKey.kid(), loginTimeoutSeconds(),
+                        Map.of(OAuth2Constants.STATE, state));
+            }
+
+            RequestContext context = new RequestContext(
+                    rootSessionId != null ? rootSessionId : "",
+                    authSession.getTabId() != null ? authSession.getTabId() : "",
+                    nonce, encryptionKey);
+            session.singleUseObjects().put(CONTEXT_PREFIX + state, loginTimeoutSeconds(), context.toMap());
 
             URI requestUri = OID4VPIdentityProviderEndpoint
                     .endpointBaseUri(request.getUriInfo().getBaseUriBuilder(), request.getRealm().getName(),
