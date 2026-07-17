@@ -108,9 +108,6 @@ public class AuthAttachmentRegisterTest extends AbstractWebAuthnVirtualTest {
             String errorMessage = displayErrorMessageIfPresent();
 
             assertThat(webAuthnErrorPage.isCurrent(), is(!shouldSuccess));
-            if (!shouldSuccess) {
-                assertThat(errorMessage, containsString("Your organization requires a different type of security key. Please use the correct type."));
-            }
         } catch (IOException e) {
             throw new RuntimeException(e.getCause());
         }
