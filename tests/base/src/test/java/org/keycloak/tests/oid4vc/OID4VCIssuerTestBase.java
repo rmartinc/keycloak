@@ -259,7 +259,7 @@ public abstract class OID4VCIssuerTestBase {
     }
 
     @BeforeEach
-    void beforeEachBase() {
+    protected void beforeEachBase() {
 
         client = managedClient.admin().toRepresentation();
         pubClient = managedPublicClient.admin().toRepresentation();

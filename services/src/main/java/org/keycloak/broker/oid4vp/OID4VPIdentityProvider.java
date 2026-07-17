@@ -22,7 +22,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -89,8 +88,6 @@ public class OID4VPIdentityProvider extends AbstractIdentityProvider<OID4VPIdent
     public static final String IDENTITY_NOTE = "OID4VP_IDENTITY";
     public static final String KEY_ROOT_SESSION_ID = "rootSessionId";
     public static final String KEY_TAB_ID = "tabId";
-    // Reverse index from ephemeral key id to the request context state. The encrypted response carries
-    // the state only inside the ciphertext, so the private key must be found by the cleartext JWE kid.
     public static final String ENC_KID_PREFIX = "oid4vp.enckid.";
 
     public OID4VPIdentityProvider(KeycloakSession session, OID4VPIdentityProviderConfig config) {
@@ -109,18 +106,10 @@ public class OID4VPIdentityProvider extends AbstractIdentityProvider<OID4VPIdent
                     ? authSession.getParentSession().getId()
                     : null;
 
-            EphemeralKey encryptionKey = null;
-            if (getConfig().isEncryptedResponse()) {
-                // A fresh encryption key per authorization request, as HAIP requires.
-                encryptionKey = EphemeralKey.generate();
-                session.singleUseObjects().put(ENC_KID_PREFIX + encryptionKey.kid(), loginTimeoutSeconds(),
-                        Map.of(OAuth2Constants.STATE, state));
-            }
-
             RequestContext context = new RequestContext(
                     rootSessionId != null ? rootSessionId : "",
                     authSession.getTabId() != null ? authSession.getTabId() : "",
-                    nonce, encryptionKey);
+                    nonce, null, null);
             session.singleUseObjects().put(CONTEXT_PREFIX + state, loginTimeoutSeconds(), context.toMap());
 
             URI requestUri = OID4VPIdentityProviderEndpoint

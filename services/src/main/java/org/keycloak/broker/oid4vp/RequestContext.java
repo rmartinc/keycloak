@@ -33,12 +33,14 @@ import org.keycloak.util.JsonSerialization;
  * (for {@code direct_post.jwt}) the ephemeral response encryption key.
  */
 public record RequestContext(String rootSessionId, String tabId, String nonce,
-        EphemeralKey encryptionKey) {
+        EphemeralKey encryptionKey, String state) {
 
     private static final String KEY_NONCE = "nonce";
+    private static final String KEY_STATE = "state";
     private static final String KEY_ENC_KID = "encKid";
     private static final String KEY_ENC_PRIVATE_KEY = "encPrivateKey";
     private static final String KEY_ENC_PUBLIC_JWK = "encPublicJwk";
+
 
     public boolean isEncrypted() {
         return encryptionKey != null;
@@ -71,6 +73,7 @@ public record RequestContext(String rootSessionId, String tabId, String nonce,
                 map.put(KEY_ENC_KID, encryptionKey.kid());
                 map.put(KEY_ENC_PRIVATE_KEY, encryptionKey.privateKeyPkcs8Base64());
                 map.put(KEY_ENC_PUBLIC_JWK, JsonSerialization.writeValueAsString(encryptionKey.publicJwk()));
+                map.put(KEY_STATE, state);
             } catch (IOException e) {
                 throw new IllegalStateException("Failed to serialize the ephemeral response encryption key", e);
             }
@@ -93,6 +96,7 @@ public record RequestContext(String rootSessionId, String tabId, String nonce,
                 map.get(OID4VPIdentityProvider.KEY_ROOT_SESSION_ID),
                 map.get(OID4VPIdentityProvider.KEY_TAB_ID),
                 map.get(KEY_NONCE),
-                encryptionKey);
+                encryptionKey,
+                map.get(KEY_STATE));
     }
 }

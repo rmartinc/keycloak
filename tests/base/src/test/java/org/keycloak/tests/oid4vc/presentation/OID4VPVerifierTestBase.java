@@ -28,6 +28,7 @@ import java.util.regex.Pattern;
 
 import jakarta.ws.rs.core.Response;
 
+import org.keycloak.admin.client.resource.ClientScopeResource;
 import org.keycloak.broker.oid4vp.OID4VPIdentityProviderConfig;
 import org.keycloak.broker.oid4vp.OID4VPIdentityProviderFactory;
 import org.keycloak.common.util.MultivaluedHashMap;
@@ -39,10 +40,12 @@ import org.keycloak.jose.jws.JWSInput;
 import org.keycloak.keys.Attributes;
 import org.keycloak.keys.GeneratedEcdsaKeyProviderFactory;
 import org.keycloak.keys.KeyProvider;
+import org.keycloak.representations.idm.ClientScopeRepresentation;
 import org.keycloak.representations.idm.ComponentRepresentation;
 import org.keycloak.representations.idm.IdentityProviderRepresentation;
 import org.keycloak.representations.idm.KeysMetadataRepresentation;
 import org.keycloak.testframework.annotations.InjectHttpClient;
+import org.keycloak.testframework.annotations.TestSetup;
 import org.keycloak.tests.oid4vc.OID4VCIssuerTestBase;
 import org.keycloak.tests.oid4vc.OID4VCTestContext;
 import org.keycloak.testsuite.util.oauth.AbstractHttpResponse;
@@ -55,7 +58,6 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 
 import static org.keycloak.models.oid4vci.CredentialScopeModel.VC_SIGNING_ALG;
 
@@ -67,10 +69,12 @@ public abstract class OID4VPVerifierTestBase extends OID4VCIssuerTestBase {
     @InjectHttpClient
     protected CloseableHttpClient httpClient;
 
-    private String ecKeyComponentId;
+    private static String ecKeyComponentId;
 
-    @BeforeEach
-    void addVerifierSigningKey() {
+    @Override
+    @TestSetup
+    public void configureTestRealm() {
+        super.configureTestRealm();
         ComponentRepresentation keyProvider = new ComponentRepresentation();
         keyProvider.setName("oid4vp-verifier-signing-key");
         keyProvider.setParentId(testRealm.getId());
@@ -88,12 +92,9 @@ public abstract class OID4VPVerifierTestBase extends OID4VCIssuerTestBase {
             String location = response.getHeaderString("Location");
             ecKeyComponentId = location.substring(location.lastIndexOf('/') + 1);
         }
-        testRealm.cleanup().add(r -> r.components().component(ecKeyComponentId).remove());
-    }
 
-    @BeforeEach
-    void signIssuedCredentialWithEs256() {
         // The verifier enforces ES256, so the issued credential must be signed with it.
+        beforeEachBase();
         setCredentialScopeAttributes(sdJwtTypeCredentialScope, Map.of(VC_SIGNING_ALG, Algorithm.ES256));
     }
 
@@ -117,7 +118,6 @@ public abstract class OID4VPVerifierTestBase extends OID4VCIssuerTestBase {
         try (Response response = testRealm.admin().identityProviders().create(idp)) {
             Assertions.assertEquals(201, response.getStatus(), "Failed to create OID4VP identity provider");
         }
-        testRealm.cleanup().add(r -> r.identityProviders().get(IDP_ALIAS).remove());
     }
 
     protected static String dcqlQuery() {
@@ -218,8 +218,15 @@ public abstract class OID4VPVerifierTestBase extends OID4VCIssuerTestBase {
     protected void updateIdpConfig(String key, String value) {
         var idpResource = testRealm.admin().identityProviders().get(IDP_ALIAS);
         IdentityProviderRepresentation idp = idpResource.toRepresentation();
+        String origValue = idp.getConfig().get(key);
         idp.getConfig().put(key, value);
         idpResource.update(idp);
+        testRealm.cleanup().add(r -> {
+            var res = testRealm.admin().identityProviders().get(IDP_ALIAS);
+            IdentityProviderRepresentation rep = idpResource.toRepresentation();
+            rep.getConfig().put(key, origValue);
+            res.update(rep);
+        });
     }
 
     protected void disableVerifierSigningKey() {
@@ -227,6 +234,28 @@ public abstract class OID4VPVerifierTestBase extends OID4VCIssuerTestBase {
         ComponentRepresentation component = componentResource.toRepresentation();
         component.getConfig().putSingle(Attributes.ENABLED_KEY, "false");
         componentResource.update(component);
+        testRealm.cleanup().add(r -> {
+            var res = testRealm.admin().components().component(ecKeyComponentId);
+            ComponentRepresentation rep = res.toRepresentation();
+            rep.getConfig().putSingle(Attributes.ENABLED_KEY, "true");
+            res.update(rep);
+        });
+    }
+
+    @Override
+    protected void setCredentialScopeAttributes(ClientScopeRepresentation credScope, Map<String, String> attrUpdate) {
+        final String id = credScope.getId();
+        ClientScopeResource clientScopeResource = testRealm.admin().clientScopes().get(id);
+        credScope = clientScopeResource.toRepresentation();
+        Map<String, String> oldAttrs = Map.copyOf(credScope.getAttributes());
+        credScope.getAttributes().putAll(attrUpdate);
+        clientScopeResource.update(credScope);
+        testRealm.cleanup().add(r -> {
+            ClientScopeResource res = testRealm.admin().clientScopes().get(id);
+            ClientScopeRepresentation rep = res.toRepresentation();
+            rep.setAttributes(oldAttrs);
+            clientScopeResource.update(rep);
+        });
     }
 
     protected String verifierSigningKeyKid() {

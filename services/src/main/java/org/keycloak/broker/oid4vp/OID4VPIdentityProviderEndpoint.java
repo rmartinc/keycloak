@@ -118,15 +118,26 @@ public class OID4VPIdentityProviderEndpoint {
     @GET
     @Path("/request-object/{state}")
     public Response requestObject(@PathParam("state") String state) {
-        Map<String, String> stored = session.singleUseObjects().get(OID4VPIdentityProvider.CONTEXT_PREFIX + state);
+        Map<String, String> stored = session.singleUseObjects().remove(OID4VPIdentityProvider.CONTEXT_PREFIX + state);
         if (stored == null) {
             return loginError(Response.Status.BAD_REQUEST, OAuthErrorException.INVALID_REQUEST,
                     "Unknown or expired state", Errors.INVALID_REQUEST);
         }
-        String requestObject;
+        String requestObject, key;
         try {
-            requestObject = buildRequestObject(state, RequestContext.fromMap(stored))
-                    .sign(provider.signingKey());
+            RequestContext context = RequestContext.fromMap(stored);
+            if (provider.getConfig().isEncryptedResponse()) {
+                // A fresh encryption key per authorization request, as HAIP requires.
+                EphemeralKey encryptionKey = EphemeralKey.generate();
+                context = new RequestContext(context.rootSessionId(),
+                    context.tabId(), context.nonce(), encryptionKey, state);
+                key = OID4VPIdentityProvider.ENC_KID_PREFIX + encryptionKey.kid();
+            } else {
+                key = OID4VPIdentityProvider.CONTEXT_PREFIX + state;
+            }
+            requestObject = buildRequestObject(state, context).sign(provider.signingKey());
+
+            session.singleUseObjects().put(key, provider.loginTimeoutSeconds(), context.toMap());
         } catch (RuntimeException e) {
             logger.errorf(e, "Failed to build the OID4VP request object: %s", e.getMessage());
             return loginError(Response.Status.INTERNAL_SERVER_ERROR, OAuthErrorException.SERVER_ERROR,
@@ -161,7 +172,7 @@ public class OID4VPIdentityProviderEndpoint {
                 return loginError(Response.Status.BAD_REQUEST, OAuthErrorException.INVALID_REQUEST,
                         "Missing vp_token or state", Errors.INVALID_REQUEST);
             }
-            Map<String, String> stored = session.singleUseObjects().get(OID4VPIdentityProvider.CONTEXT_PREFIX + state);
+            Map<String, String> stored = session.singleUseObjects().remove(OID4VPIdentityProvider.CONTEXT_PREFIX + state);
             if (stored == null) {
                 return loginError(Response.Status.BAD_REQUEST, OAuthErrorException.INVALID_REQUEST,
                         "Unknown or expired state", Errors.INVALID_REQUEST);
@@ -204,11 +215,6 @@ public class OID4VPIdentityProviderEndpoint {
                 Map.of(
                         OID4VPIdentityProvider.KEY_ROOT_SESSION_ID, requestContext.rootSessionId(),
                         OID4VPIdentityProvider.KEY_TAB_ID, requestContext.tabId()));
-        session.singleUseObjects().remove(OID4VPIdentityProvider.CONTEXT_PREFIX + state);
-        if (requestContext.isEncrypted()) {
-            session.singleUseObjects().remove(
-                    OID4VPIdentityProvider.ENC_KID_PREFIX + requestContext.encryptionKey().kid());
-        }
 
         return Response.ok(Map.of(OAuth2Constants.REDIRECT_URI, completeAuthUrl(responseCode)))
                 .type(MediaType.APPLICATION_JSON_TYPE).cacheControl(CacheControlUtil.noCache()).build();
@@ -301,15 +307,11 @@ public class OID4VPIdentityProviderEndpoint {
             throw new VerificationException("Encrypted response is missing the key id");
         }
 
-        Map<String, String> index = session.singleUseObjects().get(OID4VPIdentityProvider.ENC_KID_PREFIX + kid);
-        if (index == null) {
+        Map<String, String> stored = session.singleUseObjects().remove(OID4VPIdentityProvider.ENC_KID_PREFIX + kid);
+        if (stored == null) {
             throw new VerificationException("Unknown or expired response encryption key");
         }
-        String state = index.get(OAuth2Constants.STATE);
-        Map<String, String> stored = session.singleUseObjects().get(OID4VPIdentityProvider.CONTEXT_PREFIX + state);
-        if (stored == null) {
-            throw new VerificationException("Unknown or expired state");
-        }
+
         RequestContext requestContext = RequestContext.fromMap(stored);
 
         JsonNode payload;
@@ -328,7 +330,7 @@ public class OID4VPIdentityProviderEndpoint {
         }
         // The state sealed inside the ciphertext must match the one this key id was issued for.
         JsonNode stateNode = payload.get(OAuth2Constants.STATE);
-        if (stateNode == null || !state.equals(stateNode.asText())) {
+        if (stateNode == null || !requestContext.state().equals(stateNode.asText())) {
             throw new VerificationException("Encrypted response state mismatch");
         }
 
@@ -339,7 +341,7 @@ public class OID4VPIdentityProviderEndpoint {
         } catch (IOException e) {
             throw new VerificationException("Malformed vp_token in the encrypted response", e);
         }
-        return new DecryptedResponse(vpToken, state, requestContext);
+        return new DecryptedResponse(vpToken, requestContext.state(), requestContext);
     }
 
     protected SdJwtVpVerificationResult verifyPresentation(String vpToken, String nonce) throws VerificationException {

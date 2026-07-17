@@ -32,6 +32,7 @@ import org.keycloak.crypto.KeyUse;
 import org.keycloak.jose.jwk.JWK;
 import org.keycloak.jose.jwk.JWKBuilder;
 import org.keycloak.testframework.annotations.KeycloakIntegrationTest;
+import org.keycloak.testframework.annotations.TestSetup;
 import org.keycloak.tests.oid4vc.OID4VCBasicWallet;
 import org.keycloak.tests.oid4vc.OID4VCTestContext;
 import org.keycloak.testsuite.util.oauth.oid4vc.Oid4vpDirectPostResponse;
@@ -39,7 +40,6 @@ import org.keycloak.util.JsonSerialization;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -50,8 +50,10 @@ import org.junit.jupiter.api.Test;
 @KeycloakIntegrationTest(config = PresentationServerConfig.class)
 public class OID4VPDirectPostJwtTest extends OID4VPVerifierTestBase {
 
-    @BeforeEach
-    void registerVerifier() {
+    @Override
+    @TestSetup
+    public void configureTestRealm() {
+        super.configureTestRealm();
         createVerifierIdp(Map.of(
                 OID4VPIdentityProviderConfig.TRUSTED_ISSUER_JWKS, realmSigningJwks(),
                 OID4VPIdentityProviderConfig.DCQL_QUERY, dcqlQuery(),
