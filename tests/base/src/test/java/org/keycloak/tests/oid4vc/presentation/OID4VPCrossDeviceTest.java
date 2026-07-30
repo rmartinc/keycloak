@@ -151,9 +151,8 @@ public class OID4VPCrossDeviceTest extends OID4VPVerifierTestBase {
         assertEquals("pending", pollStatus(state).path("status").asText());
         assertTrue(wallet.directPost(request, wallet.present(credential, request)).hasRedirectUri());
 
-        // The completion marker is only written when direct_post carried the cross device signal, so
-        // a same device completion can never make the poller navigate.
-        assertEquals("expired", pollStatus(state).path("status").asText());
+        // The completion marker is error because it is not cross device
+        assertEquals("error", pollStatus(state).path("status").asText());
     }
 
     @Test

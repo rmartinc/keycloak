@@ -89,14 +89,12 @@ public class OID4VPIdentityProvider extends AbstractIdentityProvider<OID4VPIdent
     // returns to complete-auth. It marks that a verified identity, serialized under IDENTITY_NOTE in
     // the authentication session, is waiting to finish the broker login.
     public static final String DEFERRED_PREFIX = "oid4vp.deferred.";
-    // The completion signal for the cross device flow, keyed by the state. Written by a cross device
-    // direct_post, read but never consumed by the status poll, removed by complete-auth.
-    public static final String COMPLETE_PREFIX = "oid4vp.complete.";
     public static final String IDENTITY_NOTE = "OID4VP_IDENTITY";
     public static final String KEY_ROOT_SESSION_ID = "rootSessionId";
     public static final String KEY_TAB_ID = "tabId";
     public static final String KEY_STATE = "state";
     public static final String KEY_RESPONSE_CODE = "responseCode";
+    public static final String KEY_CROSS_DEVICE= "crossDevice";
 
     public static final int QR_CODE_SIZE = 246;
 
