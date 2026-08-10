@@ -83,7 +83,7 @@ class MgmtPermissionsV2 extends MgmtPermissions {
     @Override
     public UserPermissions users() {
         if (userPermissions != null) return userPermissions;
-        userPermissions = new UserPermissionsV2(session, authz, this);
+        userPermissions = new UserPermissionsV2(session, realm, authz, this);
         return userPermissions;
     }
 

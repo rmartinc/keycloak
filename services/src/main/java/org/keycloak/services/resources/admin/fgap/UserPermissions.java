@@ -46,6 +46,7 @@ import org.keycloak.models.AdminRoles;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.GroupModel;
 import org.keycloak.models.KeycloakSession;
+import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.representations.idm.authorization.Permission;
 
@@ -74,13 +75,15 @@ class UserPermissions implements UserPermissionEvaluator, UserPermissionManageme
 
     protected final KeycloakSession session;
     private final AuthorizationProvider authz;
+    protected final RealmModel realm;
     protected final MgmtPermissions root;
     protected final PolicyStore policyStore;
     protected final ResourceStore resourceStore;
     private boolean grantIfNoPermission = false;
 
-    UserPermissions(KeycloakSession session, AuthorizationProvider authz, MgmtPermissions root) {
+    UserPermissions(KeycloakSession session, RealmModel realm, AuthorizationProvider authz, MgmtPermissions root) {
         this.session = session;
+        this.realm = realm;
         this.authz = authz;
         this.root = root;
         if (authz != null) {

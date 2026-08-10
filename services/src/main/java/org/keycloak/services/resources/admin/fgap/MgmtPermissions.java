@@ -235,7 +235,7 @@ class MgmtPermissions implements AdminPermissionEvaluator, AdminPermissionManage
     @Override
     public UserPermissions users() {
         if (users != null) return users;
-        users = new UserPermissions(session, authz, this);
+        users = new UserPermissions(session, realm, authz, this);
         return users;
     }
 

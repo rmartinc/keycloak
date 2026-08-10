@@ -30,6 +30,7 @@ import org.keycloak.authorization.model.Resource;
 import org.keycloak.models.AdminRoles;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.KeycloakSession;
+import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.services.resources.admin.fgap.ModelRecord.UserModelRecord;
 
@@ -39,8 +40,8 @@ class UserPermissionsV2 extends UserPermissions {
 
     private final FineGrainedAdminPermissionEvaluator eval;
 
-    UserPermissionsV2(KeycloakSession session, AuthorizationProvider authz, MgmtPermissionsV2 root) {
-        super(session, authz, root);
+    UserPermissionsV2(KeycloakSession session, RealmModel realm, AuthorizationProvider authz, MgmtPermissionsV2 root) {
+        super(session, realm, authz, root);
         this.eval = new FineGrainedAdminPermissionEvaluator(session, root, resourceStore, policyStore);
     }
 
@@ -134,7 +135,14 @@ class UserPermissionsV2 extends UserPermissions {
 
     @Override
     public boolean canDelegate(UserModel user) {
-        return eval.hasPermission(new UserModelRecord(user), null, AdminPermissionsSchema.DELEGATE);
+        DefaultEvaluationContext context = null;
+        if (root.admin() != null && root.admin().getServiceAccountClientLink() != null) {
+            ClientModel clientModel = realm.getClientById(root.admin().getServiceAccountClientLink());
+            if (clientModel != null) {
+                context = new DefaultEvaluationContext(root.identity(), Map.of(CLIENT_ID_ATTRIBUTE, List.of(clientModel.getClientId())), session);
+            }
+        }
+        return eval.hasPermission(new UserModelRecord(user), context, AdminPermissionsSchema.DELEGATE);
     }
 
     @Override
