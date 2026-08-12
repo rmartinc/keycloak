@@ -9,6 +9,15 @@ As part of ongoing secure-by-default improvements to impersonation, token lifecy
 
 Additionally, tokens issued from impersonation sessions now include the `act` (actor) claim (https://datatracker.ietf.org/doc/html/rfc8693#section-4.1[RFC 8693 Section 4.1]) in both access tokens and ID tokens. This allows downstream resource servers to identify the impersonator for audit purposes. The claim is always present and cannot be disabled.
 
+= Administration
+
+== Client secret rotation
+// https://github.com/keycloak/keycloak/pull/51891
+
+The Client Secret Rotation feature is promoted from preview to supported in this release. This functionality provides a rotation policy for confidential clients that maintains up to two secrets for a transition period of time. This way, administrators can plan and anticipate the configuration of the new secrets in the applications. The feature alleviates secret leakage issues and increases the security for this type of clients.
+
+For more details, see link:{adminguide_link}#_secret_rotation[{adminguide_name}].
+
 = Configuring and Running
 
 == Support for encrypted PEM private keys
