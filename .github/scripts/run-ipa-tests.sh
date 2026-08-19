@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
 set -o pipefail
+set -x
+id -a
 
 echo "Executing federation-sssd-setup.sh to prepare SSSD and PAM"
 quarkus/dist/src/main/content/bin/federation-sssd-setup.sh
