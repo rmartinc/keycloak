@@ -4,6 +4,7 @@ set -x
 set -o pipefail
 DOCKER=docker
 
+id -a
 sudo bash -c 'cat << EOF > /etc/docker/daemon.json
 { "userns-remap": "default" }
 EOF'
