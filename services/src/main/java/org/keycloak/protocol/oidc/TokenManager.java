@@ -756,7 +756,7 @@ public class TokenManager {
                     ));
             // consider organization scopes
             OrganizationScope orgScope = tryResolveOrganizationScope(session, scopes, user);
-            clientScopes = parseScopeParameter(scopes)
+            clientScopes = rawScopes.stream()
                     .map(name -> {
                         ClientScopeModel scope = tryResolveOrganizationClientScope(session, name, detailScopes, user, orgScope);
                         return scope != null ? Map.entry(name, scope) : null;
