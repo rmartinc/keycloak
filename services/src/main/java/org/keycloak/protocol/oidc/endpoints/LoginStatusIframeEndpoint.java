@@ -31,14 +31,19 @@ import org.keycloak.common.util.UriUtils;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
+import org.keycloak.models.UserSessionModel;
+import org.keycloak.protocol.oidc.OIDCLoginProtocol;
 import org.keycloak.protocol.oidc.utils.WebOriginsUtils;
 import org.keycloak.services.Urls;
+import org.keycloak.services.managers.AuthenticationManager;
 import org.keycloak.urls.UrlType;
 import org.keycloak.utils.FreemarkerUtils;
 import org.keycloak.utils.MediaType;
 import org.keycloak.utils.SecureContextResolver;
 
 import org.jboss.logging.Logger;
+
+import static org.keycloak.services.managers.AuthenticationManager.authenticateIdentityCookie;
 
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
@@ -55,14 +60,35 @@ public class LoginStatusIframeEndpoint {
 
     @GET
     @Produces(MediaType.TEXT_HTML_UTF_8)
-    public Response getLoginStatusIframe(@QueryParam("version") String version) {
+    public Response getLoginStatusIframe(@QueryParam("version") String version, @QueryParam(OIDCLoginProtocol.CLIENT_ID_PARAM) String clientId) {
         final var map = new HashMap<String, Object>();
         final var isSecureContext = SecureContextResolver.isSecureContext(session);
         final var serverBaseUri = session.getContext().getUri(UrlType.FRONTEND).getBaseUri();
+        final var referer = session.getContext().getHttpRequest().getHttpHeaders().getHeaderString("Referer");
         map.put("isSecureContext", isSecureContext);
         map.put("resourceCommonUrl", Urls.themeRoot(serverBaseUri).getPath() + "/common/keycloak");
 
-        return IframeUtil.returnIframe(version, session, () -> {
+        // the check status iframe should be called when already logged in, check identity cookie
+        RealmModel realm = session.getContext().getRealm();
+        AuthenticationManager.AuthResult authResult = authenticateIdentityCookie(session, realm, false);
+
+        if (clientId == null && referer != null && authResult != null) {
+            // client_id parameter is sent by the keycloak-js, but check_session_iframe is by spec
+            // and the client_id can be empty, try to guess using the referer
+            UserSessionModel userSession = authResult.session();
+            // TODO: just return UUIDs for clients to avoid loading all the client sessions?
+            for (String clientUUID : userSession.getAuthenticatedClientSessions().keySet()) {
+                ClientModel client = session.clients().getClientById(realm, clientUUID);
+                if (client != null && OIDCLoginProtocol.LOGIN_PROTOCOL.equals(client.getProtocol())) {
+                    Set<String> validWebOrigins = WebOriginsUtils.resolveValidWebOrigins(session, client);
+                    if (validWebOrigins.contains("*") || validWebOrigins.stream().anyMatch(allowed -> UriUtils.originEquals(referer, allowed))) {
+                        clientId = client.getClientId();
+                    }
+                }
+            }
+        }
+
+        return IframeUtil.returnIframe(version, clientId, referer, session, () -> {
             try {
                 return FreemarkerUtils.loadTemplateFromClasspath(map, "login-status-iframe.ftl", getClass());
             } catch (Exception e) {

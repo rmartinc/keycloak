@@ -24,6 +24,7 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Response;
 
 import org.keycloak.models.KeycloakSession;
+import org.keycloak.protocol.oidc.OIDCLoginProtocol;
 import org.keycloak.utils.MediaType;
 
 import static org.keycloak.protocol.oidc.endpoints.IframeUtil.returnIframeFromResources;
@@ -42,14 +43,16 @@ public class ThirdPartyCookiesIframeEndpoint {
     @GET
     @Path("step1.html")
     @Produces(MediaType.TEXT_HTML_UTF_8)
-    public Response step1(@QueryParam("version") String version) {
-        return returnIframeFromResources("3p-cookies-step1.html", version, session);
+    public Response step1(@QueryParam("version") String version, @QueryParam(OIDCLoginProtocol.CLIENT_ID_PARAM) String clientId) {
+        final String referer = session.getContext().getHttpRequest().getHttpHeaders().getHeaderString("Referer");
+        return returnIframeFromResources("3p-cookies-step1.html", version, clientId, referer, session);
     }
 
     @GET
     @Path("step2.html")
     @Produces(MediaType.TEXT_HTML_UTF_8)
-    public Response step2(@QueryParam("version") String version) {
-        return returnIframeFromResources("3p-cookies-step2.html", version, session);
+    public Response step2(@QueryParam("version") String version, @QueryParam(OIDCLoginProtocol.CLIENT_ID_PARAM) String clientId) {
+        final String referer = session.getContext().getHttpRequest().getHttpHeaders().getHeaderString("Referer");
+        return returnIframeFromResources("3p-cookies-step2.html", version, clientId, referer, session);
     }
 }

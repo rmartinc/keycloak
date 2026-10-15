@@ -129,6 +129,9 @@ public class DefaultSecurityHeadersProvider implements SecurityHeadersProvider {
                 if (options.isAllowAnyFrameAncestor() && csp.isDefaultFrameAncestors()) {
                     // only remove frame ancestors if defined to default 'self'
                     csp.frameAncestors(null);
+                } else if (options.getAllowedFrameAncestor() != null) {
+                    csp.addFrameAncestors(options.getAllowedFrameAncestor());
+                    headers.remove(BrowserSecurityHeaders.X_FRAME_OPTIONS.getHeaderName());
                 }
 
                 String allowedFrameSrc = options.getAllowedFrameSrc();

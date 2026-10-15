@@ -52,7 +52,8 @@
         document.cookie = "KEYCLOAK_3P_COOKIE=supported; Max-Age=60";
 
         // Then redirect to the page where we will read these cookies to confirm this.
-        window.location = "step2.html";
+        const params = new URLSearchParams(window.location.search);
+        window.location = "step2.html" + (params.get("client_id") ? "?client_id=" + params.get("client_id") : "");
       }
 
       function signalSupport(isSupported) {

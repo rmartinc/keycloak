@@ -22,6 +22,7 @@ public class DefaultSecurityHeadersOptions implements SecurityHeadersOptions {
     private boolean allowAnyFrameAncestor;
     private boolean allowEmptyContentType;
     private String allowedFrameSrc;
+    private String allowedFrameAncestor;
 
     public SecurityHeadersOptions allowFrameSrc(String source) {
         allowedFrameSrc = source;
@@ -31,6 +32,12 @@ public class DefaultSecurityHeadersOptions implements SecurityHeadersOptions {
     @Override
     public SecurityHeadersOptions allowAnyFrameAncestor() {
         allowAnyFrameAncestor = true;
+        return this;
+    }
+
+    @Override
+    public SecurityHeadersOptions allowFrameAncestor(String ancestor) {
+        allowedFrameAncestor = ancestor;
         return this;
     }
 
@@ -51,6 +58,10 @@ public class DefaultSecurityHeadersOptions implements SecurityHeadersOptions {
 
     boolean isAllowAnyFrameAncestor() {
         return allowAnyFrameAncestor;
+    }
+
+    String getAllowedFrameAncestor() {
+        return allowedFrameAncestor;
     }
 
     boolean isSkipHeaders() {

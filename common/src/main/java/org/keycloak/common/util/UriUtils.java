@@ -40,9 +40,8 @@ public class UriUtils {
     }
 
     public static String getOrigin(String uri) {
-        String u = uri.toString();
-        int e = u.indexOf('/', 8);
-        return e != -1 ? u.substring(0, u.indexOf('/', 8)) : u;
+        int e = uri.indexOf('/', 8);
+        return e != -1 ? uri.substring(0, e) : uri;
     }
 
     public static boolean isOrigin(String url) {

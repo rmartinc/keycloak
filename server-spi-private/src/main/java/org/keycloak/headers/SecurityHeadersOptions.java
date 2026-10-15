@@ -22,6 +22,8 @@ public interface SecurityHeadersOptions {
 
     SecurityHeadersOptions allowAnyFrameAncestor();
 
+    SecurityHeadersOptions allowFrameAncestor(String ancestor);
+
     SecurityHeadersOptions skipHeaders();
 
     SecurityHeadersOptions allowEmptyContentType();
