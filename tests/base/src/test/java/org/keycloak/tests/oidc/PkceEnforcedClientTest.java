@@ -3,8 +3,10 @@ package org.keycloak.tests.oidc;
 import org.keycloak.OAuth2Constants;
 import org.keycloak.OAuthErrorException;
 import org.keycloak.admin.client.resource.RealmResource;
+import org.keycloak.events.Details;
 import org.keycloak.events.Errors;
 import org.keycloak.protocol.oidc.OIDCConfigAttributes;
+import org.keycloak.representations.idm.ClientRepresentation;
 import org.keycloak.testframework.annotations.InjectEvents;
 import org.keycloak.testframework.annotations.InjectRealm;
 import org.keycloak.testframework.annotations.InjectUser;
@@ -78,6 +80,32 @@ public class PkceEnforcedClientTest {
     }
 
     @Test
+    public void codeFromAuthorizationEndpointIsExchangedWithCodeVerifierButMethodChanged() {
+        realm.cleanup().add(RealmResource::logoutAll);
+        ClientRepresentation client = oauth.clientResource().toRepresentation();
+        client.getAttributes().put(OIDCConfigAttributes.PKCE_CODE_CHALLENGE_METHOD, OAuth2Constants.PKCE_METHOD_PLAIN);
+        oauth.clientResource().update(client);
+
+        PkceGenerator plain = PkceGenerator.plain();
+        AuthorizationEndpointResponse authzResponse = oauth.loginForm().codeChallenge(plain).doLogin(USERNAME, PASSWORD);
+        assertTrue(authzResponse.isSuccess());
+        EventAssertion.expectLoginSuccess(events.poll()).clientId(oauth.getClientId()).userId(user.getId());
+
+        client.getAttributes().put(OIDCConfigAttributes.PKCE_CODE_CHALLENGE_METHOD, OAuth2Constants.PKCE_METHOD_S256);
+        oauth.clientResource().update(client);
+        AccessTokenResponse tokenResponse = oauth.accessTokenRequest(authzResponse.getCode()).codeVerifier(plain).send();
+        assertEquals(400, tokenResponse.getStatusCode());
+        assertEquals(OAuthErrorException.INVALID_GRANT, tokenResponse.getError());
+        assertEquals("Invalid parameter: code challenge method is not matching the configured one", tokenResponse.getErrorDescription());
+
+        EventAssertion.expectCodeToTokenError(events.poll())
+                .clientId(oauth.getClientId())
+                .userId(user.getId())
+                .error(Errors.PKCE_VERIFICATION_FAILED)
+                .details(Details.REASON, "Invalid parameter: code challenge method is not matching the configured one");
+    }
+
+    @Test
     public void codeFromDirectResetCredentialsLinkIsRejectedWithoutCodeChallenge() {
         realm.cleanup().add(RealmResource::logoutAll);
 
@@ -87,12 +115,13 @@ public class PkceEnforcedClientTest {
         AccessTokenResponse tokenResponse = oauth.doAccessTokenRequest(code);
         assertEquals(400, tokenResponse.getStatusCode());
         assertEquals(OAuthErrorException.INVALID_GRANT, tokenResponse.getError());
-        assertEquals("PKCE code challenge not present in authorization", tokenResponse.getErrorDescription());
+        assertEquals("Missing parameter: code_challenge_method", tokenResponse.getErrorDescription());
 
         EventAssertion.expectCodeToTokenError(events.poll())
                 .clientId(oauth.getClientId())
                 .userId(user.getId())
-                .error(Errors.PKCE_VERIFICATION_FAILED);
+                .error(Errors.PKCE_VERIFICATION_FAILED)
+                .details(Details.REASON, "Missing parameter: code_challenge_method");
     }
 
     @Test
