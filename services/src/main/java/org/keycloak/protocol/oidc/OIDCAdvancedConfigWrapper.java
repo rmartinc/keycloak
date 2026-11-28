@@ -322,16 +322,6 @@ public class OIDCAdvancedConfigWrapper extends AbstractClientConfigWrapper {
         setAttribute(X509ClientAuthenticator.ATTR_CA_SUBJECT_DN, caSubjectDn);
     }
 
-    public boolean getAllowRegexPatternComparison() {
-        String attrVal = getAttribute(X509ClientAuthenticator.ATTR_ALLOW_REGEX_PATTERN_COMPARISON);
-        // Allow Regex Pattern Comparison by default due the backwards compatibility
-        return attrVal == null || Boolean.parseBoolean(attrVal);
-    }
-
-    public void setAllowRegexPatternComparison(boolean allowRegexPatternComparison) {
-        setAttribute(X509ClientAuthenticator.ATTR_ALLOW_REGEX_PATTERN_COMPARISON, String.valueOf(allowRegexPatternComparison));
-    }
-
     public String getPkceCodeChallengeMethod() {
         return getAttribute(OIDCConfigAttributes.PKCE_CODE_CHALLENGE_METHOD);
     }

@@ -17,6 +17,8 @@
 
 package org.keycloak.testsuite.x509;
 
+import java.util.List;
+
 import org.keycloak.authentication.authenticators.x509.X509AuthenticatorConfigModel;
 import org.keycloak.events.Details;
 import org.keycloak.models.Constants;
@@ -25,6 +27,7 @@ import org.keycloak.testframework.events.EventAssertion;
 import org.keycloak.testsuite.util.AccountHelper;
 import org.keycloak.testsuite.util.ContainerAssume;
 import org.keycloak.testsuite.util.HtmlUnitBrowser;
+import org.keycloak.testsuite.util.MutualTLSUtils;
 
 import org.jboss.arquillian.drone.api.annotation.Drone;
 import org.junit.Before;
@@ -70,7 +73,8 @@ public class X509BrowserCRLTest extends AbstractX509AuthenticationTest {
                         .setCRLRelativePath(EMPTY_CRL_PATH)
                         .setConfirmationPageAllowed(true)
                         .setMappingSourceType(SUBJECTDN_EMAIL)
-                        .setUserIdentityMapperType(USERNAME_EMAIL);
+                        .setUserIdentityMapperType(USERNAME_EMAIL)
+                        .setCASubjectDN(List.of(MutualTLSUtils.CA_CERTIFICATE_SUBJECT_DN));
         x509BrowserLogin(config, userId, "test-user@localhost", "test-user@localhost");
     }
 
@@ -86,7 +90,8 @@ public class X509BrowserCRLTest extends AbstractX509AuthenticationTest {
                         .setCRLRelativePath(EMPTY_EXPIRED_CRL_PATH)
                         .setConfirmationPageAllowed(true)
                         .setMappingSourceType(SUBJECTDN_EMAIL)
-                        .setUserIdentityMapperType(USERNAME_EMAIL);
+                        .setUserIdentityMapperType(USERNAME_EMAIL)
+                        .setCASubjectDN(List.of(MutualTLSUtils.CA_CERTIFICATE_SUBJECT_DN));
         AuthenticatorConfigRepresentation cfg = newConfig("x509-browser-config", config.getConfig());
         String cfgId = createConfig(browserExecution.getId(), cfg);
         Assertions.assertNotNull(cfgId);
@@ -106,7 +111,8 @@ public class X509BrowserCRLTest extends AbstractX509AuthenticationTest {
                         .setCRLRelativePath(INTERMEDIATE_CA_CRL_PATH)
                         .setConfirmationPageAllowed(true)
                         .setMappingSourceType(SUBJECTDN_EMAIL)
-                        .setUserIdentityMapperType(USERNAME_EMAIL);
+                        .setUserIdentityMapperType(USERNAME_EMAIL)
+                        .setCASubjectDN(List.of(MutualTLSUtils.CA_CERTIFICATE_SUBJECT_DN));
         AuthenticatorConfigRepresentation cfg = newConfig("x509-browser-config", config.getConfig());
         String cfgId = createConfig(browserExecution.getId(), cfg);
         Assertions.assertNotNull(cfgId);
@@ -124,7 +130,8 @@ public class X509BrowserCRLTest extends AbstractX509AuthenticationTest {
                         .setCRLRelativePath(CRLRule.CRL_RESPONDER_ORIGIN + "/" + EMPTY_CRL_PATH)
                         .setConfirmationPageAllowed(true)
                         .setMappingSourceType(SUBJECTDN_EMAIL)
-                        .setUserIdentityMapperType(USERNAME_EMAIL);
+                        .setUserIdentityMapperType(USERNAME_EMAIL)
+                        .setCASubjectDN(List.of(MutualTLSUtils.CA_CERTIFICATE_SUBJECT_DN));
         x509BrowserLogin(config, userId, "test-user@localhost", "test-user@localhost");
     }
 
@@ -137,7 +144,8 @@ public class X509BrowserCRLTest extends AbstractX509AuthenticationTest {
                         .setCRLRelativePath(CRLRule.CRL_RESPONDER_ORIGIN + "/" + EMPTY_EXPIRED_CRL_PATH)
                         .setConfirmationPageAllowed(true)
                         .setMappingSourceType(SUBJECTDN_EMAIL)
-                        .setUserIdentityMapperType(USERNAME_EMAIL);
+                        .setUserIdentityMapperType(USERNAME_EMAIL)
+                        .setCASubjectDN(List.of(MutualTLSUtils.CA_CERTIFICATE_SUBJECT_DN));
         AuthenticatorConfigRepresentation cfg = newConfig("x509-browser-config", config.getConfig());
         String cfgId = createConfig(browserExecution.getId(), cfg);
         Assertions.assertNotNull(cfgId);
@@ -153,7 +161,8 @@ public class X509BrowserCRLTest extends AbstractX509AuthenticationTest {
                         .setCRLRelativePath(CRLRule.CRL_RESPONDER_ORIGIN + "/cached-crl")
                         .setConfirmationPageAllowed(true)
                         .setMappingSourceType(SUBJECTDN_EMAIL)
-                        .setUserIdentityMapperType(USERNAME_EMAIL);
+                        .setUserIdentityMapperType(USERNAME_EMAIL)
+                        .setCASubjectDN(List.of(MutualTLSUtils.CA_CERTIFICATE_SUBJECT_DN));
         AuthenticatorConfigRepresentation cfg = newConfig("x509-browser-config", config.getConfig());
         String cfgId = createConfig(browserExecution.getId(), cfg);
         Assertions.assertNotNull(cfgId);
@@ -202,7 +211,8 @@ public class X509BrowserCRLTest extends AbstractX509AuthenticationTest {
                         .setCRLRelativePath(CRLRule.CRL_RESPONDER_ORIGIN + "/" + INTERMEDIATE_CA_CRL_PATH)
                         .setConfirmationPageAllowed(true)
                         .setMappingSourceType(SUBJECTDN_EMAIL)
-                        .setUserIdentityMapperType(USERNAME_EMAIL);
+                        .setUserIdentityMapperType(USERNAME_EMAIL)
+                        .setCASubjectDN(List.of(MutualTLSUtils.CA_CERTIFICATE_SUBJECT_DN));
         AuthenticatorConfigRepresentation cfg = newConfig("x509-browser-config", config.getConfig());
         String cfgId = createConfig(browserExecution.getId(), cfg);
         Assertions.assertNotNull(cfgId);
@@ -220,7 +230,8 @@ public class X509BrowserCRLTest extends AbstractX509AuthenticationTest {
                         .setCRLRelativePath(CRLRule.CRL_RESPONDER_ORIGIN + "/" + INTERMEDIATE_CA_INVALID_SIGNATURE_CRL_PATH)
                         .setConfirmationPageAllowed(true)
                         .setMappingSourceType(SUBJECTDN_EMAIL)
-                        .setUserIdentityMapperType(USERNAME_EMAIL);
+                        .setUserIdentityMapperType(USERNAME_EMAIL)
+                        .setCASubjectDN(List.of(MutualTLSUtils.CA_CERTIFICATE_SUBJECT_DN));
         AuthenticatorConfigRepresentation cfg = newConfig("x509-browser-config", config.getConfig());
         String cfgId = createConfig(browserExecution.getId(), cfg);
         Assertions.assertNotNull(cfgId);
@@ -239,7 +250,8 @@ public class X509BrowserCRLTest extends AbstractX509AuthenticationTest {
                         .setCRLRelativePath(CRLRule.CRL_RESPONDER_ORIGIN + "/" + INTERMEDIATE_CA_3_CRL_PATH)
                         .setConfirmationPageAllowed(true)
                         .setMappingSourceType(SUBJECTDN_EMAIL)
-                        .setUserIdentityMapperType(USERNAME_EMAIL);
+                        .setUserIdentityMapperType(USERNAME_EMAIL)
+                        .setCASubjectDN(List.of(MutualTLSUtils.CA_CERTIFICATE_SUBJECT_DN));
         AuthenticatorConfigRepresentation cfg = newConfig("x509-browser-config", config.getConfig());
         String cfgId = createConfig(browserExecution.getId(), cfg);
         Assertions.assertNotNull(cfgId);
@@ -258,7 +270,8 @@ public class X509BrowserCRLTest extends AbstractX509AuthenticationTest {
                         .setCRLRelativePath(CRLRule.CRL_RESPONDER_ORIGIN + "/" + EMPTY_CRL_PATH + Constants.CFG_DELIMITER + CRLRule.CRL_RESPONDER_ORIGIN + "/" + INTERMEDIATE_CA_CRL_PATH)
                         .setConfirmationPageAllowed(true)
                         .setMappingSourceType(SUBJECTDN_EMAIL)
-                        .setUserIdentityMapperType(USERNAME_EMAIL);
+                        .setUserIdentityMapperType(USERNAME_EMAIL)
+                        .setCASubjectDN(List.of(MutualTLSUtils.CA_CERTIFICATE_SUBJECT_DN));
         AuthenticatorConfigRepresentation cfg = newConfig("x509-browser-config", config.getConfig());
         String cfgId = createConfig(browserExecution.getId(), cfg);
         Assertions.assertNotNull(cfgId);
@@ -278,7 +291,8 @@ public class X509BrowserCRLTest extends AbstractX509AuthenticationTest {
                         .setCRLRelativePath(CRLRule.CRL_RESPONDER_ORIGIN + "/" + INVALID_CRL_PATH)
                         .setConfirmationPageAllowed(true)
                         .setMappingSourceType(SUBJECTDN_EMAIL)
-                        .setUserIdentityMapperType(USERNAME_EMAIL);
+                        .setUserIdentityMapperType(USERNAME_EMAIL)
+                        .setCASubjectDN(List.of(MutualTLSUtils.CA_CERTIFICATE_SUBJECT_DN));
         AuthenticatorConfigRepresentation cfg = newConfig("x509-browser-config", config.getConfig());
         String cfgId = createConfig(browserExecution.getId(), cfg);
         Assertions.assertNotNull(cfgId);
@@ -295,7 +309,8 @@ public class X509BrowserCRLTest extends AbstractX509AuthenticationTest {
                         .setCRLDistributionPointEnabled(true)
                         .setConfirmationPageAllowed(true)
                         .setMappingSourceType(SUBJECTDN_EMAIL)
-                        .setUserIdentityMapperType(USERNAME_EMAIL);
+                        .setUserIdentityMapperType(USERNAME_EMAIL)
+                        .setCASubjectDN(List.of(MutualTLSUtils.CA_CERTIFICATE_SUBJECT_DN));
         AuthenticatorConfigRepresentation cfg = newConfig("x509-browser-config", config.getConfig());
         String cfgId = createConfig(browserExecution.getId(), cfg);
         Assertions.assertNotNull(cfgId);

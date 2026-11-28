@@ -19,6 +19,7 @@
 package org.keycloak.tests.x509;
 
 import java.util.Collections;
+import java.util.List;
 
 import jakarta.ws.rs.core.Response;
 
@@ -123,8 +124,18 @@ public class X509BrowserLoginTest extends AbstractX509AuthenticationTest {
     }
 
     @Test
-    public void loginWithRevalidateCertEnabledCertIsTrusted() {
-        x509BrowserLogin(createLoginSubjectEmailWithRevalidateCert(true), x509User.getId(), x509User.getUsername(), x509User.getUsername());
+    public void loginWithRevalidateCertEnabledCertIsTrustedButNoCASubjectDNFails() {
+        AuthenticatorConfigRepresentation cfg = newConfig("x509-browser-config",
+                createLoginSubjectEmailWithRevalidateCert().getConfig());
+        String cfgId = createConfig(browserExecution.getId(), cfg);
+        Assertions.assertNotNull(cfgId);
+
+        oauth.openLoginForm();
+        loginPage.assertCurrent();
+
+        Assertions.assertTrue(loginPage.getInfoMessage().isPresent());
+
+        assertThat(loginPage.getInfoMessage().get(), containsString("x509-cert-auth.casubjectdn configuration option is missing."));
     }
 
     @Test
@@ -135,7 +146,7 @@ public class X509BrowserLoginTest extends AbstractX509AuthenticationTest {
     @Test
     public void loginWithRevalidateCertEnabledAndInvalidCASubjectDN() {
         AuthenticatorConfigRepresentation cfg = newConfig("x509-browser-config", createLoginSubjectEmailWithRevalidateCert(
-                false, AbstractMutualTLSClientTest.DEFAULT_KEYSTORE_SUBJECT_DN, "CN=Other").getConfig());
+                AbstractMutualTLSClientTest.DEFAULT_KEYSTORE_SUBJECT_DN, "CN=Other").getConfig());
         String cfgId = createConfig(browserExecution.getId(), cfg);
         Assertions.assertNotNull(cfgId);
 
@@ -154,7 +165,7 @@ public class X509BrowserLoginTest extends AbstractX509AuthenticationTest {
             // Simulate disabling of Truststore SPI on server
             disableTruststoreSpi();
 
-            AuthenticatorConfigRepresentation cfg = newConfig("x509-browser-config", createLoginSubjectEmailWithRevalidateCert(true).getConfig());
+            AuthenticatorConfigRepresentation cfg = newConfig("x509-browser-config", createLoginSubjectEmail2UsernameOrEmailConfig().getConfig());
             String cfgId = createConfig(browserExecution.getId(), cfg);
             Assertions.assertNotNull(cfgId);
 
@@ -320,7 +331,8 @@ public class X509BrowserLoginTest extends AbstractX509AuthenticationTest {
                         .setMappingSourceType(SUBJECTDN)
                         .setRegularExpression("O=(.*?)(?:,|$)")
                         .setCustomAttributeName("x509_certificate_identity")
-                        .setUserIdentityMapperType(USER_ATTRIBUTE);
+                        .setUserIdentityMapperType(USER_ATTRIBUTE)
+                        .setCASubjectDN(List.of(AbstractMutualTLSClientTest.CA_CERTIFICATE_SUBJECT_DN));
         AuthenticatorConfigRepresentation cfg = newConfig("x509-browser-config", config.getConfig());
         String cfgId = createConfig(browserExecution.getId(), cfg);
         Assertions.assertNotNull(cfgId);
@@ -357,7 +369,8 @@ public class X509BrowserLoginTest extends AbstractX509AuthenticationTest {
                         .setMappingSourceType(SUBJECTDN)
                         .setRegularExpression("O=(.*?)(?:,|$)")
                         .setCustomAttributeName("x509_certificate_identity")
-                        .setUserIdentityMapperType(USER_ATTRIBUTE);
+                        .setUserIdentityMapperType(USER_ATTRIBUTE)
+                        .setCASubjectDN(List.of(AbstractMutualTLSClientTest.CA_CERTIFICATE_SUBJECT_DN));
         AuthenticatorConfigRepresentation cfg = newConfig("x509-browser-config", config.getConfig());
         String cfgId = createConfig(browserExecution.getId(), cfg);
         Assertions.assertNotNull(cfgId);
@@ -463,7 +476,8 @@ public class X509BrowserLoginTest extends AbstractX509AuthenticationTest {
                 new X509AuthenticatorConfigModel()
                     .setConfirmationPageAllowed(false)
                     .setMappingSourceType(SUBJECTDN_EMAIL)
-                    .setUserIdentityMapperType(USERNAME_EMAIL);
+                    .setUserIdentityMapperType(USERNAME_EMAIL)
+                    .setCASubjectDN(List.of(AbstractMutualTLSClientTest.CA_CERTIFICATE_SUBJECT_DN));
         AuthenticatorConfigRepresentation cfg = newConfig("x509-browser-config", config.getConfig());
         String cfgId = createConfig(browserExecution.getId(), cfg);
         Assertions.assertNotNull(cfgId);

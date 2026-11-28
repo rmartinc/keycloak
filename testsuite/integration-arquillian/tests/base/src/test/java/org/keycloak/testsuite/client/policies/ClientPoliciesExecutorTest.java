@@ -2184,6 +2184,5 @@ public class ClientPoliciesExecutorTest extends AbstractClientPoliciesTest {
         assertEquals(X509ClientAuthenticator.PROVIDER_ID, client.getClientAuthenticatorType());
         assertEquals("CN=client", client.getAttributes().get(X509ClientAuthenticator.ATTR_SUBJECT_DN));
         assertEquals("CN=CA", client.getAttributes().get(X509ClientAuthenticator.ATTR_CA_SUBJECT_DN));
-        assertEquals("false", client.getAttributes().get(X509ClientAuthenticator.ATTR_ALLOW_REGEX_PATTERN_COMPARISON));
     }
 }

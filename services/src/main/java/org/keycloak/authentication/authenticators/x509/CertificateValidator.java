@@ -539,7 +539,7 @@ public class CertificateValidator {
             throw new IllegalArgumentException("ocspChecker");
     }
 
-    private static void validateKeyUsage(X509Certificate[] certs, int expected, boolean legacyCriticalBehavior) throws GeneralSecurityException {
+    private static void validateKeyUsage(X509Certificate[] certs, int expected) throws GeneralSecurityException {
         boolean[] keyUsageBits = certs[0].getKeyUsage();
         if (keyUsageBits == null) {
             if (expected != 0) {
@@ -547,12 +547,6 @@ public class CertificateValidator {
                 throw new GeneralSecurityException(message);
             }
             return;
-        }
-
-        boolean isCritical = false;
-        Set<String> critSet = certs[0].getCriticalExtensionOIDs();
-        if (critSet != null) {
-            isCritical = critSet.contains("2.5.29.15");
         }
 
         int n = expected;
@@ -569,13 +563,11 @@ public class CertificateValidator {
             }
         }
         if (sb.length() > 0) {
-            if (!legacyCriticalBehavior || isCritical) {
-                throw new GeneralSecurityException(sb.toString());
-            }
+            throw new GeneralSecurityException(sb.toString());
         }
     }
 
-    private static void validateExtendedKeyUsage(X509Certificate[] certs, List<String> expectedEKU, boolean legacyCriticalBehavior) throws GeneralSecurityException {
+    private static void validateExtendedKeyUsage(X509Certificate[] certs, List<String> expectedEKU) throws GeneralSecurityException {
         if (expectedEKU == null || expectedEKU.isEmpty()) {
             logger.debug("Extended Key Usage validation is not enabled.");
             return;
@@ -586,22 +578,12 @@ public class CertificateValidator {
             throw new GeneralSecurityException(message);
         }
 
-        boolean isCritical = false;
-        Set<String> critSet = certs[0].getCriticalExtensionOIDs();
-        if (critSet != null) {
-            isCritical = critSet.contains("2.5.29.37");
-        }
-
         List<String> ekuList = new LinkedList<>();
         extendedKeyUsage.forEach(s -> ekuList.add(s.toLowerCase()));
 
         for (String eku : expectedEKU) {
             if (!ekuList.contains(eku.toLowerCase())) {
-                String message = String.format("Extended Key Usage \'%s\' is missing.", eku);
-                if (!legacyCriticalBehavior || isCritical) {
-                    throw new GeneralSecurityException(message);
-                }
-                logger.warn(message);
+                throw new GeneralSecurityException(String.format("Extended Key Usage \'%s\' is missing.", eku));
             }
         }
     }
@@ -638,22 +620,12 @@ public class CertificateValidator {
     }
 
     public CertificateValidator validateKeyUsage() throws GeneralSecurityException {
-        return validateKeyUsage(false);
-    }
-
-    @Deprecated(since = "26.8.1", forRemoval = true)
-    public CertificateValidator validateKeyUsage(boolean legacyCriticalBehavior) throws GeneralSecurityException {
-        validateKeyUsage(_certChain, _keyUsageBits, legacyCriticalBehavior);
+        validateKeyUsage(_certChain, _keyUsageBits);
         return this;
     }
 
     public CertificateValidator validateExtendedKeyUsage() throws GeneralSecurityException {
-        return validateExtendedKeyUsage(false);
-    }
-
-    @Deprecated(since = "26.8.1", forRemoval = true)
-    public CertificateValidator validateExtendedKeyUsage(boolean legacyCriticalBehavior) throws GeneralSecurityException {
-        validateExtendedKeyUsage(_certChain, _extendedKeyUsage, legacyCriticalBehavior);
+        validateExtendedKeyUsage(_certChain, _extendedKeyUsage);
         return this;
     }
 

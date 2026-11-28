@@ -54,6 +54,7 @@ import org.keycloak.testframework.ui.annotations.InjectPage;
 import org.keycloak.testframework.ui.page.LoginPage;
 import org.keycloak.testframework.ui.page.X509IdentityConfirmationPage;
 import org.keycloak.testframework.util.ApiUtil;
+import org.keycloak.tests.client.AbstractMutualTLSClientTest;
 import org.keycloak.tests.i18n.RealmWithInternationalization;
 import org.keycloak.tests.utils.admin.AdminEventPaths;
 import org.keycloak.testsuite.util.userprofile.UserProfileUtil;
@@ -257,7 +258,8 @@ public class AbstractX509AuthenticationTest {
         return new X509AuthenticatorConfigModel()
                 .setConfirmationPageAllowed(true)
                 .setMappingSourceType(SUBJECTDN_EMAIL)
-                .setUserIdentityMapperType(USERNAME_EMAIL);
+                .setUserIdentityMapperType(USERNAME_EMAIL)
+                .setCASubjectDN(List.of(AbstractMutualTLSClientTest.CA_CERTIFICATE_SUBJECT_DN));
     }
 
     protected static X509AuthenticatorConfigModel createLoginSubjectEmailWithKeyUsage(String keyUsage) {
@@ -270,12 +272,6 @@ public class AbstractX509AuthenticationTest {
                 .setExtendedKeyUsage(extendedKeyUsage);
     }
 
-    protected static X509AuthenticatorConfigModel createLoginSubjectEmailWithRevalidateCert(boolean revalidateCertEnabled, String... caSubjectDN) {
-        return createLoginSubjectEmail2UsernameOrEmailConfig()
-                .setCASubjectDN(caSubjectDN != null ? Arrays.asList(caSubjectDN) : null)
-                .setRevalidateCertificateEnabled(revalidateCertEnabled);
-    }
-
     protected static X509AuthenticatorConfigModel createLoginSubjectEmailWithRevalidateCert(String... caSubjectDN) {
         return createLoginSubjectEmail2UsernameOrEmailConfig()
                 .setCASubjectDN(caSubjectDN != null ? Arrays.asList(caSubjectDN) : null);
@@ -285,7 +281,8 @@ public class AbstractX509AuthenticationTest {
         return new X509AuthenticatorConfigModel()
                 .setConfirmationPageAllowed(true)
                 .setMappingSourceType(SUBJECTDN_CN)
-                .setUserIdentityMapperType(USERNAME_EMAIL);
+                .setUserIdentityMapperType(USERNAME_EMAIL)
+                .setCASubjectDN(List.of(AbstractMutualTLSClientTest.CA_CERTIFICATE_SUBJECT_DN));
     }
 
     protected static X509AuthenticatorConfigModel createLoginWithSpecifiedSourceTypeToCustomAttributeConfig(X509AuthenticatorConfigModel.MappingSourceType sourceType, String userAttributeName) {
@@ -293,7 +290,8 @@ public class AbstractX509AuthenticationTest {
                 .setConfirmationPageAllowed(true)
                 .setMappingSourceType(sourceType)
                 .setUserIdentityMapperType(USER_ATTRIBUTE)
-                .setCustomAttributeName(userAttributeName);
+                .setCustomAttributeName(userAttributeName)
+                .setCASubjectDN(List.of(AbstractMutualTLSClientTest.CA_CERTIFICATE_SUBJECT_DN));
     }
 
     protected void disableTruststoreSpi() {
@@ -339,7 +337,8 @@ public class AbstractX509AuthenticationTest {
                 .setMappingSourceType(ISSUERDN)
                 .setRegularExpression("O=(.*?)(?:,|$)")
                 .setUserIdentityMapperType(USER_ATTRIBUTE)
-                .setCustomAttributeName("x509_certificate_identity");
+                .setCustomAttributeName("x509_certificate_identity")
+                .setCASubjectDN(List.of(AbstractMutualTLSClientTest.CA_CERTIFICATE_SUBJECT_DN));
     }
 
     protected void x509BrowserLogin(X509AuthenticatorConfigModel config, String userId, String username, String attemptedUsername) {

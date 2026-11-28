@@ -11,10 +11,12 @@ A typical workflow:
 * The container ({appserver_name}) validates the certificate PKIX path and the certificate expiration date.
 * The x.509 client certificate authenticator validates the client certificate by using the following methods:
 +
-** Checks the certificate revocation status by using CRL or CRL Distribution Points.
-** Checks the Certificate revocation status by using OCSP (Online Certificate Status Protocol).
+** Revalidates the PKIX path using the internal {project_name} trust store (or mTLS store).
+** Validates the Certificate Authority (CA) Subject DN of the presented certificate (trust-anchor) is one of the configured names (avoiding interferences between CAs in the trust store).
 ** Validates whether the key in the certificate matches the expected key.
 ** Validates whether the extended key in the certificate matches the expected extended key.
+** Checks the certificate revocation status by using CRL or CRL Distribution Points.
+** Checks the Certificate revocation status by using OCSP (Online Certificate Status Protocol).
 +
 * If any of the these checks fail, the x.509 authentication fails. Otherwise, the authenticator extracts the certificate identity and maps it to an existing user.
 

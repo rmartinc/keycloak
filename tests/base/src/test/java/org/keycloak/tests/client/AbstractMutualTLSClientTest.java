@@ -7,9 +7,12 @@ import java.util.List;
 import java.util.function.Supplier;
 import javax.net.ssl.SSLContext;
 
+import jakarta.ws.rs.BadRequestException;
+
 import org.keycloak.OAuth2Constants;
 import org.keycloak.admin.client.resource.ClientResource;
 import org.keycloak.authentication.authenticators.client.X509ClientAuthenticator;
+import org.keycloak.models.RealmModel;
 import org.keycloak.protocol.oidc.OIDCAdvancedConfigWrapper;
 import org.keycloak.representations.idm.ClientRepresentation;
 import org.keycloak.testframework.annotations.InjectRealm;
@@ -21,6 +24,8 @@ import org.keycloak.testframework.realm.ManagedRealm;
 import org.keycloak.testframework.realm.RealmBuilder;
 import org.keycloak.testframework.realm.RealmConfig;
 import org.keycloak.testframework.realm.UserBuilder;
+import org.keycloak.testframework.remote.runonserver.InjectRunOnServer;
+import org.keycloak.testframework.remote.runonserver.RunOnServerClient;
 import org.keycloak.tests.utils.PasswordGenerateUtil;
 import org.keycloak.tests.utils.admin.AdminApiUtil;
 import org.keycloak.testsuite.util.AccountHelper;
@@ -42,7 +47,6 @@ import org.junit.jupiter.api.Test;
  */
 public abstract class AbstractMutualTLSClientTest {
 
-    private static final String CLIENT_ID = "confidential-x509";
     private static final String DISABLED_CLIENT_ID = "confidential-disabled-x509";
     private static final String EXACT_SUBJECT_DN_CLIENT_ID = "confidential-subjectdn-x509";
 
@@ -62,6 +66,9 @@ public abstract class AbstractMutualTLSClientTest {
     @InjectOAuthClient
     OAuthClient oauth;
 
+    @InjectRunOnServer
+    RunOnServerClient runOnServer;
+
     @AfterEach
     public void logout() {
         AccountHelper.logout(managedRealm.admin(), USER);
@@ -72,7 +79,7 @@ public abstract class AbstractMutualTLSClientTest {
     @Test
     public void testSuccessfulClientInvocationWithProperCertificate() throws Exception {
         //when
-        AccessTokenResponse token = loginAndGetAccessTokenResponse(CLIENT_ID, this::newCloseableHttpClient);
+        AccessTokenResponse token = loginAndGetAccessTokenResponse(EXACT_SUBJECT_DN_CLIENT_ID, this::newCloseableHttpClient);
 
         //then
         assertTokenObtained(token);
@@ -111,8 +118,8 @@ public abstract class AbstractMutualTLSClientTest {
         //given//when
         AccessTokenResponse token;
         try (CloseableHttpClient client = this.newCloseableHttpClient()) {
-            login(CLIENT_ID);
-            token = getAccessTokenResponseWithQueryParams(CLIENT_ID, client);
+            login(EXACT_SUBJECT_DN_CLIENT_ID);
+            token = getAccessTokenResponseWithQueryParams(EXACT_SUBJECT_DN_CLIENT_ID, client);
         }
 
         //then
@@ -132,7 +139,7 @@ public abstract class AbstractMutualTLSClientTest {
     @Test
     public void testFailedClientInvocationWithoutCertificateCertificate() throws Exception {
         //when
-        AccessTokenResponse token = loginAndGetAccessTokenResponse(CLIENT_ID,
+        AccessTokenResponse token = loginAndGetAccessTokenResponse(EXACT_SUBJECT_DN_CLIENT_ID,
                 () -> newCloseableHttpClient(getManagedCertificates().createClientSSLContext(null, "keycloak-truststore.bcfks", false)));
 
         //then
@@ -161,18 +168,23 @@ public abstract class AbstractMutualTLSClientTest {
         ClientRepresentation clientRep = client.toRepresentation();
         String clientId = clientRep.getId();
 
-        // update without CA Subject DN is allowed at server side for the moment
+        // update without CA Subject DN is not allowed
         clientRep.getAttributes().put(X509ClientAuthenticator.ATTR_CA_SUBJECT_DN, "");
-        client.update(clientRep);
-
-        clientRep.getAttributes().put(X509ClientAuthenticator.ATTR_SUBJECT_DN, DEFAULT_KEYSTORE_SUBJECT_DN);
+        Assertions.assertThrows(BadRequestException.class, () -> client.update(clientRep));
+        clientRep.getAttributes().put(X509ClientAuthenticator.ATTR_CA_SUBJECT_DN, CA_CERTIFICATE_SUBJECT_DN);
         managedRealm.cleanup().add(r -> r.clients().get(clientId).update(clientRep));
+
+        // update in the server to remove the ca subject dn
+        runOnServer.run(session -> {
+            RealmModel realmModel = session.getContext().getRealm();
+            session.clients().getClientById(realmModel, clientId).removeAttribute(X509ClientAuthenticator.ATTR_CA_SUBJECT_DN);
+        });
 
         //when
         AccessTokenResponse token = loginAndGetAccessTokenResponse(EXACT_SUBJECT_DN_CLIENT_ID, this::newCloseableHttpClient);
 
         //then
-        assertTokenObtained(token);
+        assertTokenNotObtained(token);
     }
 
     @Test
@@ -313,19 +325,11 @@ public abstract class AbstractMutualTLSClientTest {
 
         @Override
         public RealmBuilder configure(RealmBuilder realm) {
-            realm.clients(ClientBuilder.create(CLIENT_ID)
-                    .serviceAccountsEnabled(true)
-                    .authenticatorType(X509ClientAuthenticator.PROVIDER_ID)
-                    .redirectUris("*")
-                    .attribute(X509ClientAuthenticator.ATTR_SUBJECT_DN, "(.*?)(?:$)")
-                    .attribute(X509ClientAuthenticator.ATTR_CA_SUBJECT_DN, CA_CERTIFICATE_SUBJECT_DN));
-
             realm.clients(ClientBuilder.create(EXACT_SUBJECT_DN_CLIENT_ID)
                     .serviceAccountsEnabled(true)
                     .authenticatorType(X509ClientAuthenticator.PROVIDER_ID)
                     .redirectUris("*")
                     .attribute(X509ClientAuthenticator.ATTR_SUBJECT_DN, DEFAULT_KEYSTORE_SUBJECT_DN)
-                    .attribute(X509ClientAuthenticator.ATTR_ALLOW_REGEX_PATTERN_COMPARISON, Boolean.FALSE.toString())
                     .attribute(X509ClientAuthenticator.ATTR_CA_SUBJECT_DN, CA_CERTIFICATE_SUBJECT_DN));
 
             realm.clients(ClientBuilder.create(ISSUER_SUBJECT_DN_CLIENT_ID)
@@ -333,14 +337,13 @@ public abstract class AbstractMutualTLSClientTest {
                     .authenticatorType(X509ClientAuthenticator.PROVIDER_ID)
                     .redirectUris("*")
                     .attribute(X509ClientAuthenticator.ATTR_SUBJECT_DN, ISSUER_CERTIFICATE_SUBJECT_DN)
-                    .attribute(X509ClientAuthenticator.ATTR_ALLOW_REGEX_PATTERN_COMPARISON, Boolean.FALSE.toString())
                     .attribute(X509ClientAuthenticator.ATTR_CA_SUBJECT_DN, CA_CERTIFICATE_SUBJECT_DN));
 
             realm.clients(ClientBuilder.create(DISABLED_CLIENT_ID)
                     .serviceAccountsEnabled(true)
                     .authenticatorType(X509ClientAuthenticator.PROVIDER_ID)
                     .redirectUris("*")
-                    .attribute(X509ClientAuthenticator.ATTR_SUBJECT_DN, "(.*?)(?:$)")
+                    .attribute(X509ClientAuthenticator.ATTR_SUBJECT_DN, ISSUER_CERTIFICATE_SUBJECT_DN)
                     .attribute(X509ClientAuthenticator.ATTR_CA_SUBJECT_DN, CA_CERTIFICATE_SUBJECT_DN));
 
             realm.clients(ClientBuilder.create(OBB_SUBJECT_DN_CLIENT_ID)
@@ -348,7 +351,6 @@ public abstract class AbstractMutualTLSClientTest {
                     .authenticatorType(X509ClientAuthenticator.PROVIDER_ID)
                     .redirectUris("*")
                     .attribute(X509ClientAuthenticator.ATTR_SUBJECT_DN, ISSUER_CERTIFICATE_SUBJECT_DN)
-                    .attribute(X509ClientAuthenticator.ATTR_ALLOW_REGEX_PATTERN_COMPARISON, Boolean.FALSE.toString())
                     .attribute(X509ClientAuthenticator.ATTR_CA_SUBJECT_DN, CA_CERTIFICATE_SUBJECT_DN));
 
             realm.users(UserBuilder.create(USER)

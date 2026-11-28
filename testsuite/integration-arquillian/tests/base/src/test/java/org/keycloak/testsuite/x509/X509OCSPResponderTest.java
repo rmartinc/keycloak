@@ -20,6 +20,7 @@ package org.keycloak.testsuite.x509;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.util.List;
 
 import jakarta.ws.rs.core.Response;
 
@@ -80,7 +81,8 @@ public class X509OCSPResponderTest extends AbstractX509AuthenticationTest {
                 new X509AuthenticatorConfigModel()
                         .setOCSPEnabled(true)
                         .setMappingSourceType(SUBJECTDN_EMAIL)
-                        .setUserIdentityMapperType(USERNAME_EMAIL);
+                        .setUserIdentityMapperType(USERNAME_EMAIL)
+                        .setCASubjectDN(List.of(MutualTLSUtils.CA_CERTIFICATE_SUBJECT_DN));
         AuthenticatorConfigRepresentation cfg = newConfig("x509-directgrant-config", config.getConfig());
         String cfgId = createConfig(directGrantExecution.getId(), cfg);
         Assertions.assertNotNull(cfgId);
@@ -101,7 +103,8 @@ public class X509OCSPResponderTest extends AbstractX509AuthenticationTest {
                         .setOCSPEnabled(true)
                         .setMappingSourceType(SUBJECTDN_EMAIL)
                         .setOCSPResponder("http://" + OCSP_RESPONDER_HOST + ":" + OCSP_RESPONDER_PORT + "/oscp")
-                        .setUserIdentityMapperType(USERNAME_EMAIL);
+                        .setUserIdentityMapperType(USERNAME_EMAIL)
+                        .setCASubjectDN(List.of(MutualTLSUtils.CA_CERTIFICATE_SUBJECT_DN));
         AuthenticatorConfigRepresentation cfg = newConfig("x509-directgrant-config", config.getConfig());
         String cfgId = createConfig(directGrantExecution.getId(), cfg);
         Assertions.assertNotNull(cfgId);
@@ -133,7 +136,8 @@ public class X509OCSPResponderTest extends AbstractX509AuthenticationTest {
                         .setOCSPEnabled(true)
                         .setMappingSourceType(SUBJECTDN_EMAIL)
                         .setOCSPResponder("http://" + OCSP_RESPONDER_HOST + ":" + OCSP_RESPONDER_PORT + "/oscp")
-                        .setUserIdentityMapperType(USERNAME_EMAIL);
+                        .setUserIdentityMapperType(USERNAME_EMAIL)
+                        .setCASubjectDN(List.of(MutualTLSUtils.CA_CERTIFICATE_SUBJECT_DN));
         AuthenticatorConfigRepresentation cfg = newConfig("x509-directgrant-config", config.getConfig());
         String cfgId = createConfig(directGrantExecution.getId(), cfg);
         Assertions.assertNotNull(cfgId);
@@ -166,7 +170,8 @@ public class X509OCSPResponderTest extends AbstractX509AuthenticationTest {
                                 IOUtils.toString(this.getClass().getResourceAsStream(OcspHandler.OCSP_RESPONDER_CERT_PATH), StandardCharsets.UTF_8)
                                         .replace(PemUtils.BEGIN_CERT, "")
                                         .replace(PemUtils.END_CERT, ""))
-                        .setUserIdentityMapperType(USERNAME_EMAIL);
+                        .setUserIdentityMapperType(USERNAME_EMAIL)
+                        .setCASubjectDN(List.of(MutualTLSUtils.CA_CERTIFICATE_SUBJECT_DN));
         AuthenticatorConfigRepresentation cfg = newConfig("x509-directgrant-config", config.getConfig());
         String cfgId = createConfig(directGrantExecution.getId(), cfg);
         Assertions.assertNotNull(cfgId);

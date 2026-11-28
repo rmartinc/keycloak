@@ -16,10 +16,13 @@
  */
 package org.keycloak.testsuite.x509;
 
+import java.util.List;
+
 import org.keycloak.authentication.authenticators.x509.X509AuthenticatorConfigModel;
 import org.keycloak.authentication.authenticators.x509.X509AuthenticatorConfigModel.IdentityMapperType;
 import org.keycloak.authentication.authenticators.x509.X509AuthenticatorConfigModel.MappingSourceType;
 import org.keycloak.testsuite.util.HtmlUnitBrowser;
+import org.keycloak.testsuite.util.MutualTLSUtils;
 
 import org.jboss.arquillian.drone.api.annotation.Drone;
 import org.junit.Before;
@@ -60,7 +63,8 @@ public class X509SingleCertificateBrowserCRLTest extends AbstractX509Authenticat
                         .setCRLRelativePath(CRLRule.CRL_RESPONDER_ORIGIN + "/" + EMPTY_CRL_PATH)
                         .setConfirmationPageAllowed(true)
                         .setMappingSourceType(MappingSourceType.SUBJECTDN_EMAIL)
-                        .setUserIdentityMapperType(IdentityMapperType.USERNAME_EMAIL);
+                        .setUserIdentityMapperType(IdentityMapperType.USERNAME_EMAIL)
+                        .setCASubjectDN(List.of(MutualTLSUtils.CA_CERTIFICATE_SUBJECT_DN));
         x509BrowserLogin(config, userId, "test-user@localhost", "test-user@localhost");
     }
 }

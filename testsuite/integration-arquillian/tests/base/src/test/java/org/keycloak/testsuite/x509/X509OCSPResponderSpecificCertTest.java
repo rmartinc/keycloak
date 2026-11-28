@@ -18,11 +18,14 @@
 
 package org.keycloak.testsuite.x509;
 
+import java.util.List;
+
 import jakarta.ws.rs.core.Response;
 
 import org.keycloak.authentication.authenticators.x509.X509AuthenticatorConfigModel;
 import org.keycloak.representations.idm.AuthenticatorConfigRepresentation;
 import org.keycloak.testsuite.util.HtmlUnitBrowser;
+import org.keycloak.testsuite.util.MutualTLSUtils;
 import org.keycloak.testsuite.util.oauth.AccessTokenResponse;
 
 import io.undertow.Undertow;
@@ -72,7 +75,8 @@ public class X509OCSPResponderSpecificCertTest extends AbstractX509Authenticatio
         X509AuthenticatorConfigModel config = new X509AuthenticatorConfigModel()
                 .setOCSPEnabled(true)
                 .setMappingSourceType(SUBJECTDN_EMAIL)
-                .setUserIdentityMapperType(USERNAME_EMAIL);
+                .setUserIdentityMapperType(USERNAME_EMAIL)
+                .setCASubjectDN(List.of(MutualTLSUtils.CA_CERTIFICATE_SUBJECT_DN));
         AuthenticatorConfigRepresentation cfg = newConfig("x509-directgrant-config", config.getConfig());
         String cfgId = createConfig(directGrantExecution.getId(), cfg);
         Assertions.assertNotNull(cfgId);
@@ -111,7 +115,8 @@ public class X509OCSPResponderSpecificCertTest extends AbstractX509Authenticatio
                         + "WybC/Il6hS0jPdR2ExNV9ykKJrNGGhiwg3C8sf97/Kf+qQgRK8wQIdT88g81aJaG\n"
                         + "qpwfJXd9AZO7DdDJdZ75lR9N1YSnhSq3Ur6IJg==")
                 .setMappingSourceType(SUBJECTDN_EMAIL)
-                .setUserIdentityMapperType(USERNAME_EMAIL);
+                .setUserIdentityMapperType(USERNAME_EMAIL)
+                .setCASubjectDN(List.of(MutualTLSUtils.CA_CERTIFICATE_SUBJECT_DN));
         AuthenticatorConfigRepresentation cfg = newConfig("x509-directgrant-config", config.getConfig());
         String cfgId = createConfig(directGrantExecution.getId(), cfg);
         Assertions.assertNotNull(cfgId);

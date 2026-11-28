@@ -552,6 +552,15 @@ the error above instead of silently storing it. Correct the URI before re-import
 the end of the pattern or as a file-extension suffix, for example `+/api/*+` or `+/api/*.json+`, never in the
 middle of a path such as `+/api/*/info+`.
 
+=== X509 client and user authentication requires CA Subject DN to be compulsory
+// https://github.com/keycloak/keycloak/issues/50939
+
+In previous releases, the X509 client and user authenticators were updated to include the **Certificate Authority subject DN** option. This parameter identifies the trusted anchor CA for the presented certificate, preventing interference with unrelated CAs in the installation (as the trust store and mTLS store in {project_name} are shared across all realms).
+
+Previously, this option was required only in the Admin Console, while existing configurations continued to work for backward compatibility. Starting with this release, the option is strictly required at login. Any authentication attempt where the CA subject DN is missing will fail. Consequently, re-validating the certificate chain on the {project_name} side is now compulsory. Similarly, any imports, restores, or direct configurations performed outside the console will also be validated and rejected if the option is absent.
+
+If you have not yet configured the Certificate Authority subject DN in your X509 authenticators, update them with the correct CA subject name—or names, in the case of user authenticators. Additionally, ensure all required CA certificates are added to the {project_name} trust store to support successful re-validation.
+
 // ------------------------ Notable changes ------------------------ //
 == Notable changes
 
@@ -983,3 +992,13 @@ These methods were deprecated in favor of keyed methods that support refresh tok
 
 The removed methods were default no-op implementations that returned `null` or `0` and had no production callers.
 Custom implementations of `AuthenticatedClientSessionModel` that override these methods must remove the overrides and use the keyed replacement methods instead.
+
+=== X.509 user authenticator provider option `legacy-critical-behavior` is removed
+
+The legacy startup option for X.509 user authenticators, `--spi-authenticator--auth-x509-client-username-form--legacy-critical-behavior`, has been removed in this release. This option was originally introduced because {project_name} incorrectly validated the configured purposes for key usage and extended key usage extensions in user certificates. Although that behavior was a bug, the provider option was added as a fallback to maintain backward compatibility. Starting with this release, the option is removed, and certificate key and extended key usages are always validated correctly.
+
+=== Removal of the `Allow regex pattern comparison` option in the X.509 client authenticator
+
+The previously deprecated **Allow regex pattern comparison** option has been removed from the X.509 client authenticator. When using X.509 client authentication, this option allowed you to configure a regular expression —rather than an exact Distinguished Name (DN)— to match the subject DN of a presented certificate to a client. This option has been removed to ensure clients are unambiguously identified by their certificates.
+
+If you were still using a regular expression, update your configuration to use the exact subject DN instead; otherwise, authentication will fail in this release of {project_name}.

@@ -68,6 +68,7 @@ import org.keycloak.testsuite.util.AdminEventPaths;
 import org.keycloak.testsuite.util.AssertAdminEvents;
 import org.keycloak.testsuite.util.DroneUtils;
 import org.keycloak.testsuite.util.HtmlUnitBrowser;
+import org.keycloak.testsuite.util.MutualTLSUtils;
 import org.keycloak.testsuite.util.WaitUtils;
 import org.keycloak.userprofile.UserProfileConstants;
 
@@ -451,7 +452,8 @@ public abstract class AbstractX509AuthenticationTest extends AbstractTestRealmKe
                 .setConfirmationPageAllowed(true)
                 .setMappingSourceType(SUBJECTALTNAME_EMAIL)
                 .setUserIdentityMapperType(USER_ATTRIBUTE)
-                .setCustomAttributeName("alternative_email");
+                .setCustomAttributeName("alternative_email")
+                .setCASubjectDN(List.of(MutualTLSUtils.CA_CERTIFICATE_SUBJECT_DN));
     }
 
     protected static X509AuthenticatorConfigModel createLoginSubjectAltNameOtherName2UserAttributeConfig() {
@@ -459,7 +461,8 @@ public abstract class AbstractX509AuthenticationTest extends AbstractTestRealmKe
                 .setConfirmationPageAllowed(true)
                 .setMappingSourceType(SUBJECTALTNAME_OTHERNAME)
                 .setUserIdentityMapperType(USER_ATTRIBUTE)
-                .setCustomAttributeName("upn");
+                .setCustomAttributeName("upn")
+                .setCASubjectDN(List.of(MutualTLSUtils.CA_CERTIFICATE_SUBJECT_DN));
     }
 
     protected static X509AuthenticatorConfigModel createLoginSubjectEmailWithKeyUsage(String keyUsage) {
@@ -472,12 +475,6 @@ public abstract class AbstractX509AuthenticationTest extends AbstractTestRealmKe
                 .setExtendedKeyUsage(extendedKeyUsage);
     }
 
-    protected static X509AuthenticatorConfigModel createLoginSubjectEmailWithRevalidateCert(boolean revalidateCertEnabled, String... caSubjectDN) {
-        return createLoginSubjectEmail2UsernameOrEmailConfig()
-                .setCASubjectDN(caSubjectDN != null ? Arrays.asList(caSubjectDN) : null)
-                .setRevalidateCertificateEnabled(revalidateCertEnabled);
-    }
-
     protected static X509AuthenticatorConfigModel createLoginSubjectEmailWithRevalidateCert(String... caSubjectDN) {
         return createLoginSubjectEmail2UsernameOrEmailConfig()
                 .setCASubjectDN(caSubjectDN != null ? Arrays.asList(caSubjectDN) : null);
@@ -487,7 +484,8 @@ public abstract class AbstractX509AuthenticationTest extends AbstractTestRealmKe
         return new X509AuthenticatorConfigModel()
                 .setConfirmationPageAllowed(true)
                 .setMappingSourceType(SUBJECTDN_CN)
-                .setUserIdentityMapperType(USERNAME_EMAIL);
+                .setUserIdentityMapperType(USERNAME_EMAIL)
+                .setCASubjectDN(List.of(MutualTLSUtils.CA_CERTIFICATE_SUBJECT_DN));
     }
 
     protected static X509AuthenticatorConfigModel createLoginWithSpecifiedSourceTypeToCustomAttributeConfig(X509AuthenticatorConfigModel.MappingSourceType sourceType, String userAttributeName) {
@@ -514,7 +512,8 @@ public abstract class AbstractX509AuthenticationTest extends AbstractTestRealmKe
                 .setMappingSourceType(SUBJECTDN)
                 .setRegularExpression("(.*?)(?:$)")
                 .setUserIdentityMapperType(USER_ATTRIBUTE)
-                .setCustomAttributeName("x509_certificate_identity");
+                .setCustomAttributeName("x509_certificate_identity")
+                .setCASubjectDN(List.of(MutualTLSUtils.CA_CERTIFICATE_SUBJECT_DN));
     }
 
     protected static X509AuthenticatorConfigModel createLoginIssuerDNToCustomAttributeConfig(boolean canonicalDnEnabled) {
@@ -524,7 +523,8 @@ public abstract class AbstractX509AuthenticationTest extends AbstractTestRealmKe
                 .setMappingSourceType(ISSUERDN)
                 .setRegularExpression("(.*?)(?:$)")
                 .setUserIdentityMapperType(USER_ATTRIBUTE)
-                .setCustomAttributeName("x509_certificate_identity");
+                .setCustomAttributeName("x509_certificate_identity")
+                .setCASubjectDN(List.of(MutualTLSUtils.CA_CERTIFICATE_SUBJECT_DN));
     }
 
     protected void setUserEnabled(String userName, boolean enabled) {

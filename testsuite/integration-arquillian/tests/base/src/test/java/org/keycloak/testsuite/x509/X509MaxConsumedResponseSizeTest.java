@@ -1,6 +1,7 @@
 package org.keycloak.testsuite.x509;
 
 import java.nio.file.Paths;
+import java.util.List;
 
 import jakarta.ws.rs.core.Response;
 
@@ -65,7 +66,8 @@ public class X509MaxConsumedResponseSizeTest extends AbstractX509AuthenticationT
                         .setCRLRelativePath(CRLRule.CRL_RESPONDER_ORIGIN + "/" + EMPTY_CRL_PATH)
                         .setConfirmationPageAllowed(true)
                         .setMappingSourceType(SUBJECTDN_EMAIL)
-                        .setUserIdentityMapperType(USERNAME_EMAIL);
+                        .setUserIdentityMapperType(USERNAME_EMAIL)
+                        .setCASubjectDN(List.of(MutualTLSUtils.CA_CERTIFICATE_SUBJECT_DN));
         AuthenticatorConfigRepresentation cfg = newConfig("x509-browser-config", config.getConfig());
         String cfgId = createConfig(browserExecution.getId(), cfg);
         Assertions.assertNotNull(cfgId);
@@ -86,7 +88,8 @@ public class X509MaxConsumedResponseSizeTest extends AbstractX509AuthenticationT
                         .setOCSPEnabled(true)
                         .setMappingSourceType(SUBJECTDN_EMAIL)
                         .setOCSPResponder("http://" + OCSP_RESPONDER_HOST + ":" + OCSP_RESPONDER_PORT + "/oscp")
-                        .setUserIdentityMapperType(USERNAME_EMAIL);
+                        .setUserIdentityMapperType(USERNAME_EMAIL)
+                        .setCASubjectDN(List.of(MutualTLSUtils.CA_CERTIFICATE_SUBJECT_DN));
         AuthenticatorConfigRepresentation cfg = newConfig("x509-directgrant-config", config.getConfig());
         String cfgId = createConfig(directGrantExecution.getId(), cfg);
         Assertions.assertNotNull(cfgId);

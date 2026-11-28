@@ -452,14 +452,13 @@ public class DefaultClientValidationProvider implements ClientValidationProvider
     private void validateX509Credentials(ValidationContext<ClientModel> context) {
         ClientModel client = context.getObjectToValidate();
         if (!client.isPublicClient() && !client.isBearerOnly() && X509ClientAuthenticator.PROVIDER_ID.equals(client.getClientAuthenticatorType())) {
-            // TODO: return validation error for keycloak 27.0
-            if (Boolean.parseBoolean(client.getAttribute(X509ClientAuthenticator.ATTR_ALLOW_REGEX_PATTERN_COMPARISON))) {
-                logger.warnf("Option '%s' is deprecated. Please configure the X.509 client authenticator to use exact Subject DN for client '%s' in realm '%s'.",
-                        X509ClientAuthenticator.ATTR_ALLOW_REGEX_PATTERN_COMPARISON, client.getClientId(), context.getSession().getContext().getRealm().getName());
+            if (StringUtil.isBlank(client.getAttribute(X509ClientAuthenticator.ATTR_CA_SUBJECT_DN))) {
+                context.addError(X509ClientAuthenticator.ATTR_SUBJECT_DN,
+                        "Subject DN is compulsory for X509 client authentication.");
             }
             if (StringUtil.isBlank(client.getAttribute(X509ClientAuthenticator.ATTR_CA_SUBJECT_DN))) {
-                logger.warnf("Option '%s' is null or empty, this configuration is deprecated, please configure it for better security for client '%s' in realm '%s'",
-                        X509ClientAuthenticator.ATTR_CA_SUBJECT_DN, client.getClientId(), context.getSession().getContext().getRealm().getName());
+                context.addError(X509ClientAuthenticator.ATTR_CA_SUBJECT_DN,
+                        "Certificate Authority subject DN is compulsory for X509 client authentication.");
             }
         }
     }

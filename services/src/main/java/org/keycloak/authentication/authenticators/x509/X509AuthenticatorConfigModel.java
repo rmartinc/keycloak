@@ -58,7 +58,6 @@ import static org.keycloak.authentication.authenticators.x509.AbstractX509Client
 import static org.keycloak.authentication.authenticators.x509.AbstractX509ClientCertificateAuthenticator.OCSPRESPONDER_URI;
 import static org.keycloak.authentication.authenticators.x509.AbstractX509ClientCertificateAuthenticator.OCSP_FAIL_OPEN;
 import static org.keycloak.authentication.authenticators.x509.AbstractX509ClientCertificateAuthenticator.REGULAR_EXPRESSION;
-import static org.keycloak.authentication.authenticators.x509.AbstractX509ClientCertificateAuthenticator.REVALIDATE_CERTIFICATE;
 import static org.keycloak.authentication.authenticators.x509.AbstractX509ClientCertificateAuthenticator.SERIALNUMBER_HEX;
 import static org.keycloak.authentication.authenticators.x509.AbstractX509ClientCertificateAuthenticator.TIMESTAMP_VALIDATION;
 import static org.keycloak.authentication.authenticators.x509.AbstractX509ClientCertificateAuthenticator.USERNAME_EMAIL_MAPPER;
@@ -373,17 +372,6 @@ public class X509AuthenticatorConfigModel extends AuthenticatorConfigModel {
 
     public X509AuthenticatorConfigModel setSerialnumberHex(boolean value) {
         getConfig().put(SERIALNUMBER_HEX, Boolean.toString(value));
-        return this;
-    }
-
-    public boolean getRevalidateCertificateEnabled() {
-        // revalidate is compulsory when CA subject DN is set
-        // maintain previous value for backwards compatibility
-        return !getCASubjectDN().isEmpty() || Boolean.parseBoolean(getConfig().get(REVALIDATE_CERTIFICATE));
-    }
-
-    public X509AuthenticatorConfigModel setRevalidateCertificateEnabled(boolean value) {
-        getConfig().put(REVALIDATE_CERTIFICATE, Boolean.toString(value));
         return this;
     }
 

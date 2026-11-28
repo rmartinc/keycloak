@@ -22,6 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 
 import jakarta.ws.rs.core.Response;
 
@@ -198,6 +199,22 @@ public class X509DirectGrantTest extends AbstractX509AuthenticationTest {
     }
 
     @Test
+    public void loginWithRevalidateCertEnabledAndNoCASubjectDN() {
+        // Set the X509 authenticator configuration
+        AuthenticatorConfigRepresentation cfg = newConfig("x509-directgrant-config",
+                createLoginSubjectEmailWithRevalidateCert().getConfig());
+        String cfgId = createConfig(directGrantExecution.getId(), cfg);
+        Assertions.assertNotNull(cfgId);
+
+        AccessTokenResponse response = oauth.doPasswordGrantRequest("", "");
+
+        assertEquals(401, response.getStatusCode());
+        assertEquals(OAuthErrorException.INVALID_REQUEST, response.getError());
+        assertThat(response.getErrorDescription(), containsString("x509-cert-auth.casubjectdn configuration option is missing."));
+        events.clear();
+    }
+
+    @Test
     public void loginWithNonMatchingRegex() {
         X509AuthenticatorConfigModel config = createLoginIssuerDN_OU2CustomAttributeConfig();
         config.setRegularExpression("INVALID=(.*?)(?:,|$)");
@@ -263,7 +280,8 @@ public class X509DirectGrantTest extends AbstractX509AuthenticationTest {
                         .setCRLRelativePath(INTERMEDIATE_CA_CRL_PATH)
                         .setConfirmationPageAllowed(true)
                         .setMappingSourceType(SUBJECTDN_EMAIL)
-                        .setUserIdentityMapperType(USERNAME_EMAIL);
+                        .setUserIdentityMapperType(USERNAME_EMAIL)
+                        .setCASubjectDN(List.of(AbstractMutualTLSClientTest.CA_CERTIFICATE_SUBJECT_DN));
         AuthenticatorConfigRepresentation cfg = newConfig("x509-directgrant-config", config.getConfig());
         String cfgId = createConfig(directGrantExecution.getId(), cfg);
         Assertions.assertNotNull(cfgId);
@@ -282,7 +300,8 @@ public class X509DirectGrantTest extends AbstractX509AuthenticationTest {
                     .setCertValidationEnabled(true)
                     .setConfirmationPageAllowed(true)
                     .setMappingSourceType(SUBJECTDN_EMAIL)
-                    .setUserIdentityMapperType(USERNAME_EMAIL);
+                    .setUserIdentityMapperType(USERNAME_EMAIL)
+                    .setCASubjectDN(List.of(AbstractMutualTLSClientTest.CA_CERTIFICATE_SUBJECT_DN));
         AuthenticatorConfigRepresentation cfg = newConfig("x509-directgrant-config", config.getConfig());
         String cfgId = createConfig(directGrantExecution.getId(), cfg);
         Assertions.assertNotNull(cfgId);
@@ -299,7 +318,8 @@ public class X509DirectGrantTest extends AbstractX509AuthenticationTest {
                     .setCertValidationEnabled(true)
                     .setConfirmationPageAllowed(true)
                     .setMappingSourceType(SUBJECTDN_EMAIL)
-                    .setUserIdentityMapperType(USERNAME_EMAIL);
+                    .setUserIdentityMapperType(USERNAME_EMAIL)
+                    .setCASubjectDN(List.of(AbstractMutualTLSClientTest.CA_CERTIFICATE_SUBJECT_DN));
         AuthenticatorConfigRepresentation cfg = newConfig("x509-directgrant-config", config.getConfig());
         String cfgId = createConfig(directGrantExecution.getId(), cfg);
         Assertions.assertNotNull(cfgId);
@@ -391,7 +411,8 @@ public class X509DirectGrantTest extends AbstractX509AuthenticationTest {
         X509AuthenticatorConfigModel config =
                 new X509AuthenticatorConfigModel()
                         .setMappingSourceType(SUBJECTDN_EMAIL)
-                        .setUserIdentityMapperType(USERNAME_EMAIL);
+                        .setUserIdentityMapperType(USERNAME_EMAIL)
+                        .setCASubjectDN(List.of(AbstractMutualTLSClientTest.CA_CERTIFICATE_SUBJECT_DN));
         AuthenticatorConfigRepresentation cfg = newConfig("x509-directgrant-config", config.getConfig());
         String cfgId = createConfig(directGrantExecution.getId(), cfg);
         Assertions.assertNotNull(cfgId);
